@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  midPoint MCP server — "rs-service" profile.
+
+  The role for the technical account the server authenticates with in
+  RESOURCE-SERVER (OIDC) mode, where every tool call executes as the correlated
+  end user via the Switch-To-Principal header.
+
+  Design: the account holds NEAR-ZERO STANDING PRIVILEGE. It gets REST entry for
+  the six endpoints the tools call, plus the impersonation grant - and no model
+  authorization at all. On its own it can read nothing and change nothing; its
+  only power is to borrow the authorizations of a bounded set of end users, and
+  midPoint attributes every change to the human who asked for it.
+
+  Verified on midPoint 4.10.3 with an account holding exactly this role:
+    GET /self + Switch-To-Principal: <employee oid>  -> 200, that employee
+    GET /self without the header                     -> 500 Access denied
+    POST /users/search without the header            -> 200 with an EMPTY list
+    GET /users/<oid> without the header              -> 403
+    Switch-To-Principal: <external archetype oid>    -> 403 (outside proxy scope)
+
+  Two facts that surprise people (both verified on 4.10.3):
+  - REST authorization is checked against the AUTHENTICATED account even while
+    impersonating, so this role must carry the endpoint actions even though it
+    carries no model rights.
+  - The #proxy action alone grants no REST entry whatsoever: a #proxy-only
+    account is 403'd on every endpoint including /self.
+
+  Adjust before importing:
+  - the archetypeRef OIDs below (they are placeholders for YOUR archetypes);
+  - drop #addObject if you do not want create_user;
+  - drop #completeWorkItem if you do not want approve/reject_work_item.
+
+  Not included on purpose: rest-3#executeScript. search_audit needs bulk-action
+  Groovy, which 4.10 unlocks only for full superusers or via a deployment-wide
+  expression profile - and it does not work under impersonation anyway, because
+  the impersonated end user has no script authorization. See
+  docs/authorization.md -> "The search_audit exception".
+-->
+<role xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+      oid="11111111-2222-3333-4444-555555550001">
+    <name>MCP resource-server service</name>
+    <description>
+        Technical account role for midpoint-mcp-server in OIDC resource-server mode:
+        REST entry plus archetype-scoped impersonation, and no model rights of its own.
+    </description>
+
+    <!--
+      REST entry. One action per endpoint the server calls; every other REST verb
+      (DELETE, task control, log access, script execution, ...) stays refused at
+      the security filter.
+        getSelf         GET  /ws/rest/self
+        getObject       GET  /ws/rest/{users,roles,resources,cases}/{oid}
+        searchObjects   POST /ws/rest/{collection}/search
+        addObject       POST /ws/rest/users              (create_user)
+        modifyObject    PATCH /ws/rest/users/{oid}       (enable/disable, assign,
+                                                          unassign, request, recompute)
+        completeWorkItem POST /ws/rest/cases/{oid}/workItems/{id}/complete
+    -->
+    <authorization>
+        <name>rest-entry</name>
+        <description>The REST operations the 25 tools use. Endpoint-level only; object access comes from the impersonated user.</description>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getSelf</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getObject</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#searchObjects</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#addObject</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#modifyObject</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#completeWorkItem</action>
+    </authorization>
+
+    <!--
+      Impersonation, scoped to the population this integration may act for.
+      ObjectSelectorType/archetypeRef is repeatable and OR-ed: an object matches
+      if it carries ANY of the listed archetypes. Everything else - administrators,
+      contractors, service and personal-agent identities, and any user with no
+      archetype - is outside the scope and cannot be impersonated.
+
+      If your deployment does not use archetypes, the alternatives (in decreasing
+      order of preference) are: <subtype>, <orgRef> (impersonate only members of
+      an org subtree), or a <filter>. A bare <type>UserType</type> means "anyone,
+      including every administrator" - do not ship that.
+    -->
+    <authorization>
+        <name>rest-proxy</name>
+        <description>Switch-To-Principal, limited to the governable population.</description>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#proxy</action>
+        <object>
+            <type>UserType</type>
+            <!-- REPLACE with your own archetype OIDs, e.g. an "employee" archetype -->
+            <archetypeRef oid="11111111-2222-3333-4444-5555555500a1"/>
+            <!-- ... and, if machine identities are in scope, e.g. an "ai-agent" archetype -->
+            <archetypeRef oid="11111111-2222-3333-4444-5555555500a2"/>
+        </object>
+    </authorization>
+</role>

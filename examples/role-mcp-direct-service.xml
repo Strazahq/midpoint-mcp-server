@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  midPoint MCP server — "direct-service" profile.
+
+  The role for a SHARED TECHNICAL ACCOUNT: personal/stdio mode (or loopback HTTP)
+  where the server authenticates with one midPoint account and every tool call
+  executes AS that account. It replaces the Superuser role that such deployments
+  reach for by default.
+
+  Design: enumerate exactly the REST endpoints and model operations the 25 tools
+  use, scoped by object type and - for modifications - by item. Anything not
+  listed is refused, at the REST security filter where possible (cheapest, and
+  it never reaches the object) and at the model layer otherwise.
+
+  Verified on midPoint 4.10.3 with an account holding exactly this role:
+    all read tools (search_users, get_user, get_user_assignments, list_roles,
+      get_role, list_resources, get_resource, search_objects, list_requestable_roles,
+      list_my_requests, list_work_items, get_case, list_my_team, list_my_managers,
+      ping) -> 200
+    create_user / enable_user / disable_user / assign_role / request_role /
+      recompute_user -> applied (enable/disable need the shadow authorization
+      below when the user is provisioned)
+    DELETE /users/{oid}                    -> 403 (HTML: no rest-3#deleteObject)
+    PATCH  /users/{oid} fullName           -> 403 (modify is item-restricted)
+    PATCH  /systemConfigurations/...       -> 403 (no model rights on config objects)
+    GET    /tasks/{oid}                    -> 403, POST /tasks/search -> 200 empty
+    POST   /rpc/executeScript              -> 403 (no rest-3#executeScript)
+
+  Adjust before importing: see the per-authorization notes. In particular decide
+  whether the account may create users at all, and how far to narrow the
+  assignment targets.
+-->
+<role xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+      oid="11111111-2222-3333-4444-555555550002">
+    <name>MCP direct service</name>
+    <description>
+        Least-privilege technical-account role for midpoint-mcp-server when every tool call
+        executes as the service account (personal/stdio mode with shared credentials).
+        Replaces Superuser: enumerated REST endpoints and model operations only.
+    </description>
+
+    <!--
+      REST entry - one action per endpoint the server calls. Everything else
+      (deleteObject, task control, log and thread access, script execution,
+      credential reset, resource test/import, ...) is refused before midPoint
+      looks at any object.
+    -->
+    <authorization>
+        <name>rest-entry</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getSelf</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getObject</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#searchObjects</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#addObject</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#modifyObject</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#completeWorkItem</action>
+    </authorization>
+
+    <!--
+      Reads. model-3#read covers both get and search, so one authorization serves
+      GET /{collection}/{oid} and POST /{collection}/search.
+
+      Per type, why it is here:
+        UserType      every user-facing tool, and /self
+        RoleType      list_roles, get_role, list_requestable_roles, assignment targetName
+        OrgType       search_objects(orgs), list_my_team / list_my_managers, assignment targetName
+        ServiceType   search_objects(services)
+        ResourceType  list_resources, get_resource, search_objects(resources)
+        ShadowType    search_objects(shadows) - orphaned-account style reports
+        CaseType      list_my_requests, list_work_items, get_case
+        ArchetypeType only so ?options=resolveNames can print an archetype's name
+
+      Trim what you do not use: dropping ShadowType/ServiceType/OrgType only
+      disables the corresponding search_objects targets; dropping ArchetypeType
+      only blanks a display name.
+
+      To restrict WHICH users are visible (e.g. one org subtree), add a selector
+      to the UserType entry, e.g. <orgRef oid="..."/> or an archetypeRef.
+    -->
+    <authorization>
+        <name>read-governed-objects</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#read</action>
+        <object><type>UserType</type></object>
+        <object><type>RoleType</type></object>
+        <object><type>OrgType</type></object>
+        <object><type>ServiceType</type></object>
+        <object><type>ResourceType</type></object>
+        <object><type>ShadowType</type></object>
+        <object><type>CaseType</type></object>
+        <object><type>ArchetypeType</type></object>
+    </authorization>
+
+    <!--
+      create_user. Drop this authorization entirely if the assistant should never
+      create identities (the tool then returns midPoint's refusal).
+    -->
+    <authorization>
+        <name>create-users</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#add</action>
+        <object><type>UserType</type></object>
+    </authorization>
+
+    <!--
+      The only writes the tools perform on an existing user:
+        activation  -> enable_user / disable_user
+        assignment  -> assign_role / unassign_role / request_role
+      recompute_user sends an empty modification with options=reconcile and needs
+      no item.
+
+      The <item> restriction is what keeps this from being "modify any user":
+      a PATCH of fullName, emailAddress, credentials, subtype, ... is refused
+      (verified: 403). Do not replace it with an unrestricted modify.
+    -->
+    <authorization>
+        <name>modify-users-activation-and-assignment</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#modify</action>
+        <object><type>UserType</type></object>
+        <item>activation</item>
+        <item>assignment</item>
+    </authorization>
+
+    <!--
+      The PROVISIONING side of the same operations. midPoint's projector runs as
+      this account, so disabling a provisioned user (activation flows outbound to
+      their accounts) and assigning/unassigning a role that constructs accounts
+      need shadow writes too.
+
+      Verified on 4.10.3, and worth knowing: without this, disable_user on a
+      provisioned user fails with
+
+        not authorized for operation ...#modify on shadow:<oid>(<user>)
+
+      and midPoint has ALREADY committed the focus change - the user ends up
+      disabled in midPoint but still enabled downstream. Half-applied is worse
+      than refused, so grant this whenever the tools may touch provisioned users.
+      midPoint's own built-in "End user" role has the same shape (self-shadow
+      add/modify/delete).
+
+      Tightening options, in order of preference:
+      - narrow the object selector to the resources this integration governs
+        (a filter on resourceRef);
+      - add <item>activation</item> here. Verified that enable_user/disable_user
+        still work with it - but it is NOT a safe default: assigning a role whose
+        construction writes shadow ATTRIBUTES would then half-apply, exactly as
+        above.
+    -->
+    <authorization>
+        <name>provision-shadows</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#add</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#modify</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#delete</action>
+        <object><type>ShadowType</type></object>
+    </authorization>
+
+    <!--
+      Assignment changes are authorized twice in midPoint: in the REQUEST phase by
+      #assign/#unassign (which sees the target), and in the EXECUTION phase by the
+      item-restricted #modify above. Both are needed.
+
+      The target is scoped to RoleType. Narrow it further for a self-service-only
+      deployment, exactly like midPoint's built-in "End user" role does:
+
+        <target>
+            <type>RoleType</type>
+            <filter>
+                <q:equal xmlns:q="http://prism.evolveum.com/xml/ns/public/query-3">
+                    <q:path>requestable</q:path>
+                    <q:value>true</q:value>
+                </q:equal>
+            </filter>
+        </target>
+    -->
+    <authorization>
+        <name>assign-and-unassign-roles</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#assign</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#unassign</action>
+        <object><type>UserType</type></object>
+        <target><type>RoleType</type></target>
+    </authorization>
+
+    <!--
+      approve_work_item / reject_work_item. Pair with rest-3#completeWorkItem above.
+      Drop both if the assistant must never decide approvals.
+    -->
+    <authorization>
+        <name>complete-work-items</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#completeWorkItem</action>
+        <object><type>CaseType</type></object>
+    </authorization>
+
+    <!--
+      ===================================================================
+      OPTIONAL AND DELIBERATELY DISABLED: search_audit.
+      ===================================================================
+      midPoint 4.10 has no audit REST endpoint, so search_audit runs a Groovy
+      bulk action. Enabling it needs the block below AND a deployment-wide
+      expression profile (SystemConfigurationType/expressions/defaults/bulkActions),
+      because with the built-in default midPoint refuses the script evaluator:
+
+        Access to script expression evaluator not allowed
+        (expression profile: ##legacyUnprivilegedBulkActions) in script
+
+      Verified on 4.10.3: adding authorization-model-3#all is NOT enough - only the
+      real superuser action authorization-3#all gets through. So on 4.10 there is
+      no least-privilege way to enable this tool: you either run the server with
+      superuser-equivalent credentials, or you widen the deployment's bulk-action
+      expression profile - which hands this account arbitrary Groovy (and, with a
+      permissive profile, privilege elevation), i.e. MORE than the Superuser role
+      you removed.
+
+      Recommendation: leave it off. The other 24 tools are unaffected; search_audit
+      simply returns an error. See docs/authorization.md.
+
+      <authorization>
+          <name>audit-read</name>
+          <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#auditRead</action>
+      </authorization>
+      <authorization>
+          <name>execute-audit-script</name>
+          <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#executeScript</action>
+          <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-bulk-3#all</action>
+      </authorization>
+      <authorization>
+          <name>read-system-configuration</name>
+          <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#read</action>
+          <object><type>SystemConfigurationType</type></object>
+      </authorization>
+      ... plus authorization-rest-3#executeScript in the rest-entry block above.
+    -->
+</role>

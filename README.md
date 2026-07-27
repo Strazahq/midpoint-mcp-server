@@ -162,6 +162,22 @@ account its `#proxy` authorization — is covered in
 server is a *resource server*, so it needs **no client secret** — only the issuer
 and audience.
 
+**What the midPoint account may do** — the least-privilege roles for both
+deployment shapes, verified against midPoint 4.10.3 — is covered in
+[docs/authorization.md](docs/authorization.md), with importable examples:
+
+- [`examples/role-mcp-rs-service.xml`](examples/role-mcp-rs-service.xml) — for
+  resource-server (OIDC) mode: REST entry plus archetype-scoped `#proxy`, and
+  **no model rights at all**. The account can read nothing and change nothing by
+  itself; it only borrows the authorizations of the correlated end user.
+- [`examples/role-mcp-direct-service.xml`](examples/role-mcp-direct-service.xml) —
+  for a shared technical account: exactly the REST endpoints and model operations
+  the tools use, replacing the Superuser role such deployments usually reach for.
+
+Neither profile should be a superuser. If you are wondering whether `#proxy` can be
+restricted to approvals only, that question is answered (with the reasoning) in the
+authorization doc.
+
 ## Tools
 
 Read (default, **implemented**):

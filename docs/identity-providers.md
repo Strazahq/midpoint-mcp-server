@@ -154,10 +154,24 @@ then executes each request *as the correlated user* via midPoint's
 - The service account needs the REST authorization action
   `http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#proxy`,
   scoped to the users it may impersonate.
-  - **Note:** the superuser role's model-level `#all` authorization does **not**
-    include this REST action. Grant it explicitly — e.g. a small role holding just
-    that action (scoped by object type `UserType`, or better by archetype) and
-    assign it to the service account.
+  - **Verified on 4.10.3:** the superuser role's `#all` *does* cover this REST
+    action — a superuser can impersonate with no extra grant. That is not a reason
+    to skip the explicit grant: a service account must not **be** a superuser, and
+    the moment you take superuser away the explicit `#proxy` role is what keeps
+    impersonation working. Scope it by archetype (`ObjectSelectorType/archetypeRef`,
+    repeatable and OR-ed) rather than by bare object type, so administrators and
+    other out-of-scope identities can never be impersonated.
+  - **Also verified on 4.10.3:** `#proxy` alone grants **no REST entry at all** —
+    an account holding only `#proxy` is refused with `403` on every endpoint,
+    including `/self`, even with the `Switch-To-Principal` header. midPoint checks
+    the REST endpoint authorization against the *authenticated* service account and
+    the object/model authorizations against the impersonated user, so the service
+    account also needs the per-endpoint REST actions (`#getSelf`, `#getObject`,
+    `#searchObjects`, `#addObject`, `#modifyObject`, `#completeWorkItem`).
+  - A complete, importable role for exactly this — REST entry plus archetype-scoped
+    `#proxy`, and no model rights whatsoever — is
+    [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml);
+    the reasoning is in [docs/authorization.md](authorization.md).
 - The **impersonated users** need enough authorization of their own to perform the
   operations, because the request runs as them. A bare user with no authorizations
   cannot even read their own `/self`. In practice assign end users the built-in
