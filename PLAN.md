@@ -151,6 +151,32 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   AC against a live midPoint: a manager lists their reports, views a report's
   access, requests a role for that report, and the request routes to the correct
   approver.
+
+  **Extended 2026-07-27, from live testing in a gateway-brokered deployment**
+  (the server spawned over stdio with a *technical* account while the gateway
+  knew the end user). Findings, all fixed:
+  - **A self-scoped tool must never claim an identity the server does not have.**
+    Personal mode silently means "the configured credentials", which is the human
+    only when those credentials are theirs. `list_my_team` / `list_my_managers` /
+    `list_work_items` / `list_my_requests` said "you" and reported a service
+    account's empty inbox to a user who had a pending work item. They now name
+    their subject and carry it structurally; `whoami` reports the acting identity,
+    the mode, and the org links; `identity.credentialIsShared` makes them refuse
+    rather than answer for a technical account. The real fix remains
+    resource-server mode.
+  - **An empty answer must say which empty it is.** Team results carry the org
+    links they were derived from, separating "no org links" from "org links whose
+    members this identity may not see" (the authorization gap above).
+  - **A tool named `request_role` must not grant.** midPoint routes an
+    assignment-add through approval only where policy matches and executes it
+    immediately otherwise — the same delta `assign_role` sends. It now refuses
+    roles not flagged `requestable` (`requests.requireRequestable`, default on).
+  - **`list_my_teammates`** (peers) completes the trio, and the org modelling all
+    three depend on became configurable via `MIDPOINT_MCP_CONFIG`
+    (`team.orgSource` incl. an assignment fallback, relation local parts, and an
+    org selector). Verified live end to end against midPoint 4.10.3.
+  - Noted for M4.5/v1.5: `GET /self` **ignores** `options=resolveNames` on 4.10.3,
+    so org refs come back unnamed; the by-OID read honours it.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.
