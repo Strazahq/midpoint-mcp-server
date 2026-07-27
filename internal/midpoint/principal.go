@@ -2,6 +2,7 @@ package midpoint
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
 
@@ -75,24 +76,50 @@ type Principal struct {
 	Orgs         []OrgLink `json:"orgs" jsonschema:"the orgs this identity is linked to, with the relation that links them"`
 }
 
-// Whoami resolves the acting identity together with its org links.
+// ErrNoCallerIdentity is returned by self-scoped operations when the deployment
+// has declared its credentials shared (identity.credentialIsShared) and the
+// request carries no mapped end user. Answering would describe the service
+// account, which is never what "my team" or "my inbox" meant.
+var ErrNoCallerIdentity = errors.New(
+	"this server authenticates to midPoint with a shared/technical account and this request carries no caller identity, " +
+		"so a self-scoped answer would describe that account rather than you; " +
+		"use resource-server mode to pass the end user's identity, or set identity.credentialIsShared=false in " +
+		EnvConfigFile + " if the configured credentials really are one person's")
+
+// requireCallerIdentity refuses a self-scoped call that could only answer for a
+// shared service account.
+func (c *Client) requireCallerIdentity(ctx context.Context) error {
+	if c.cfg.File.Identity.CredentialIsShared && c.Mode(ctx) == ModePersonal {
+		return ErrNoCallerIdentity
+	}
+	return nil
+}
+
+// Whoami resolves the acting identity together with its org links. It is
+// deliberately exempt from requireCallerIdentity: when self-scoped tools are
+// refused, this is the call that explains why.
 func (c *Client) Whoami(ctx context.Context) (Principal, error) {
 	self, err := c.selfUser(ctx)
 	if err != nil {
 		return Principal{}, err
 	}
 	s := self.summary()
+	team := c.teamConfig()
 	return Principal{
 		Subject:      Subject{OID: s.OID, Name: s.Name, Mode: c.Mode(ctx)},
 		FullName:     s.FullName,
 		EmailAddress: s.EmailAddress,
 		Impersonated: principalFromContext(ctx) != "",
-		Orgs:         orgLinks(self.parentOrgs()),
+		Orgs:         orgLinks(callerOrgs(self, team), team),
 	}, nil
 }
 
-// subject resolves who a self-scoped call answers for.
+// subject resolves who a self-scoped call answers for, refusing first when the
+// deployment says the credentials cannot stand in for a caller.
 func (c *Client) subject(ctx context.Context) (Subject, error) {
+	if err := c.requireCallerIdentity(ctx); err != nil {
+		return Subject{}, err
+	}
 	self, err := c.selfUser(ctx)
 	if err != nil {
 		return Subject{}, fmt.Errorf("resolving self: %w", err)

@@ -1,0 +1,32 @@
+{
+  "//": "Optional settings file for midpoint-mcp-server. Point MIDPOINT_MCP_CONFIG at it.",
+  "//credentials": "NEVER put credentials here — they are read from the environment only.",
+  "//behavior": "Every key below is optional; the values shown are the defaults.",
+
+  "identity": {
+    "//credentialIsShared": "Set true when MIDPOINT_USERNAME is a technical/shared account rather than one person's login. Self-scoped tools (list_my_team, list_my_teammates, list_my_managers, list_work_items, list_my_requests) then refuse in personal mode instead of answering for the service account. They still work for requests carrying a mapped end user (resource-server mode). whoami always answers, so a caller can see why.",
+    "credentialIsShared": false
+  },
+
+  "team": {
+    "//orgSource": "Where a caller's org links come from: 'parentOrgRef' (midPoint's computed membership, the default), 'assignment' (org assignments only), 'fallback' (parentOrgRef, then assignments when it is empty), or 'both'.",
+    "orgSource": "parentOrgRef",
+
+    "//managerRelation": "Relation local part marking a user as manager of an org. Local part only — 'manager', not 'org:manager'.",
+    "managerRelation": "manager",
+
+    "//memberRelation": "Relation local part marking plain membership, used when searching an org for members.",
+    "memberRelation": "default",
+
+    "//orgOids": "Narrow which of the caller's orgs count as their team. Empty = all of them, which for a user in several orgs makes list_my_teammates return everyone in all of them.",
+    "orgOids": [],
+
+    "//orgNames": "Same, by org name (matched case-insensitively). Combined with orgOids as an OR.",
+    "orgNames": []
+  },
+
+  "requests": {
+    "//requireRequestable": "Refuse request_role for roles midPoint's catalog does not flag requestable. On by default: request_role submits a plain assignment-add, which midPoint turns into an approval case only where policy says so and otherwise executes immediately — so without this, 'request' is an unrestricted grant path. Use assign_role for a deliberate grant.",
+    "requireRequestable": true
+  }
+}

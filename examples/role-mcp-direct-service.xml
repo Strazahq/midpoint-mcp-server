@@ -7,7 +7,7 @@
   executes AS that account. It replaces the Superuser role that such deployments
   reach for by default.
 
-  Design: enumerate exactly the REST endpoints and model operations the 25 tools
+  Design: enumerate exactly the REST endpoints and model operations the 27 tools
   use, scoped by object type and - for modifications - by item. Anything not
   listed is refused, at the REST security filter where possible (cheapest, and
   it never reaches the object) and at the model layer otherwise.

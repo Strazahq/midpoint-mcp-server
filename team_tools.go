@@ -14,6 +14,7 @@ import (
 func registerTeamTools(server *mcp.Server, client *midpoint.Client) {
 	registerListMyTeam(server, client)
 	registerListMyManagers(server, client)
+	registerListMyTeammates(server, client)
 }
 
 // teamOutput carries the users found plus the identity and org links they were
@@ -52,6 +53,23 @@ func registerListMyManagers(server *mcp.Server, client *midpoint.Client) {
 			return nil, teamOutput{}, err
 		}
 		return text(teamMessage(res, "reports to", "manager", "belongs to no orgs")), teamResult(res), nil
+	})
+}
+
+func registerListMyTeammates(server *mcp.Server, client *midpoint.Client) {
+	mcp.AddTool(server, &mcp.Tool{
+		Name:  "list_my_teammates",
+		Title: "List my teammates",
+		Description: "List the authenticated user's peers: the other members of the orgs they belong to " +
+			"(the caller is excluded). Which orgs count as 'my team' is a deployment setting — a user who belongs " +
+			"to several orgs would otherwise return everyone in all of them — see the team.orgOids / team.orgNames " +
+			"selector in the config file.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, teamOutput, error) {
+		res, err := client.ListMyTeammates(ctx, in.Limit)
+		if err != nil {
+			return nil, teamOutput{}, err
+		}
+		return text(teamMessage(res, "has", "teammate", "belongs to no orgs")), teamResult(res), nil
 	})
 }
 

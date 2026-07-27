@@ -59,7 +59,7 @@
     -->
     <authorization>
         <name>rest-entry</name>
-        <description>The REST operations the 25 tools use. Endpoint-level only; object access comes from the impersonated user.</description>
+        <description>The REST operations the 27 tools use. Endpoint-level only; object access comes from the impersonated user.</description>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getSelf</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getObject</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#searchObjects</action>

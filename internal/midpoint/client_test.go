@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -159,7 +160,7 @@ func TestConfigFromEnv(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for _, k := range []string{EnvURL, EnvUsername, EnvPassword, EnvInsecureTLS} {
+			for _, k := range []string{EnvURL, EnvUsername, EnvPassword, EnvInsecureTLS, EnvConfigFile} {
 				t.Setenv(k, "")
 			}
 			for k, v := range tt.env {
@@ -181,7 +182,7 @@ func TestConfigFromEnv(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ConfigFromEnv() unexpected error: %v", err)
 			}
-			if got != tt.wantConfig {
+			if !reflect.DeepEqual(got, tt.wantConfig) {
 				t.Fatalf("ConfigFromEnv() = %+v, want %+v", got, tt.wantConfig)
 			}
 		})

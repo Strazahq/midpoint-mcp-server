@@ -41,6 +41,15 @@ on-behalf-of tool argument — so it requires a signed token from an IdP the
 organization already runs. A local personal process has no such problem: it simply
 *is* one person with their own credentials. See [Running](#running) for both.
 
+> **Personal mode with a *service* account is the case to watch.** Personal mode
+> is correct when the credentials belong to the person using it. Point it at a
+> shared technical account — a gateway spawning the server per session, for
+> instance — and the self-scoped tools ("my team", "my inbox") start answering
+> for that account while the human reads the answer as being about themselves.
+> `whoami` always says which is happening, and
+> [`identity.credentialIsShared`](#settings-file) makes those tools refuse rather
+> than mislead. The actual fix is resource-server mode.
+
 ## Configuration
 
 Credentials are read from the environment at runtime (never written to disk):
@@ -56,10 +65,38 @@ Credentials are read from the environment at runtime (never written to disk):
 | `MIDPOINT_MCP_OIDC_AUDIENCE` | no | expected token audience for resource-server mode |
 | `MIDPOINT_MCP_OIDC_CORRELATION_CLAIM` | no | token claim matched to a midPoint user (default `preferred_username`); see [docs](docs/identity-providers.md#requirement-2--correlation-which-midpoint-user-is-this) |
 | `MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE` | no | midPoint attribute the claim is matched against (default `name`) |
+| `MIDPOINT_MCP_CONFIG` | no | path to a JSON settings file (below) — org modelling and self-service guardrails |
 
 In resource-server mode, `MIDPOINT_USERNAME`/`MIDPOINT_PASSWORD` are the **service
 account** — it authenticates the server to midPoint and must hold the
 archetype-filtered `#proxy` authorization so it can act as the mapped end users.
+
+### Settings file
+
+Some behaviour can't be guessed: deployments model org structure differently, and
+a wrong guess silently returns nobody. `MIDPOINT_MCP_CONFIG` points at a JSON file
+of **non-secret** settings — credentials are never read from it. Every key is
+optional; see [`examples/midpoint-mcp.config.json`](examples/midpoint-mcp.config.json)
+for an annotated copy (keys prefixed `//` are treated as comments; any *other*
+unknown key is an error, so a typo can't silently keep the default).
+
+| Key | Default | Purpose |
+| --- | --- | --- |
+| `identity.credentialIsShared` | `false` | `true` declares `MIDPOINT_USERNAME` a technical/shared account: self-scoped tools then **refuse** in personal mode rather than answering for the service account (see below) |
+| `team.orgSource` | `parentOrgRef` | where a caller's org links come from: `parentOrgRef` (midPoint's computed membership), `assignment` (org assignments only), `fallback` (parentOrgRef, then assignments when empty), `both` |
+| `team.managerRelation` | `manager` | relation local part marking a manager of an org — local part only, not `org:manager` |
+| `team.memberRelation` | `default` | relation local part marking plain membership, used when searching an org for members |
+| `team.orgOids` / `team.orgNames` | all | which of the caller's orgs count as "my team". Empty means all of them, so a user in several orgs gets everyone from all of them out of `list_my_teammates`. Names match case-insensitively |
+| `requests.requireRequestable` | `true` | refuse `request_role` for roles midPoint's catalog does not flag `requestable` |
+
+**On `credentialIsShared`.** Personal mode assumes the credentials *are* the
+person. When they're a shared service account — a gateway spawning the server
+per-session, say — that assumption breaks quietly: midPoint answers correctly for
+the service account, and the human reads it as an answer about themselves.
+`whoami` always reports which of the two is happening; setting
+`identity.credentialIsShared: true` makes the self-scoped tools refuse instead of
+answering, and the real fix is resource-server mode, which gives each request the
+caller's own identity.
 
 ## Running
 
@@ -180,6 +217,15 @@ authorization doc.
 
 ## Tools
 
+Identity (**implemented**, read-only):
+
+- `ping` — connectivity check; reports the authenticated identity
+- `whoami` — the identity midPoint executes as, how it was established
+  (`personal` / `resource-server`), whether the request is impersonated, and that
+  identity's org links. **Call this first when a `list_my_*` tool comes back
+  unexpectedly empty** — it separates "you genuinely have none" from "this server
+  is not acting as you"
+
 Read (default, **implemented**):
 
 - `search_users` / `get_user` — find identities by name, email, or OID
@@ -202,8 +248,13 @@ and the approval actions respect the write gate):
   as you, so it works per-user in resource-server mode). Pass `forUser` (a report's
   OID from `list_my_team`) to list what that report can be given but doesn't
   already hold — then `request_role` for them
-- `request_role` — self-service role request (routed through midPoint's approval
-  policy when one applies)
+- `request_role` — request a role for yourself or a report. It submits an
+  assignment-add delta, and midPoint's policy decides whether that opens an
+  approval case or applies immediately — so by default it **refuses roles the
+  catalog does not flag `requestable`**, because for those it would grant rather
+  than request. Use `assign_role` for a deliberate grant, or set
+  `requests.requireRequestable: false` to lift the guardrail. When no approval
+  policy matches a requestable role, the result says the role was GRANTED
 - `list_my_requests` — approval cases you initiated
 - `list_work_items` — your approval inbox
 - `get_case` — a case and its work items
@@ -217,6 +268,14 @@ them to what that manager may see):
   `list_requestable_roles?forUser=` to see what they can be given, and
   `request_role` (which accepts a target user) to request it for them
 - `list_my_managers` — who you report to: the managers of the orgs you belong to
+- `list_my_teammates` — your peers: the other members of the orgs you belong to.
+  Which orgs count is a deployment question — narrow it with `team.orgOids` /
+  `team.orgNames`, or a user in several orgs gets everyone from all of them
+
+All three name the identity they answered for and return the org links they were
+derived from, so an empty result says *why*: no qualifying org links at all, or
+org links whose members midPoint did not return for this identity (the
+authorization gap below). Where those links are read from is `team.orgSource`.
 
 > Manager tools run as the caller, so a **non-superuser manager needs read
 > authorization over their reports** for `list_my_team` to return anyone — being an

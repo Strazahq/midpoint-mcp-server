@@ -57,6 +57,11 @@ type Config struct {
 	// runs first regardless. Inert outside resource-server mode.
 	OIDCCorrelationClaim     string
 	OIDCCorrelationAttribute string
+
+	// File holds the optional non-secret settings file (MIDPOINT_MCP_CONFIG):
+	// how this deployment models org structure and which self-service
+	// guardrails apply. Zero value = documented defaults.
+	File FileConfig
 }
 
 // ResourceServerMode reports whether OIDC bearer-token auth is configured.
@@ -106,6 +111,12 @@ func ConfigFromEnv() (Config, error) {
 		return Config{}, fmt.Errorf("%s %q is not a valid midPoint attribute path (letters, digits, and '/' only)",
 			EnvOIDCCorrelationAttribute, cfg.OIDCCorrelationAttribute)
 	}
+
+	file, err := LoadFileConfig()
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.File = file
 
 	return cfg, nil
 }

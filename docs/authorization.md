@@ -103,7 +103,7 @@ that account. It must not be a superuser.
 
 [`examples/role-mcp-direct-service.xml`](../examples/role-mcp-direct-service.xml) is
 the enumerated least-privilege alternative: exactly the REST endpoints and model
-operations the 25 tools use, and nothing else. Highlights of what it deliberately
+operations the 27 tools use, and nothing else. Highlights of what it deliberately
 does **not** grant:
 
 - no `#deleteObject` — no tool deletes anything, so `DELETE /users/<oid>` is refused

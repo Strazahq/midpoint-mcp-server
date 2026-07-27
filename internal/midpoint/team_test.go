@@ -3,6 +3,7 @@ package midpoint
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,10 @@ import (
 // newTeamClient serves GET /self (with the given body) and POST /users/search
 // (dispatching by the request's query-language filter).
 func newTeamClient(t *testing.T, selfBody string, search func(filter string) string) *Client {
+	return newTeamClientCfg(t, selfBody, search, FileConfig{})
+}
+
+func newTeamClientCfg(t *testing.T, selfBody string, search func(filter string) string, fc FileConfig) *Client {
 	t.Helper()
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /ws/rest/self", func(w http.ResponseWriter, _ *http.Request) {
@@ -32,7 +37,7 @@ func newTeamClient(t *testing.T, selfBody string, search func(filter string) str
 	})
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
-	return NewClient(Config{BaseURL: srv.URL, Username: "svc", Password: "p"})
+	return NewClient(Config{BaseURL: srv.URL, Username: "svc", Password: "p", File: fc})
 }
 
 // selfWithOrgs renders a /self body whose parentOrgRef carries the given refs.
@@ -149,9 +154,182 @@ func TestRelationLocalAndIsManager(t *testing.T) {
 		"member":      false,
 	}
 	for rel, wantMgr := range cases {
-		if got := (orgRef{Relation: rel}).isManager(); got != wantMgr {
+		if got := (orgRef{Relation: rel}).isManagerOf(relationManager); got != wantMgr {
 			t.Errorf("isManager(%q) = %v, want %v", rel, got, wantMgr)
 		}
+	}
+}
+
+// selfWithAssignedOrgs renders a /self body whose org links exist only as
+// assignments — the shape a deployment has when parentOrgRef was never computed.
+func selfWithAssignedOrgs(refs ...orgRef) string {
+	items := make([]map[string]any, 0, len(refs))
+	for _, r := range refs {
+		items = append(items, map[string]any{
+			"targetRef": map[string]string{"oid": r.OID, "relation": r.Relation, "type": "c:OrgType"},
+		})
+	}
+	b, _ := json.Marshal(map[string]any{
+		"user": map[string]any{"oid": "me", "name": "mgr", "assignment": items},
+	})
+	return string(b)
+}
+
+func TestListMyTeammates(t *testing.T) {
+	self := selfWithOrgs(orgRef{OID: "org-mem", Relation: "org:default"})
+	c := newTeamClient(t, self, func(filter string) string {
+		// Peers = the OTHER members of the org the caller belongs to.
+		if strings.Contains(filter, "org-mem") && strings.Contains(filter, "relation = default") {
+			return `{"object":[{"oid":"me","name":"mgr"},{"oid":"p1","name":"peer-one"},{"oid":"p2","name":"peer-two"}]}`
+		}
+		return `{"object":[]}`
+	})
+
+	res, err := c.ListMyTeammates(context.Background(), 0)
+	if err != nil {
+		t.Fatalf("ListMyTeammates: %v", err)
+	}
+	if got := names(res.Users); len(got) != 2 || got[0] != "peer-one" || got[1] != "peer-two" {
+		t.Fatalf("teammates = %v, want [peer-one peer-two] (caller excluded)", got)
+	}
+}
+
+// orgSource decides where org links are read from, so a deployment whose
+// parentOrgRef is empty can still resolve teams from the assignments.
+func TestOrgSourceSelectsWhereLinksComeFrom(t *testing.T) {
+	both := `{"user":{"oid":"me","name":"mgr",
+		"parentOrgRef":[{"oid":"org-computed","relation":"org:manager","type":"OrgType"}],
+		"assignment":[{"targetRef":{"oid":"org-assigned","relation":"org:manager","type":"c:OrgType"}}]}}`
+
+	tests := []struct {
+		source string
+		self   string
+		want   []string
+	}{
+		{OrgSourceParentOrgRef, both, []string{"org-computed"}},
+		{OrgSourceAssignment, both, []string{"org-assigned"}},
+		{OrgSourceBoth, both, []string{"org-computed", "org-assigned"}},
+		// fallback prefers the computed ref and only reaches for assignments
+		// when there is none.
+		{OrgSourceFallback, both, []string{"org-computed"}},
+		{OrgSourceFallback, selfWithAssignedOrgs(orgRef{OID: "org-assigned", Relation: "org:manager"}), []string{"org-assigned"}},
+		{OrgSourceParentOrgRef, selfWithAssignedOrgs(orgRef{OID: "org-assigned", Relation: "org:manager"}), nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.source+"/"+strings.Join(tt.want, "+"), func(t *testing.T) {
+			c := newTeamClientCfg(t, tt.self, func(string) string { return `{"object":[]}` },
+				FileConfig{Team: TeamConfig{OrgSource: tt.source}})
+			res, err := c.ListMyTeam(context.Background(), 0)
+			if err != nil {
+				t.Fatalf("ListMyTeam: %v", err)
+			}
+			got := make([]string, 0, len(res.Orgs))
+			for _, o := range res.Orgs {
+				got = append(got, o.OID)
+			}
+			if strings.Join(got, ",") != strings.Join(tt.want, ",") {
+				t.Errorf("orgs = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// The org selector is what stops "my teammates" from meaning "everyone in every
+// org I happen to belong to".
+func TestOrgSelectorNarrowsTeamQueries(t *testing.T) {
+	self := selfWithOrgs(
+		orgRef{OID: "org-team", Relation: "org:default"},
+		orgRef{OID: "org-all-staff", Relation: "org:default"},
+	)
+	var asked []string
+	c := newTeamClientCfg(t, self, func(filter string) string {
+		asked = append(asked, filter)
+		return `{"object":[{"oid":"p1","name":"peer-one"}]}`
+	}, FileConfig{Team: TeamConfig{OrgOIDs: []string{"org-team"}}})
+
+	res, err := c.ListMyTeammates(context.Background(), 0)
+	if err != nil {
+		t.Fatalf("ListMyTeammates: %v", err)
+	}
+	if len(res.Orgs) != 1 || res.Orgs[0].OID != "org-team" {
+		t.Fatalf("orgs = %+v, want only the selected org", res.Orgs)
+	}
+	if len(asked) != 1 || strings.Contains(asked[0], "org-all-staff") {
+		t.Errorf("query %v must not reach the unselected org", asked)
+	}
+}
+
+// whoami still reports the excluded orgs, flagged, so a selector that matches
+// nothing is visible instead of just returning nobody.
+func TestWhoamiReportsUnselectedOrgs(t *testing.T) {
+	self := selfWithOrgs(
+		orgRef{OID: "org-team", Relation: "org:default"},
+		orgRef{OID: "org-all-staff", Relation: "org:default"},
+	)
+	c := newTeamClientCfg(t, self, func(string) string { return `{"object":[]}` },
+		FileConfig{Team: TeamConfig{OrgOIDs: []string{"org-team"}}})
+
+	p, err := c.Whoami(context.Background())
+	if err != nil {
+		t.Fatalf("Whoami: %v", err)
+	}
+	if len(p.Orgs) != 2 {
+		t.Fatalf("whoami orgs = %+v, want both links", p.Orgs)
+	}
+	if !p.Orgs[0].Selected || p.Orgs[1].Selected {
+		t.Errorf("selected flags = %v/%v, want true/false", p.Orgs[0].Selected, p.Orgs[1].Selected)
+	}
+}
+
+// A deployment that declares its credentials shared must not have self-scoped
+// tools answer for the service account.
+func TestSharedCredentialRefusesSelfScopedTools(t *testing.T) {
+	self := selfWithOrgs(orgRef{OID: "org-mgd", Relation: "org:manager"})
+	fc := FileConfig{Identity: IdentityConfig{CredentialIsShared: true}}
+	searches := 0
+	c := newTeamClientCfg(t, self, func(string) string {
+		searches++
+		return `{"object":[]}`
+	}, fc)
+
+	if _, err := c.ListMyTeam(context.Background(), 0); !errors.Is(err, ErrNoCallerIdentity) {
+		t.Errorf("ListMyTeam error = %v, want ErrNoCallerIdentity", err)
+	}
+	if _, err := c.ListMyTeammates(context.Background(), 0); !errors.Is(err, ErrNoCallerIdentity) {
+		t.Errorf("ListMyTeammates error = %v, want ErrNoCallerIdentity", err)
+	}
+	if searches != 0 {
+		t.Errorf("refused calls issued %d search(es); they must not reach midPoint", searches)
+	}
+	// whoami is the exception: it is how the caller learns why.
+	if _, err := c.Whoami(context.Background()); err != nil {
+		t.Errorf("Whoami must still answer: %v", err)
+	}
+	// A mapped end user carries a real identity, so the refusal lifts.
+	if _, err := c.ListMyTeam(WithPrincipal(context.Background(), "u-alice"), 0); err != nil {
+		t.Errorf("resource-server mode must not be refused: %v", err)
+	}
+}
+
+// relations are deployment-specific; the configured local part must reach both
+// the classification of the caller's own links and the membership query.
+func TestConfiguredRelationsReachTheQuery(t *testing.T) {
+	self := selfWithOrgs(orgRef{OID: "org-1", Relation: "org:org-owner"})
+	var asked string
+	c := newTeamClientCfg(t, self, func(filter string) string {
+		asked = filter
+		return `{"object":[{"oid":"r1","name":"rep-one"}]}`
+	}, FileConfig{Team: TeamConfig{ManagerRelation: "org-owner", MemberRelation: "staff"}})
+
+	res, err := c.ListMyTeam(context.Background(), 0)
+	if err != nil {
+		t.Fatalf("ListMyTeam: %v", err)
+	}
+	if len(res.Orgs) != 1 || !res.Orgs[0].Manager {
+		t.Fatalf("orgs = %+v, want org-1 classified as managed via org-owner", res.Orgs)
+	}
+	if !strings.Contains(asked, "relation = staff") {
+		t.Errorf("filter %q must use the configured member relation", asked)
 	}
 }
 

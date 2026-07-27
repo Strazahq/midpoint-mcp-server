@@ -159,16 +159,46 @@ type orgRef struct {
 	OID        string     `json:"oid"`
 	Relation   string     `json:"relation"`
 	TargetName polyString `json:"targetName"`
+	// source records which part of the user object the link came from
+	// (parentOrgRef or assignment); it is reported so a deployment can see why a
+	// team query saw what it saw.
+	source string `json:"-"`
 }
 
 // parentOrgs decodes the user's parentOrgRef entries (tolerating single/array).
+// This is midPoint's computed org membership and the default source of truth.
 func (u userJSON) parentOrgs() []orgRef {
 	out := make([]orgRef, 0, len(u.ParentOrgRef))
 	for _, raw := range u.ParentOrgRef {
 		var r orgRef
 		if json.Unmarshal(raw, &r) == nil && r.OID != "" {
+			r.source = OrgSourceParentOrgRef
 			out = append(out, r)
 		}
+	}
+	return out
+}
+
+// assignedOrgs derives org links from the user's org assignments. It is the
+// fallback for deployments whose computed parentOrgRef is absent — the
+// assignment is what an operator actually authored, and a user can hold one
+// without midPoint having recomputed the ref.
+func (u userJSON) assignedOrgs() []orgRef {
+	out := make([]orgRef, 0, len(u.Assignment))
+	for _, raw := range u.Assignment {
+		var a assignmentJSON
+		if json.Unmarshal(raw, &a) != nil || a.TargetRef == nil {
+			continue
+		}
+		if a.TargetRef.OID == "" || cleanType(a.TargetRef.Type) != "Org" {
+			continue
+		}
+		out = append(out, orgRef{
+			OID:        a.TargetRef.OID,
+			Relation:   a.TargetRef.Relation,
+			TargetName: a.TargetRef.TargetName,
+			source:     OrgSourceAssignment,
+		})
 	}
 	return out
 }
@@ -280,6 +310,7 @@ type roleJSON struct {
 	Description string     `json:"description"`
 	Identifier  string     `json:"identifier"`
 	RiskLevel   string     `json:"riskLevel"`
+	Requestable bool       `json:"requestable"`
 }
 
 func (r roleJSON) summary() RoleSummary {

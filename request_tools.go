@@ -65,9 +65,13 @@ type requestRoleInput struct {
 
 func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "request_role",
-		Title:       "Request role",
-		Description: "Request a role (self-service). Submits an assignment-add delta; midPoint policy may route it through an approval case instead of executing. The requester is always the authenticated user. Respects the write gate.",
+		Name:  "request_role",
+		Title: "Request role",
+		Description: "Request a role for yourself or a report. Submits an assignment-add delta; midPoint policy " +
+			"decides whether that opens an approval case or executes immediately — so by default this refuses roles " +
+			"that midPoint's catalog does not flag requestable (see list_requestable_roles), because for those it " +
+			"would grant rather than request. Use assign_role for a deliberate grant. The requester is always the " +
+			"authenticated user. Respects the write gate.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in requestRoleInput) (*mcp.CallToolResult, writeOutput, error) {
 		target := strings.TrimSpace(in.UserOID)
 		if target == "" {
@@ -76,6 +80,12 @@ func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrite
 				return nil, writeOutput{}, fmt.Errorf("resolving self: %w", err)
 			}
 			target = self.OID
+		}
+
+		// Checked before the dry-run preview too: a preview that says "would
+		// request" for a role that would in fact be granted is the same lie.
+		if err := client.EnsureRequestable(ctx, in.RoleOID); err != nil {
+			return nil, writeOutput{}, err
 		}
 
 		plan, err := client.PlanRequestRole(target, in.RoleOID)
@@ -104,8 +114,12 @@ func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrite
 			out.Result = "pending approval; caseOid=" + caseOID
 			return text(fmt.Sprintf("Requested role %s for %s — pending approval (case %s).", in.RoleOID, target, caseOID)), out, nil
 		}
-		out.Result = fmt.Sprintf("status=%d (no approval case found; likely executed directly)", applied.StatusCode)
-		return text(fmt.Sprintf("Requested role %s for %s — %s.", in.RoleOID, target, out.Result)), out, nil
+		// No case means midPoint applied the assignment then and there. Say so
+		// plainly: the caller asked to request access and instead received it,
+		// and a hedge like "likely executed directly" leaves that ambiguous.
+		out.Result = fmt.Sprintf("GRANTED directly — no approval case was created (status=%d)", applied.StatusCode)
+		return text(fmt.Sprintf("Role %s was GRANTED to %s immediately: midPoint applied the assignment and no "+
+			"approval policy matched, so this was not a request. (status=%d)", in.RoleOID, target, applied.StatusCode)), out, nil
 	})
 }
 

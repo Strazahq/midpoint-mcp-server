@@ -15,6 +15,33 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   empty `list_my_team` / `list_work_items` has two very different causes — "you
   genuinely have none" and "this server is not acting as you" — and until now
   nothing told them apart.
+- **Settings file (`MIDPOINT_MCP_CONFIG`)** — optional JSON of NON-SECRET
+  settings; credentials remain environment-only. It exists because some
+  behaviour cannot be guessed: deployments model org structure differently, and
+  a wrong guess silently returns nobody. Keys (all optional, defaults preserve
+  previous behaviour except where noted):
+  - `team.orgSource` — where a caller's org links come from: `parentOrgRef`
+    (midPoint's computed membership, default), `assignment` (org assignments
+    only), `fallback` (parentOrgRef, then assignments when it is empty), `both`.
+    A deployment whose recompute has not run, or that models orgs purely as
+    assignments, has the assignment without the computed ref.
+  - `team.managerRelation` / `team.memberRelation` — the relation local parts
+    that mark management and membership (defaults `manager` / `default`).
+    Validated as bare local parts: they are interpolated into query filters, and
+    a prefixed QName would silently never match.
+  - `team.orgOids` / `team.orgNames` — which of the caller's orgs count as their
+    team. Empty (default) means all of them, which for a user in several orgs
+    makes `list_my_teammates` return everyone in all of them.
+  - `requests.requireRequestable` — see the guardrail under Changed.
+  - `identity.credentialIsShared` — declares `MIDPOINT_USERNAME` a technical
+    account, making self-scoped tools refuse in personal mode instead of
+    answering for it (`whoami` still answers, so the caller learns why).
+  Unknown keys are an error so a typo cannot silently keep a default; keys
+  prefixed `//` are treated as comments. Annotated sample in
+  `examples/midpoint-mcp.config.json`. No new dependency — encoding/json.
+- **`list_my_teammates`** — the caller's peers: the other members of the orgs
+  they belong to, caller excluded. Completes the trio with `list_my_team` (down)
+  and `list_my_managers` (up).
 - **M6 (in progress) — manager & team self-service.** First slice: the team
   discovery primitives.
   - `list_my_team` — the caller's direct reports: members (default relation) of
@@ -40,6 +67,23 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   `list_my_team` to return anyone — the `manager` org relation alone is not
   enough. midPoint's pattern is an `orgRelation` authorization
   (`subjectRelation = manager`); the tools stay agnostic and run as the caller.
+
+### Changed
+
+- **`request_role` refuses roles midPoint does not offer for request** (new
+  default; `requests.requireRequestable: false` restores the old behaviour).
+  `request_role` submits an ordinary assignment-add delta — midPoint converts
+  that into an approval case only where policy matches and executes it
+  immediately everywhere else, so on a deployment without approval policy the
+  tool was an unrestricted grant path wearing a reassuring name. It is also
+  byte-for-byte the same delta as `assign_role`, which does not claim to be a
+  request. The check runs before the dry-run preview too: a preview promising
+  "would request" for a role that would in fact be granted is the same false
+  promise. Found live: `request_role` on a role with no approval policy granted
+  it outright, and the tool reported "no approval case found; likely executed
+  directly".
+- **A `request_role` that executes immediately now says so plainly.** The result
+  reads `GRANTED directly — no approval case was created` instead of hedging.
 
 ### Fixed
 

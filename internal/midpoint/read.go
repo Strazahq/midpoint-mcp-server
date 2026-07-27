@@ -155,6 +155,34 @@ func (c *Client) ListRequestableRolesFor(ctx context.Context, targetOID string, 
 	return out, nil
 }
 
+// EnsureRequestable enforces the requests.requireRequestable guardrail (on by
+// default): a role may only be *requested* if midPoint's catalog offers it for
+// request. It matters because request_role submits an ordinary assignment-add —
+// midPoint converts that into an approval case only where policy says so and
+// executes it immediately everywhere else, so without this check "request" is an
+// unrestricted grant path wearing a reassuring name.
+func (c *Client) EnsureRequestable(ctx context.Context, roleOID string) error {
+	if !c.cfg.File.Requests.requireRequestable() {
+		return nil
+	}
+	var r roleJSON
+	if err := c.getObject(ctx, collRoles, roleOID, false, &r); err != nil {
+		return fmt.Errorf("checking whether role %s is requestable: %w", roleOID, err)
+	}
+	if r.Requestable {
+		return nil
+	}
+	name := r.Name.value()
+	if name == "" {
+		name = roleOID
+	}
+	return fmt.Errorf("role %q (%s) is not flagged requestable in midPoint's catalog, so it cannot be requested: "+
+		"a request for it would not become an approval case, it would grant the role outright. "+
+		"Use list_requestable_roles to see what may be requested; to grant this role deliberately use assign_role, "+
+		"which does not claim to be a request; to lift this guardrail set requests.requireRequestable=false in %s",
+		name, roleOID, EnvConfigFile)
+}
+
 // heldRoleOIDs returns the set of role OIDs a user effectively holds, from the
 // computed roleMembershipRef.
 func (c *Client) heldRoleOIDs(ctx context.Context, userOID string) (map[string]bool, error) {

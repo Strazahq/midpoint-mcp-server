@@ -8,29 +8,52 @@ import (
 	"testing"
 )
 
-// newSelfClient serves GET /self and records the query it was called with.
-func newSelfClient(t *testing.T, body string, gotQuery *string) *Client {
+// newSelfClient serves GET /self plus the by-OID re-read, recording the paths
+// (with query) that were called.
+func newSelfClient(t *testing.T, selfBody, userBody string, calls *[]string) *Client {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /ws/rest/self", func(w http.ResponseWriter, r *http.Request) {
-		*gotQuery = r.URL.RawQuery
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, body)
-	})
+	record := func(body string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			path := r.URL.Path
+			if r.URL.RawQuery != "" {
+				path += "?" + r.URL.RawQuery
+			}
+			*calls = append(*calls, path)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, body)
+		}
+	}
+	mux.HandleFunc("GET /ws/rest/self", record(selfBody))
+	mux.HandleFunc("GET /ws/rest/users/{oid}", record(userBody))
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return NewClient(Config{BaseURL: srv.URL, Username: "svc", Password: "p"})
 }
 
-const selfWithNamedOrgs = `{"user":{"oid":"me","name":"svc-account","fullName":"Service Account",
+// midPoint ignores options=resolveNames on /self, so the org refs it returns
+// carry no targetName…
+const userUnnamedOrgs = `{"oid":"me","name":"svc-account","fullName":"Service Account",
+	"parentOrgRef":[
+		{"oid":"o-mgd","relation":"org:manager","type":"OrgType"},
+		{"oid":"o-mem","relation":"org:default","type":"OrgType"}
+	]}`
+
+// …while the by-OID read does resolve them.
+const userNamedOrgs = `{"oid":"me","name":"svc-account","fullName":"Service Account",
 	"parentOrgRef":[
 		{"oid":"o-mgd","relation":"org:manager","type":"OrgType","targetName":"dev-ops"},
 		{"oid":"o-mem","relation":"org:default","type":"OrgType","targetName":"all-staff"}
-	]}}`
+	]}`
+
+const (
+	selfUnnamedOrgs = `{"user":` + userUnnamedOrgs + `}`
+	selfNamedOrgs   = `{"user":` + userNamedOrgs + `}`
+)
 
 func TestWhoamiPersonalMode(t *testing.T) {
-	var query string
-	c := newSelfClient(t, selfWithNamedOrgs, &query)
+	var calls []string
+	c := newSelfClient(t, selfUnnamedOrgs, selfNamedOrgs, &calls)
 
 	p, err := c.Whoami(context.Background())
 	if err != nil {
@@ -46,10 +69,12 @@ func TestWhoamiPersonalMode(t *testing.T) {
 	if len(p.Orgs) != 2 {
 		t.Fatalf("orgs = %+v, want 2", p.Orgs)
 	}
-	// Org names are what make an empty team answer diagnosable, so /self must ask
-	// midPoint to resolve them.
-	if query != "options=resolveNames" {
-		t.Errorf("/self query = %q, want options=resolveNames", query)
+	// Org names are what make an empty team answer diagnosable, and midPoint does
+	// not resolve them on /self — so an unnamed org link must trigger the by-OID
+	// re-read that does.
+	want := []string{"/ws/rest/self", "/ws/rest/users/me?options=resolveNames"}
+	if len(calls) != 2 || calls[0] != want[0] || calls[1] != want[1] {
+		t.Errorf("calls = %v, want %v", calls, want)
 	}
 	if p.Orgs[0].Name != "dev-ops" || p.Orgs[0].Relation != "manager" || !p.Orgs[0].Manager {
 		t.Errorf("managed org link = %+v", p.Orgs[0])
@@ -60,8 +85,8 @@ func TestWhoamiPersonalMode(t *testing.T) {
 }
 
 func TestWhoamiResourceServerMode(t *testing.T) {
-	var query string
-	c := newSelfClient(t, selfWithNamedOrgs, &query)
+	var calls []string
+	c := newSelfClient(t, selfNamedOrgs, selfNamedOrgs, &calls)
 
 	p, err := c.Whoami(WithPrincipal(context.Background(), "u-alice"))
 	if err != nil {
@@ -69,6 +94,36 @@ func TestWhoamiResourceServerMode(t *testing.T) {
 	}
 	if p.Mode != ModeResourceServer || !p.Impersonated {
 		t.Errorf("mode = %q impersonated = %v, want resource-server/true", p.Mode, p.Impersonated)
+	}
+}
+
+// When /self already resolved the org names, the extra read must not happen.
+func TestSelfUserSkipsRereadWhenOrgsAreNamed(t *testing.T) {
+	var calls []string
+	c := newSelfClient(t, selfNamedOrgs, `{"user":{"oid":"unexpected"}}`, &calls)
+
+	p, err := c.Whoami(context.Background())
+	if err != nil {
+		t.Fatalf("Whoami: %v", err)
+	}
+	if len(calls) != 1 || calls[0] != "/ws/rest/self" {
+		t.Errorf("calls = %v, want only /self", calls)
+	}
+	if len(p.Orgs) != 2 || p.Orgs[0].Name != "dev-ops" {
+		t.Errorf("orgs = %+v", p.Orgs)
+	}
+}
+
+// A user with no org links needs no re-read either.
+func TestSelfUserSkipsRereadWhenNoOrgs(t *testing.T) {
+	var calls []string
+	c := newSelfClient(t, `{"user":{"oid":"me","name":"svc-account"}}`, `{"user":{"oid":"unexpected"}}`, &calls)
+
+	if _, err := c.Whoami(context.Background()); err != nil {
+		t.Fatalf("Whoami: %v", err)
+	}
+	if len(calls) != 1 {
+		t.Errorf("calls = %v, want only /self", calls)
 	}
 }
 
