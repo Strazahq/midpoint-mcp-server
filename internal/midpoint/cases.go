@@ -114,54 +114,68 @@ func (c *Client) GetCase(ctx context.Context, oid string) (CaseDetail, error) {
 	return detail, nil
 }
 
+// RequestsResult is the caller's requests plus the identity they were resolved
+// for — an empty list means nothing without knowing whose it is.
+type RequestsResult struct {
+	Subject  Subject       `json:"subject"`
+	Requests []CaseSummary `json:"requests"`
+}
+
+// InboxResult is the caller's approval inbox plus the identity it belongs to.
+type InboxResult struct {
+	Subject   Subject    `json:"subject"`
+	WorkItems []WorkItem `json:"workItems"`
+}
+
 // ListMyRequests returns approval cases the authenticated user initiated.
-func (c *Client) ListMyRequests(ctx context.Context, limit int) ([]CaseSummary, error) {
-	self, err := c.Self(ctx)
+func (c *Client) ListMyRequests(ctx context.Context, limit int) (RequestsResult, error) {
+	subj, err := c.subject(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("resolving self: %w", err)
+		return RequestsResult{}, err
 	}
-	filter := fmt.Sprintf("requestorRef matches (oid = %s)", quoteQueryString(self.OID))
+	res := RequestsResult{Subject: subj, Requests: []CaseSummary{}}
+
+	filter := fmt.Sprintf("requestorRef matches (oid = %s)", quoteQueryString(subj.OID))
 	raws, err := c.searchRawOpts(ctx, collCases, filter, limit, true)
 	if err != nil {
-		return nil, err
+		return RequestsResult{}, err
 	}
-	out := make([]CaseSummary, 0, len(raws))
 	for _, raw := range raws {
 		var cj caseJSON
 		if err := json.Unmarshal(raw, &cj); err != nil {
-			return nil, fmt.Errorf("decoding case: %w", err)
+			return RequestsResult{}, fmt.Errorf("decoding case: %w", err)
 		}
-		out = append(out, cj.summary())
+		res.Requests = append(res.Requests, cj.summary())
 	}
-	return out, nil
+	return res, nil
 }
 
 // ListWorkItems returns the authenticated user's approval inbox: open work items
 // assigned to them and not yet completed.
-func (c *Client) ListWorkItems(ctx context.Context, limit int) ([]WorkItem, error) {
-	self, err := c.Self(ctx)
+func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, error) {
+	subj, err := c.subject(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("resolving self: %w", err)
+		return InboxResult{}, err
 	}
-	filter := fmt.Sprintf(`state = "open" and workItem/assigneeRef matches (oid = %s)`, quoteQueryString(self.OID))
+	res := InboxResult{Subject: subj, WorkItems: []WorkItem{}}
+
+	filter := fmt.Sprintf(`state = "open" and workItem/assigneeRef matches (oid = %s)`, quoteQueryString(subj.OID))
 	raws, err := c.searchRawOpts(ctx, collCases, filter, limit, true)
 	if err != nil {
-		return nil, err
+		return InboxResult{}, err
 	}
-
-	out := []WorkItem{}
 	for _, raw := range raws {
 		var cj caseJSON
 		if err := json.Unmarshal(raw, &cj); err != nil {
-			return nil, fmt.Errorf("decoding case: %w", err)
+			return InboxResult{}, fmt.Errorf("decoding case: %w", err)
 		}
 		s := cj.summary()
 		for _, wi := range cj.items() {
 			// Only the caller's still-open work items belong in the inbox.
-			if wi.Output != nil || wi.AssigneeRef == nil || wi.AssigneeRef.OID != self.OID {
+			if wi.Output != nil || wi.AssigneeRef == nil || wi.AssigneeRef.OID != subj.OID {
 				continue
 			}
-			out = append(out, WorkItem{
+			res.WorkItems = append(res.WorkItems, WorkItem{
 				CaseOID:   cj.OID,
 				ID:        wi.ID.s,
 				Stage:     wi.StageNumber,
@@ -173,7 +187,7 @@ func (c *Client) ListWorkItems(ctx context.Context, limit int) ([]WorkItem, erro
 			})
 		}
 	}
-	return out, nil
+	return res, nil
 }
 
 // FindRequestCase best-effort finds the newest open case requesting roleOID for

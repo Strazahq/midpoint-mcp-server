@@ -81,12 +81,17 @@ func TestGetCase(t *testing.T) {
 func TestListMyRequests(t *testing.T) {
 	c, reqs := newCasesClient(t)
 
-	cases, err := c.ListMyRequests(context.Background(), 0)
+	res, err := c.ListMyRequests(context.Background(), 0)
 	if err != nil {
 		t.Fatalf("ListMyRequests: %v", err)
 	}
+	cases := res.Requests
 	if len(cases) != 1 || cases[0].OID != "case-1" || cases[0].Target != "Superuser" {
 		t.Fatalf("cases = %+v", cases)
+	}
+	// The answer must name whose requests these are.
+	if res.Subject.Name != "selfuser" || res.Subject.OID != "u-self" || res.Subject.Mode != ModePersonal {
+		t.Errorf("subject = %+v, want selfuser/u-self in personal mode", res.Subject)
 	}
 	// The search filter must scope to the authenticated requestor.
 	var sr searchRequest
@@ -101,13 +106,17 @@ func TestListMyRequests(t *testing.T) {
 func TestListWorkItems(t *testing.T) {
 	c, reqs := newCasesClient(t)
 
-	items, err := c.ListWorkItems(context.Background(), 0)
+	res, err := c.ListWorkItems(context.Background(), 0)
 	if err != nil {
 		t.Fatalf("ListWorkItems: %v", err)
 	}
+	items := res.WorkItems
 	// Only work item @id 1 qualifies: assigned to self and still open.
 	if len(items) != 1 {
 		t.Fatalf("got %d work items, want 1 (self + open only): %+v", len(items), items)
+	}
+	if res.Subject.Name != "selfuser" || res.Subject.Mode != ModePersonal {
+		t.Errorf("subject = %+v, want selfuser in personal mode", res.Subject)
 	}
 	got := items[0]
 	if got.ID != "1" || got.CaseOID != "case-1" || got.Target != "Superuser" || got.Requestor != "selfuser" {

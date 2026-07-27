@@ -8,6 +8,13 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **`whoami`** — reports the identity midPoint executes as, how it was
+  established (`personal` = the server's configured credentials, `resource-server`
+  = a validated per-request end user), whether the request is impersonated, and
+  the orgs that identity is linked to with their relations. It exists because an
+  empty `list_my_team` / `list_work_items` has two very different causes — "you
+  genuinely have none" and "this server is not acting as you" — and until now
+  nothing told them apart.
 - **M6 (in progress) — manager & team self-service.** First slice: the team
   discovery primitives.
   - `list_my_team` — the caller's direct reports: members (default relation) of
@@ -33,6 +40,24 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   `list_my_team` to return anyone — the `manager` org relation alone is not
   enough. midPoint's pattern is an `orgRelation` authorization
   (`subjectRelation = manager`); the tools stay agnostic and run as the caller.
+
+### Fixed
+
+- **Self-scoped tools no longer claim an identity the server does not have.**
+  `list_my_team`, `list_my_managers`, `list_work_items` and `list_my_requests`
+  said "you" — but in personal mode midPoint sees the server's configured
+  credentials, which in a shared deployment is a service account and not the
+  human at the MCP client. All four now name the identity they answered for and
+  carry it in structured output as `subject` (oid, name, mode); when the answer
+  is empty in personal mode they say plainly that it describes that account.
+  Found live: a gateway-brokered deployment where the server authenticated as a
+  technical account reported "0 work items in your inbox" to a user who had one.
+- **An empty team answer now says which kind of empty it is.** `list_my_team` /
+  `list_my_managers` return the org links they were derived from (`orgs`), so
+  "linked to no orgs at all" is distinguishable from "orgs found, but midPoint
+  returned no members for this identity" — the latter being the authorization gap
+  documented under M6. `GET /self` now asks for `resolveNames` so those orgs are
+  reported by name.
 
 ## [0.3.0] - 2026-07-16
 

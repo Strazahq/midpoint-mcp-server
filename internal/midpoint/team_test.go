@@ -73,9 +73,16 @@ func TestListMyTeam(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListMyTeam: %v", err)
 	}
-	got := names(team)
+	got := names(team.Users)
 	if len(got) != 2 || got[0] != "rep-one" || got[1] != "rep-two" {
 		t.Fatalf("team = %v, want [rep-one rep-two] (caller excluded)", got)
+	}
+	// The answer carries who it was for and which org links produced it.
+	if team.Subject.Name != "mgr" || team.Subject.OID != "me" {
+		t.Errorf("subject = %+v, want mgr/me", team.Subject)
+	}
+	if len(team.Orgs) != 1 || team.Orgs[0].OID != "org-mgd" || !team.Orgs[0].Manager {
+		t.Errorf("orgs = %+v, want the one managed org", team.Orgs)
 	}
 }
 
@@ -91,11 +98,19 @@ func TestListMyTeamNonManager(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListMyTeam: %v", err)
 	}
-	if len(team) != 0 {
-		t.Errorf("non-manager team = %v, want empty", names(team))
+	if len(team.Users) != 0 {
+		t.Errorf("non-manager team = %v, want empty", names(team.Users))
 	}
 	if searched {
 		t.Error("must not search for members when the caller manages no org")
+	}
+	// An empty answer must still say who it was for and that no managed org was
+	// the reason — that is what tells "you manage nobody" from "not you at all".
+	if team.Subject.Name != "mgr" {
+		t.Errorf("subject = %+v, want mgr even when empty", team.Subject)
+	}
+	if len(team.Orgs) != 0 {
+		t.Errorf("orgs = %+v, want none (caller manages no org)", team.Orgs)
 	}
 }
 
@@ -116,8 +131,11 @@ func TestListMyManagers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListMyManagers: %v", err)
 	}
-	if got := names(mgrs); len(got) != 1 || got[0] != "the-boss" {
+	if got := names(mgrs.Users); len(got) != 1 || got[0] != "the-boss" {
 		t.Fatalf("managers = %v, want [the-boss]", got)
+	}
+	if len(mgrs.Orgs) != 1 || mgrs.Orgs[0].OID != "org-mem" || mgrs.Orgs[0].Manager {
+		t.Errorf("orgs = %+v, want the one member org", mgrs.Orgs)
 	}
 }
 

@@ -153,10 +153,12 @@ type userJSON struct {
 
 // orgRef is one parentOrgRef entry: the org OID and the relation to it (member
 // vs manager). midPoint renders the relation as a prefixed QName (e.g.
-// "org:manager"); callers compare via its local part.
+// "org:manager"); callers compare via its local part. TargetName is populated
+// only when the request asked for resolveNames.
 type orgRef struct {
-	OID      string `json:"oid"`
-	Relation string `json:"relation"`
+	OID        string     `json:"oid"`
+	Relation   string     `json:"relation"`
+	TargetName polyString `json:"targetName"`
 }
 
 // parentOrgs decodes the user's parentOrgRef entries (tolerating single/array).

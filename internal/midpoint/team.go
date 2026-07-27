@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 )
 
@@ -19,6 +20,52 @@ const (
 // isManager reports whether the ref links the user as a manager of the org.
 func (r orgRef) isManager() bool { return relationLocal(r.Relation) == relationManager }
 
+// OrgLink is one org the caller is linked to and the relation that links them.
+// Team answers carry the links they were derived from, so an empty result can
+// be told apart from a caller who simply has no orgs.
+type OrgLink struct {
+	OID      string `json:"oid"`
+	Name     string `json:"name,omitempty"`
+	Relation string `json:"relation,omitempty" jsonschema:"local part of the relation QName: manager, default, …"`
+	Manager  bool   `json:"manager"`
+}
+
+// TeamResult is a team answer plus the context needed to explain an empty one:
+// the identity it answered for and the org links it was derived from.
+type TeamResult struct {
+	Subject Subject       `json:"subject"`
+	Orgs    []OrgLink     `json:"orgs"`
+	Users   []UserSummary `json:"users"`
+}
+
+// orgLinks renders parentOrgRef entries as OrgLinks.
+func orgLinks(refs []orgRef) []OrgLink {
+	out := make([]OrgLink, 0, len(refs))
+	for _, r := range refs {
+		out = append(out, OrgLink{
+			OID:      r.OID,
+			Name:     r.TargetName.value(),
+			Relation: relationLocal(r.Relation),
+			Manager:  r.isManager(),
+		})
+	}
+	return out
+}
+
+// OrgNames renders links for a human-readable message, falling back to OIDs for
+// orgs whose name midPoint did not resolve.
+func OrgNames(links []OrgLink) string {
+	parts := make([]string, 0, len(links))
+	for _, l := range links {
+		if l.Name != "" {
+			parts = append(parts, l.Name)
+			continue
+		}
+		parts = append(parts, l.OID)
+	}
+	return strings.Join(parts, ", ")
+}
+
 // relationLocal returns the local part of a relation QName ("org:manager" →
 // "manager"); an empty relation (the default membership) returns "".
 func relationLocal(rel string) string {
@@ -32,36 +79,46 @@ func relationLocal(rel string) string {
 // caller manages. It is empty when the caller manages no org. Read-only, and in
 // resource-server mode it runs as the caller so midPoint scopes it to what that
 // manager may see.
-func (c *Client) ListMyTeam(ctx context.Context, limit int) ([]UserSummary, error) {
-	self, err := c.selfUser(ctx)
-	if err != nil {
-		return nil, err
-	}
-	managed := orgOIDsByRole(self.parentOrgs(), true)
-	if len(managed) == 0 {
-		return nil, nil
-	}
-	return c.orgUsers(ctx, managed, relationDefault, self.OID, limit)
+func (c *Client) ListMyTeam(ctx context.Context, limit int) (TeamResult, error) {
+	return c.teamQuery(ctx, true, relationDefault, limit)
 }
 
 // ListMyManagers returns the managers of the orgs the caller is a member of —
 // who the caller reports to.
-func (c *Client) ListMyManagers(ctx context.Context, limit int) ([]UserSummary, error) {
+func (c *Client) ListMyManagers(ctx context.Context, limit int) (TeamResult, error) {
+	return c.teamQuery(ctx, false, relationManager, limit)
+}
+
+// teamQuery is the shared shape of the team lookups: take the caller's org
+// links, keep the ones they hold as manager (viaManaged) or as member, and
+// return the users linked to those orgs with wantRelation. The links are
+// returned either way so an empty answer says which case it was.
+func (c *Client) teamQuery(ctx context.Context, viaManaged bool, wantRelation string, limit int) (TeamResult, error) {
 	self, err := c.selfUser(ctx)
 	if err != nil {
-		return nil, err
+		return TeamResult{}, err
 	}
-	memberOf := orgOIDsByRole(self.parentOrgs(), false)
-	if len(memberOf) == 0 {
-		return nil, nil
+	res := TeamResult{
+		Subject: Subject{OID: self.OID, Name: self.Name.value(), Mode: c.Mode(ctx)},
+		Orgs:    orgLinks(matchingOrgs(self.parentOrgs(), viaManaged)),
+		Users:   []UserSummary{},
 	}
-	return c.orgUsers(ctx, memberOf, relationManager, self.OID, limit)
+	if len(res.Orgs) == 0 {
+		return res, nil
+	}
+	users, err := c.orgUsers(ctx, orgOIDs(res.Orgs), wantRelation, self.OID, limit)
+	if err != nil {
+		return TeamResult{}, err
+	}
+	res.Users = users
+	return res, nil
 }
 
 // selfUser fetches the caller's full user object (GET /self), which carries the
-// parentOrgRef that Self() omits.
+// parentOrgRef that Self() omits. Names are resolved so org links can be
+// reported by name and not just OID.
 func (c *Client) selfUser(ctx context.Context) (userJSON, error) {
-	body, err := c.get(ctx, "/self", nil)
+	body, err := c.get(ctx, "/self", url.Values{"options": {"resolveNames"}})
 	if err != nil {
 		return userJSON{}, err
 	}
@@ -74,14 +131,23 @@ func (c *Client) selfUser(ctx context.Context) (userJSON, error) {
 	return resp.User, nil
 }
 
-// orgOIDsByRole selects the org OIDs the refs link to as manager (wantManager) or
-// as non-manager member (!wantManager).
-func orgOIDsByRole(refs []orgRef, wantManager bool) []string {
-	var out []string
+// matchingOrgs selects the refs the caller holds as manager (wantManager) or as
+// non-manager member (!wantManager).
+func matchingOrgs(refs []orgRef, wantManager bool) []orgRef {
+	var out []orgRef
 	for _, r := range refs {
 		if r.OID != "" && r.isManager() == wantManager {
-			out = append(out, r.OID)
+			out = append(out, r)
 		}
+	}
+	return out
+}
+
+// orgOIDs projects links to their OIDs, for the membership query.
+func orgOIDs(links []OrgLink) []string {
+	out := make([]string, 0, len(links))
+	for _, l := range links {
+		out = append(out, l.OID)
 	}
 	return out
 }

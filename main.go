@@ -60,6 +60,7 @@ func run(httpAddr string) error {
 func newMCPServer(client *midpoint.Client, cfg midpoint.Config) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: version}, nil)
 	registerPing(server, client)
+	registerIdentityTools(server, client)
 	registerReadTools(server, client)
 	registerWriteTools(server, client, cfg.AllowWrites)
 	registerRequestTools(server, client, cfg.AllowWrites)

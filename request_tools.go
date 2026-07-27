@@ -112,44 +112,52 @@ func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrite
 // --- list_my_requests ---
 
 type listMyRequestsOutput struct {
+	Subject  midpoint.Subject       `json:"subject" jsonschema:"the identity this answered for"`
 	Requests []midpoint.CaseSummary `json:"requests"`
 	Count    int                    `json:"count"`
 }
 
 func registerListMyRequests(server *mcp.Server, client *midpoint.Client) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "list_my_requests",
-		Title:       "List my requests",
-		Description: "List approval cases the authenticated user initiated.",
+		Name:  "list_my_requests",
+		Title: "List my requests",
+		Description: "List approval cases the authenticated user initiated. The result names the identity it " +
+			"answered for — in personal mode that is the server's configured account, not necessarily the caller.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listMyRequestsOutput, error) {
-		cases, err := client.ListMyRequests(ctx, in.Limit)
+		res, err := client.ListMyRequests(ctx, in.Limit)
 		if err != nil {
 			return nil, listMyRequestsOutput{}, err
 		}
-		return text(fmt.Sprintf("Found %d request(s).", len(cases))),
-			listMyRequestsOutput{Requests: cases, Count: len(cases)}, nil
+		n := len(res.Requests)
+		return text(fmt.Sprintf("%s has initiated %d request(s).%s",
+				res.Subject.Name, n, subjectHint(res.Subject, n == 0))),
+			listMyRequestsOutput{Subject: res.Subject, Requests: res.Requests, Count: n}, nil
 	})
 }
 
 // --- list_work_items ---
 
 type listWorkItemsOutput struct {
+	Subject   midpoint.Subject    `json:"subject" jsonschema:"the identity whose inbox this is"`
 	WorkItems []midpoint.WorkItem `json:"workItems"`
 	Count     int                 `json:"count"`
 }
 
 func registerListWorkItems(server *mcp.Server, client *midpoint.Client) {
 	mcp.AddTool(server, &mcp.Tool{
-		Name:        "list_work_items",
-		Title:       "List work items",
-		Description: "List the authenticated user's approval inbox: open work items assigned to them.",
+		Name:  "list_work_items",
+		Title: "List work items",
+		Description: "List the authenticated user's approval inbox: open work items assigned to them. The result " +
+			"names whose inbox it is — in personal mode that is the server's configured account, not necessarily the caller.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listWorkItemsOutput, error) {
-		items, err := client.ListWorkItems(ctx, in.Limit)
+		res, err := client.ListWorkItems(ctx, in.Limit)
 		if err != nil {
 			return nil, listWorkItemsOutput{}, err
 		}
-		return text(fmt.Sprintf("Found %d work item(s) in your inbox.", len(items))),
-			listWorkItemsOutput{WorkItems: items, Count: len(items)}, nil
+		n := len(res.WorkItems)
+		return text(fmt.Sprintf("%d work item(s) in the approval inbox of %s.%s",
+				n, res.Subject.Name, subjectHint(res.Subject, n == 0))),
+			listWorkItemsOutput{Subject: res.Subject, WorkItems: res.WorkItems, Count: n}, nil
 	})
 }
 
