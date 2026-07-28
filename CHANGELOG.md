@@ -70,6 +70,12 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- **Module path is now `github.com/strazahq/midpoint-mcp-server`.** The
+  repository moved to the `strazahq` organisation; the module path follows it so
+  the canonical import matches where the code actually lives. Existing tags
+  (`v0.1.0`–`v0.3.0`) remain resolvable under the old path via GitHub's
+  redirect, so nothing pinned to them breaks; new versions are published under
+  the new path. Consumers on an unpinned import should update it.
 - **`request_role` refuses roles midPoint does not offer for request** (new
   default; `requests.requireRequestable: false` restores the old behaviour).
   `request_role` submits an ordinary assignment-add delta — midPoint converts
@@ -368,7 +374,7 @@ resource-server identity for shared HTTP.
 
 ### M0 — scaffold
 
-- Go module `github.com/mckay22/midpoint-mcp-server` (Go 1.25; the MCP SDK
+- Go module `github.com/strazahq/midpoint-mcp-server` (Go 1.25; the MCP SDK
   requires >= 1.25).
 - stdio MCP server exposing one tool, `ping`, which calls midPoint
   `GET /ws/rest/self` and returns the authenticated identity (oid, name, and

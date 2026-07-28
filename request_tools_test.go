@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mckay22/midpoint-mcp-server/internal/midpoint"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

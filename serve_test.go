@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mckay22/midpoint-mcp-server/internal/midpoint"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 func TestResolveBindAddrLoopbackOnly(t *testing.T) {

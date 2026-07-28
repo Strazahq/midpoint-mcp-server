@@ -13,8 +13,8 @@ import (
 	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
-	"github.com/mckay22/midpoint-mcp-server/internal/midpoint"
-	"github.com/mckay22/midpoint-mcp-server/internal/oidcauth"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
+	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

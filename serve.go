@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mckay22/midpoint-mcp-server/internal/midpoint"
-	"github.com/mckay22/midpoint-mcp-server/internal/oidcauth"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
+	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
 	sdkauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

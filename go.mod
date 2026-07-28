@@ -1,4 +1,4 @@
-module github.com/mckay22/midpoint-mcp-server
+module github.com/strazahq/midpoint-mcp-server
 
 go 1.25.0
 
