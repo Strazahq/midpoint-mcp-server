@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 // registerTeamTools installs the M6 manager/team read tools. They are read-only

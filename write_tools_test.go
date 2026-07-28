@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 type recordedReq struct {

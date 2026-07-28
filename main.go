@@ -11,8 +11,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 const serverName = "midpoint-mcp-server"

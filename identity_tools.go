@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 // registerIdentityTools installs whoami — the tool that answers "who does this

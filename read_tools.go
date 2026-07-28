@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 // registerReadTools installs the M1 read-only tools on the server.

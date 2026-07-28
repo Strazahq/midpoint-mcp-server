@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
-	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
 	sdkauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
+	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
 )
 
 // principalClaimKey is the TokenInfo.Extra key carrying the correlated midPoint

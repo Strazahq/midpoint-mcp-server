@@ -53,9 +53,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func TestLiveOIDCResourceServer(t *testing.T) {

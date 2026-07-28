@@ -13,9 +13,9 @@ import (
 	"time"
 
 	jose "github.com/go-jose/go-jose/v4"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const (

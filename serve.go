@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
-	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
 	sdkauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
+	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
 )
 
 // serveStdio runs the server over stdio (personal mode).

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 // registerAuditTools installs the M5 read-only reporting tools. They are not

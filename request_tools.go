@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
 
 // registerRequestTools installs the M3 requests & approvals tools. The mutating
