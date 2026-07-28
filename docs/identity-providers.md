@@ -54,8 +54,14 @@ midpoint-mcp-server --http 0.0.0.0:3001
 - Both OIDC variables must be set together; setting only one is a configuration
   error.
 - Binding a non-loopback address is allowed **only** when OIDC is configured.
-  Without it the server refuses to start on anything but `127.0.0.1`, so it can
-  never expose an unauthenticated network surface.
+  Without it the server refuses to start on anything but `127.0.0.1`, so no
+  midPoint data is ever reachable without a validated token.
+- One narrow exception exists and is off unless you ask for it:
+  `MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true` serves the MCP handshake and
+  `tools/list` to a tokenless caller, for gateways that inventory a tool surface
+  before a user has authenticated. Every `tools/call` still requires a token, and
+  no discovery method reaches midPoint — see
+  [Anonymous discovery](../README.md#anonymous-discovery).
 - `MIDPOINT_USERNAME`/`MIDPOINT_PASSWORD` here are the **service account**, not any
   end user — see [Requirement 3](#requirement-3--the-midpoint-service-account).
 

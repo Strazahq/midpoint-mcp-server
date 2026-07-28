@@ -68,6 +68,34 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   enough. midPoint's pattern is an `orgRelation` authorization
   (`subjectRelation = manager`); the tools stay agnostic and run as the caller.
 
+- **Anonymous MCP discovery in resource-server mode
+  (`MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true`, off by default).** Serves the
+  handshake and tool listing — `initialize`, `notifications/initialized`,
+  `ping` (the protocol method, not the `ping` tool), `tools/list` — to callers
+  with no bearer token. Every `tools/call` still requires a validated token, so
+  what this exposes is the static tool surface (names, descriptions, input
+  schemas), identical for every caller; none of the four methods reaches the
+  midPoint REST client. It exists because gateways and catalog builders
+  inventory a server's capabilities *before* they hold a user token, and
+  wrapping the whole transport in the bearer requirement 401s that probe at the
+  first byte.
+
+  It stays off by default because it is the only unauthenticated surface this
+  server can expose on a network-reachable address; turning it on is a
+  deployment decision, and it is announced in the startup banner when set.
+  Details worth knowing:
+  - A request carrying **any** `Authorization` header is verified whatever it
+    asks for, including `initialize`. Verification is what binds the MCP
+    session to a user ID, and a session created without one loses the SDK's
+    session-hijack check.
+  - A **JSON-RPC batch is discovery-only when every member is** — a single
+    `tools/call` among ten discovery calls makes the whole request privileged.
+  - Unparseable bodies, and bodies over 64 KiB, fail closed to the bearer
+    requirement rather than being buffered and guessed at.
+  - An anonymously-initialized session still accepts a later authenticated
+    `tools/call` and executes it as the token's user, which is the flow a
+    gateway actually uses.
+
 ### Changed
 
 - **Module path is now `github.com/strazahq/midpoint-mcp-server`.** The

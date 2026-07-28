@@ -48,7 +48,11 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   until resource-server auth exists (M4.5) — no flag to bypass. In M4, HTTP
   mode is therefore still personal mode (local client, the configured
   credentials' identity), just over a different transport. A release must
-  never contain an unauthenticated network surface.
+  never contain an unauthenticated network surface **that is reachable by
+  default**. Amended in M6.5: the one permitted exception is anonymous
+  *discovery* — the MCP handshake and tool listing, never a tool call — and it
+  is opt-in, off unless the operator sets it. The invariant that survives is
+  that no midPoint data is ever reachable without a validated token.
 - **M4.5 — OIDC resource-server identity** (its own milestone on purpose:
   token validation is security-critical and gets test-first discipline):
   validate `Authorization: Bearer` against the configured issuer's JWKS
@@ -177,6 +181,29 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
     org selector). Verified live end to end against midPoint 4.10.3.
   - Noted for M4.5/v1.5: `GET /self` **ignores** `options=resolveNames` on 4.10.3,
     so org refs come back unnamed; the by-OID read honours it.
+- **M6.5 — anonymous discovery (opt-in)**: in resource-server mode,
+  `MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true` serves `initialize`,
+  `notifications/initialized`, `ping` (the protocol method, not the tool) and
+  `tools/list` without a bearer token; every `tools/call` still requires one.
+  It exists because gateways and catalog builders inventory a server's tool
+  surface *before* they hold a user token, and a transport-layer 401 makes that
+  impossible — the tool surface is static metadata, identical for every caller,
+  and none of the four methods reaches the REST client.
+
+  Classification happens at the HTTP layer rather than in an
+  `mcp.MethodHandler`, because the SDK's token-info context key is unexported:
+  `RequireBearerToken` is the only way to get a verified `TokenInfo` onto a
+  request, so the require-or-not decision has to precede SDK dispatch. A
+  request carrying *any* `Authorization` header is always verified, whatever it
+  asks for — that is what binds the MCP session to a user ID. A JSON-RPC batch
+  is discovery-only when every member is; one `tools/call` among them makes the
+  whole request privileged. Unparseable and oversized bodies fail closed.
+
+  AC: tokenless `initialize` + `tools/list` succeed and touch midPoint zero
+  times; tokenless `tools/call` refused; an anonymously-initialized session
+  accepts a later authenticated `tools/call` and impersonates the token's user
+  (the SDK skips its session-hijack check when the session's user ID is empty —
+  pinned by `TestAnonymousDiscoveryThenAuthenticatedCall`); default-off proven.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

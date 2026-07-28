@@ -71,6 +71,12 @@ func serveHTTP(addr string, client *midpoint.Client, cfg midpoint.Config) error 
 	mode := "personal mode, loopback only"
 	if authn != nil {
 		mode = "resource-server mode (OIDC bearer)"
+		if cfg.AnonymousDiscovery {
+			// Worth a line at startup: it is the only unauthenticated surface
+			// this server ever exposes, and an operator should see it announced
+			// rather than discover it from behaviour.
+			mode += "; anonymous discovery ON (handshake + tools/list need no token)"
+		}
 	}
 	log.Printf("%s %s serving on http://%s/mcp (midPoint: %s; writes: %s; %s)",
 		serverName, version, bind, cfg.BaseURL, writeState(cfg), mode)
@@ -99,7 +105,12 @@ func mcpHTTPHandler(client *midpoint.Client, cfg midpoint.Config, authn *oidcaut
 
 	var handler http.Handler = streamable
 	if authn != nil {
-		handler = sdkauth.RequireBearerToken(bearerVerifier(authn, client, cfg.OIDCCorrelationAttribute), nil)(streamable)
+		requireAuth := sdkauth.RequireBearerToken(bearerVerifier(authn, client, cfg.OIDCCorrelationAttribute), nil)
+		if cfg.AnonymousDiscovery {
+			handler = discoveryGate(requireAuth, streamable)
+		} else {
+			handler = requireAuth(streamable)
+		}
 	}
 
 	mux := http.NewServeMux()

@@ -23,6 +23,9 @@ const (
 	// overrides the midPoint attribute it is matched against (default name).
 	EnvOIDCCorrelationClaim     = "MIDPOINT_MCP_OIDC_CORRELATION_CLAIM"
 	EnvOIDCCorrelationAttribute = "MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE"
+	// EnvAnonymousDiscovery opens the MCP handshake and tool listing to callers
+	// with no bearer token. Off by default; see Config.AnonymousDiscovery.
+	EnvAnonymousDiscovery = "MIDPOINT_MCP_ANONYMOUS_DISCOVERY"
 )
 
 // Config holds everything needed to reach a midPoint deployment.
@@ -58,6 +61,18 @@ type Config struct {
 	OIDCCorrelationClaim     string
 	OIDCCorrelationAttribute string
 
+	// AnonymousDiscovery lets a caller with no bearer token complete the MCP
+	// handshake and list tools (initialize, notifications/initialized, ping,
+	// tools/list). Every tools/call still requires a validated token, so this
+	// exposes the static tool surface — names, descriptions, input schemas —
+	// and no midPoint data. It exists for gateways and catalog builders that
+	// inventory a server's capabilities before they hold a user token.
+	//
+	// Off by default, and inert outside resource-server mode: it is the one
+	// place this server serves anything unauthenticated on a network-reachable
+	// address, so turning it on is an explicit deployment decision.
+	AnonymousDiscovery bool
+
 	// File holds the optional non-secret settings file (MIDPOINT_MCP_CONFIG):
 	// how this deployment models org structure and which self-service
 	// guardrails apply. Zero value = documented defaults.
@@ -83,6 +98,7 @@ func ConfigFromEnv() (Config, error) {
 		OIDCAudience:             strings.TrimSpace(os.Getenv(EnvOIDCAudience)),
 		OIDCCorrelationClaim:     strings.TrimSpace(os.Getenv(EnvOIDCCorrelationClaim)),
 		OIDCCorrelationAttribute: strings.TrimSpace(os.Getenv(EnvOIDCCorrelationAttribute)),
+		AnonymousDiscovery:       strings.EqualFold(strings.TrimSpace(os.Getenv(EnvAnonymousDiscovery)), "true"),
 	}
 
 	var missing []string

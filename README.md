@@ -65,6 +65,7 @@ Credentials are read from the environment at runtime (never written to disk):
 | `MIDPOINT_MCP_OIDC_AUDIENCE` | no | expected token audience for resource-server mode |
 | `MIDPOINT_MCP_OIDC_CORRELATION_CLAIM` | no | token claim matched to a midPoint user (default `preferred_username`); see [docs](docs/identity-providers.md#requirement-2--correlation-which-midpoint-user-is-this) |
 | `MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE` | no | midPoint attribute the claim is matched against (default `name`) |
+| `MIDPOINT_MCP_ANONYMOUS_DISCOVERY` | no | `true` serves the MCP handshake and `tools/list` without a token in resource-server mode; `tools/call` still requires one ([below](#anonymous-discovery)) |
 | `MIDPOINT_MCP_CONFIG` | no | path to a JSON settings file (below) — org modelling and self-service guardrails |
 
 In resource-server mode, `MIDPOINT_USERNAME`/`MIDPOINT_PASSWORD` are the **service
@@ -191,6 +192,45 @@ midpoint-mcp-server --http 0.0.0.0:3001
 
 Identity always comes from the validated token — there is no on-behalf-of tool
 argument a caller could use to act as someone else.
+
+#### Anonymous discovery
+
+Some gateways and catalog builders inventory an MCP server's tool surface
+*before* any user has authenticated. In resource-server mode that probe gets a
+`401` at the transport layer, because the bearer requirement wraps the whole
+endpoint. Setting `MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true` opens exactly four
+methods to a tokenless caller:
+
+`initialize` · `notifications/initialized` · `ping` · `tools/list`
+
+Everything else — `tools/call` above all — still requires a validated token.
+What a tokenless caller can read is the **static tool surface**: names,
+descriptions, and input schemas, identical for every caller. None of the four
+methods reaches midPoint, so no directory data is exposed.
+
+```sh
+MIDPOINT_MCP_OIDC_ISSUER=https://keycloak.example.com/realms/corp \
+MIDPOINT_MCP_OIDC_AUDIENCE=midpoint-mcp \
+MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true \
+midpoint-mcp-server --http 0.0.0.0:3001
+```
+
+It is **off by default** and inert outside resource-server mode. It is the only
+unauthenticated surface this server will serve on a network-reachable address,
+so enabling it is a deliberate deployment decision — the startup banner says so
+when it is on. Behaviour worth knowing:
+
+- A request carrying **any** `Authorization` header is verified whatever it
+  asks for, `initialize` included. That verification is what binds the MCP
+  session to a user; a session opened anonymously is not bound to one.
+- A JSON-RPC **batch is discovery-only when every member is**. One `tools/call`
+  among ten discovery calls makes the whole request require a token.
+- A session opened anonymously still accepts a later authenticated
+  `tools/call`, which executes as the token's user — so a gateway can list
+  tools first and call them once it has a user token, on the same session.
+- Ping disambiguation: the allowlisted `ping` is the JSON-RPC protocol method.
+  This server's `ping` **tool**, which reaches midPoint's `/ws/rest/self`, is
+  invoked through `tools/call` and stays behind the token.
 
 **Setting up an identity provider** (Entra ID, Keycloak, Okta, Auth0, …) — how to
 configure the audience, correlate tokens to midPoint users, and grant the service
