@@ -69,8 +69,16 @@ Credentials are read from the environment at runtime (never written to disk):
 | `MIDPOINT_MCP_CONFIG` | no | path to a JSON settings file (below) — org modelling and self-service guardrails |
 
 In resource-server mode, `MIDPOINT_USERNAME`/`MIDPOINT_PASSWORD` are the **service
-account** — it authenticates the server to midPoint and must hold the
-archetype-filtered `#proxy` authorization so it can act as the mapped end users.
+account** — it authenticates the server to midPoint and then acts as the mapped end
+users. That takes two grants together, both verified on 4.10.3: the **REST entry**
+actions for the endpoints the tools call (`#getSelf`, `#getObject`, `#searchObjects`,
+`#addObject`, `#modifyObject`, `#completeWorkItem`) **and** the archetype-filtered
+`#proxy` authorization. `#proxy` on its own grants no REST entry at all — an account
+holding only it is refused `403` on every endpoint, `/self` included, even with the
+impersonation header. A superuser's `#all` *does* cover `#proxy`, but a service
+account should not be a superuser: see
+[docs/authorization.md](docs/authorization.md) and the importable
+[`examples/role-mcp-rs-service.xml`](examples/role-mcp-rs-service.xml).
 
 ### Settings file
 

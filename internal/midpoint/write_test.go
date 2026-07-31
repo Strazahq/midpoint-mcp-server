@@ -102,6 +102,12 @@ func TestPlanRecomputeUser(t *testing.T) {
 	assertJSONBody(t, p.Body, `{"objectModification":{}}`)
 }
 
+// TestPlanUnassignRole pins the delta form midPoint accepts for removing an
+// assignment: the path points at the ITEM (`assignment`) and the container id
+// travels in the value as `@id`. The `assignment[<id>]` path form this server
+// sent previously is rejected with HTTP 400 "Delta path must always point to
+// item, not to value" (verified live against 4.10.3; an administrator account
+// gets the same 400, so it is not an authorization problem).
 func TestPlanUnassignRole(t *testing.T) {
 	c, _ := newTestClient(t) // serves user_get.json (assignment @id 1 → role 1111..., @id 2 → resource)
 	p, err := c.PlanUnassignRole(context.Background(),
@@ -109,7 +115,7 @@ func TestPlanUnassignRole(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PlanUnassignRole: %v", err)
 	}
-	assertJSONBody(t, p.Body, `{"objectModification":{"itemDelta":[{"modificationType":"delete","path":"assignment[1]"}]}}`)
+	assertJSONBody(t, p.Body, `{"objectModification":{"itemDelta":[{"modificationType":"delete","path":"assignment","value":{"@id":1}}]}}`)
 }
 
 func TestPlanUnassignRoleNoMatch(t *testing.T) {

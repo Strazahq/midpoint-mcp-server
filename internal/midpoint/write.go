@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -135,6 +136,12 @@ func (c *Client) PlanAssignRole(userOID, roleOID string) (Plan, error) {
 // PlanUnassignRole builds a plan to remove a user's assignment(s) to a role. It
 // reads the user (a read, always permitted) to resolve the assignment container
 // id(s) so the delete targets the exact value(s).
+//
+// The delta path points at the ITEM (`assignment`) and the container id travels
+// in the value as `@id`. midPoint rejects an indexed path (`assignment[<id>]`)
+// with HTTP 400 "Delta path must always point to item, not to value" — verified
+// live against 4.10.3, where an administrator account gets the same 400, so it
+// is a request-shape problem and not an authorization one.
 func (c *Client) PlanUnassignRole(ctx context.Context, userOID, roleOID string) (Plan, error) {
 	if err := requireOID(userOID); err != nil {
 		return Plan{}, fmt.Errorf("user %w", err)
@@ -153,7 +160,11 @@ func (c *Client) PlanUnassignRole(ctx context.Context, userOID, roleOID string) 
 
 	deltas := make([]itemDelta, 0, len(ids))
 	for _, id := range ids {
-		deltas = append(deltas, itemDelta{ModificationType: "delete", Path: fmt.Sprintf("assignment[%s]", id)})
+		deltas = append(deltas, itemDelta{
+			ModificationType: "delete",
+			Path:             "assignment",
+			Value:            map[string]any{"@id": assignmentIDValue(id)},
+		})
 	}
 	return Plan{
 		Method:  http.MethodPatch,
@@ -196,6 +207,17 @@ func (c *Client) assignmentIDsForTarget(ctx context.Context, userOID, targetOID 
 		}
 	}
 	return ids, nil
+}
+
+// assignmentIDValue renders a container id the way midPoint itself serializes
+// one: as a JSON number (container ids are Long). A non-numeric id cannot come
+// out of midPoint, but if one ever does it is sent as a string rather than
+// marshalled into invalid JSON.
+func assignmentIDValue(id string) any {
+	if _, err := strconv.ParseInt(id, 10, 64); err == nil {
+		return json.Number(id)
+	}
+	return id
 }
 
 // itemDelta is one modification within an ObjectModificationType.

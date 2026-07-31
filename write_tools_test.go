@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -162,6 +163,37 @@ func TestWriteGateOnApplies(t *testing.T) {
 	}
 	if findReq(*reqs, http.MethodPost, "/ws/rest/users") == nil {
 		t.Error("create_user did not POST midPoint")
+	}
+}
+
+// TestUnassignRoleSendsItemPathDelta pins the applied request end to end: the
+// delta midPoint accepts targets the item `assignment` and carries the
+// container id in the value. The older `assignment[<id>]` path form was
+// refused with HTTP 400 ("Delta path must always point to item, not to value")
+// on 4.10.3, for an administrator too.
+func TestUnassignRoleSendsItemPathDelta(t *testing.T) {
+	srv, reqs := mockMidpointWrite(t)
+	cs := connectWithWrites(t, srv, true) // gate ON
+
+	out := callTool(t, cs, "unassign_role", map[string]any{"userOid": "user-1", "roleOid": "role-1"})
+	if out["applied"] != true || out["dryRun"] != false {
+		t.Errorf("unassign_role: applied=%v dryRun=%v", out["applied"], out["dryRun"])
+	}
+
+	patch := findReq(*reqs, http.MethodPatch, "/ws/rest/users/user-1")
+	if patch == nil {
+		t.Fatal("unassign_role did not PATCH midPoint")
+	}
+	var got, want any
+	if err := json.Unmarshal([]byte(patch.body), &got); err != nil {
+		t.Fatalf("unassign delta body is not JSON: %v (%s)", err, patch.body)
+	}
+	const wantJSON = `{"objectModification":{"itemDelta":[{"modificationType":"delete","path":"assignment","value":{"@id":5}}]}}`
+	if err := json.Unmarshal([]byte(wantJSON), &want); err != nil {
+		t.Fatalf("bad wantJSON: %v", err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("unassign delta body\n got: %s\nwant: %s", patch.body, wantJSON)
 	}
 }
 

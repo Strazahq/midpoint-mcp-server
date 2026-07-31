@@ -121,6 +121,24 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Fixed
 
+- **`unassign_role` no longer sends a delta midPoint rejects.** The delete delta
+  used an indexed path (`assignment[<id>]`), which midPoint answers with HTTP 400
+  "Delta path must always point to item, not to value" — so the tool never removed
+  anything. The path now points at the item (`assignment`) and the container id
+  travels in the value (`{"@id": <id>}`), the form midPoint accepts. Found live
+  against 4.10.3, where an administrator account got the same 400, so it was a
+  request-shape problem and not an authorization one. Pinned by tests at both
+  levels: the plan body, and the PATCH the tool actually issues with the write
+  gate on.
+- **README: what the resource-server service account must be authorized for.**
+  It said the account "must hold the archetype-filtered `#proxy` authorization",
+  which reads as if `#proxy` alone were enough. On 4.10.3 an account holding only
+  `#proxy` is refused `403` on every REST endpoint, `/self` included: REST entry
+  actions are evaluated against the authenticated account, so it needs those *and*
+  `#proxy`. The paragraph now says so, and records that superuser's `#all` does
+  cover `#proxy` while still not being an acceptable service-account profile.
+  (`docs/identity-providers.md` and `docs/authorization.md` already carried the
+  correction; the README did not.)
 - **Self-scoped tools no longer claim an identity the server does not have.**
   `list_my_team`, `list_my_managers`, `list_work_items` and `list_my_requests`
   said "you" — but in personal mode midPoint sees the server's configured
