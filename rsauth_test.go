@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -98,11 +100,16 @@ func (m *mockOIDCProvider) mint(t *testing.T, mutate func(map[string]any)) strin
 }
 
 // recordingMidpoint records the Switch-To-Principal header seen on each request
-// path, correlates any user to e2eMappedOID, and answers /self.
+// path and the filter of each user search, correlates any user to e2eMappedOID,
+// and answers /self.
 type recordingMidpoint struct {
 	server  *httptest.Server
 	mu      sync.Mutex
 	switch_ map[string]string // path -> Switch-To-Principal header value
+	filters []string          // users/search filter texts, in order
+	// holdsArchetype answers a search that carries an archetype condition. Nil
+	// means every user holds it.
+	holdsArchetype func(filter string) bool
 }
 
 func newRecordingMidpoint(t *testing.T) *recordingMidpoint {
@@ -117,6 +124,22 @@ func newRecordingMidpoint(t *testing.T) *recordingMidpoint {
 		_, _ = io.WriteString(w, body)
 	}
 	mux.HandleFunc("POST /ws/rest/users/search", func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Query struct {
+				Filter struct {
+					Text string `json:"text"`
+				} `json:"filter"`
+			} `json:"query"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		filter := req.Query.Filter.Text
+		rm.mu.Lock()
+		rm.filters = append(rm.filters, filter)
+		rm.mu.Unlock()
+		if strings.Contains(filter, "archetypeRef") && rm.holdsArchetype != nil && !rm.holdsArchetype(filter) {
+			record(w, r, `{"object":[]}`)
+			return
+		}
 		record(w, r, `{"object":[{"oid":"`+e2eMappedOID+`","name":"`+e2eUsername+`"}]}`)
 	})
 	mux.HandleFunc("GET /ws/rest/self", func(w http.ResponseWriter, r *http.Request) {
@@ -131,6 +154,12 @@ func (rm *recordingMidpoint) switchTo(path string) string {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 	return rm.switch_[path]
+}
+
+func (rm *recordingMidpoint) searchFilters() []string {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	return slices.Clone(rm.filters)
 }
 
 type bearerRoundTripper struct {
@@ -150,17 +179,23 @@ func (b bearerRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 // client with the given bearer token.
 func connectResourceServer(t *testing.T, oidc *mockOIDCProvider, mp *recordingMidpoint, token string) (*mcp.ClientSession, error) {
 	t.Helper()
-	ctx := context.Background()
-
-	cfg := midpoint.Config{
+	return connectResourceServerConfig(t, midpoint.Config{
 		BaseURL:      mp.server.URL,
 		Username:     "svc",
 		Password:     "p",
 		OIDCIssuer:   oidc.issuer(),
 		OIDCAudience: e2eAudience,
-	}
+	}, token)
+}
+
+// connectResourceServerConfig is connectResourceServer for a caller that needs
+// its own settings.
+func connectResourceServerConfig(t *testing.T, cfg midpoint.Config, token string) (*mcp.ClientSession, error) {
+	t.Helper()
+	ctx := context.Background()
+
 	client := midpoint.NewClient(cfg)
-	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim)
+	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
 	if err != nil {
 		t.Fatalf("oidcauth.New: %v", err)
 	}
@@ -229,6 +264,96 @@ func TestResourceServerRejectsBadAuth(t *testing.T) {
 		if cs, err := connectResourceServer(t, oidc, mp, token); err == nil {
 			cs.Close()
 			t.Fatal("connect with a wrong-audience token should fail")
+		}
+	})
+}
+
+// A client credentials token names an OAuth client, not a person. With the client
+// settings on, its client claim is the name to correlate and every correlation
+// query is limited to the listed archetypes. A person's token is untouched.
+func TestResourceServerClientToken(t *testing.T) {
+	const agentArchetype = "11111111-2222-3333-4444-5555555500a2"
+	const guard = `(archetypeRef matches (oid = "` + agentArchetype + `"))`
+	clientToken := func(oidc *mockOIDCProvider, clientID string) string {
+		return oidc.mint(t, func(c map[string]any) {
+			c["client_id"] = clientID
+			c["preferred_username"] = "service-account-" + clientID
+		})
+	}
+	config := func(oidc *mockOIDCProvider, mp *recordingMidpoint) midpoint.Config {
+		return midpoint.Config{
+			BaseURL:                    mp.server.URL,
+			Username:                   "svc",
+			Password:                   "p",
+			OIDCIssuer:                 oidc.issuer(),
+			OIDCAudience:               e2eAudience,
+			OIDCClientCorrelationClaim: "client_id",
+			OIDCClientArchetypes:       []string{agentArchetype},
+		}
+	}
+
+	t.Run("agent client runs as the agent's user", func(t *testing.T) {
+		oidc, mp := newMockOIDC(t), newRecordingMidpoint(t)
+		cs, err := connectResourceServerConfig(t, config(oidc, mp), clientToken(oidc, "build-agent"))
+		if err != nil {
+			t.Fatalf("connect with a client token: %v", err)
+		}
+		defer cs.Close()
+		filters := mp.searchFilters()
+		if len(filters) == 0 {
+			t.Fatal("no correlation query reached midPoint")
+		}
+		for _, f := range filters {
+			if !strings.HasSuffix(f, " and "+guard) {
+				t.Errorf("correlation query %q lacks the archetype condition", f)
+			}
+		}
+		if !slices.Contains(filters, `externalId = "`+e2eSubject+`" and `+guard) {
+			t.Errorf("queries %q: the externalId attempt is missing or unguarded", filters)
+		}
+	})
+
+	t.Run("client named like a person is refused", func(t *testing.T) {
+		oidc, mp := newMockOIDC(t), newRecordingMidpoint(t)
+		mp.holdsArchetype = func(string) bool { return false }
+		cs, err := connectResourceServerConfig(t, config(oidc, mp), clientToken(oidc, e2eUsername))
+		if err == nil {
+			cs.Close()
+			t.Fatal("a client whose name matches a person must not connect as that person")
+		}
+		if !slices.Contains(mp.searchFilters(), `name = "`+e2eUsername+`" and `+guard) {
+			t.Errorf("queries %q: the client id was not correlated under the archetype condition", mp.searchFilters())
+		}
+	})
+
+	// ConfigFromEnv refuses this pair at startup. The verifier must not depend
+	// on that: a client's token without an archetype list has no safe match.
+	t.Run("client token without an archetype list is refused", func(t *testing.T) {
+		oidc, mp := newMockOIDC(t), newRecordingMidpoint(t)
+		cfg := config(oidc, mp)
+		cfg.OIDCClientArchetypes = nil
+		cs, err := connectResourceServerConfig(t, cfg, clientToken(oidc, "build-agent"))
+		if err == nil {
+			cs.Close()
+			t.Fatal("a client's token must not correlate without the archetype condition")
+		}
+		if got := mp.searchFilters(); len(got) != 0 {
+			t.Errorf("unguarded correlation queries reached midPoint: %q", got)
+		}
+	})
+
+	t.Run("person token is not guarded", func(t *testing.T) {
+		oidc, mp := newMockOIDC(t), newRecordingMidpoint(t)
+		mp.holdsArchetype = func(string) bool { return false }
+		cs, err := connectResourceServerConfig(t, config(oidc, mp), oidc.mint(t, nil))
+		if err != nil {
+			t.Fatalf("connect with a person's token: %v", err)
+		}
+		defer cs.Close()
+		for _, f := range mp.searchFilters() {
+			if strings.Contains(f, "archetypeRef") {
+				t.Errorf("person correlation query %q carries the archetype condition", f)
+			}
 		}
 	})
 }

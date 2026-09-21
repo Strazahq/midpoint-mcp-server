@@ -20,17 +20,28 @@ const principalClaimKey = "midpointOID"
 
 // bearerVerifier verifies an OAuth bearer token and correlates it to a midPoint
 // user. correlationAttribute is the midPoint attribute the token's correlation
-// claim is matched against ("" = the default, name). Any failure returns an
-// ErrInvalidToken-wrapped error, which the SDK surfaces as a 401. The verify +
-// correlation run as the service account (no principal in the context), which is
-// exactly the identity that holds #proxy.
-func bearerVerifier(authn *oidcauth.Authenticator, client *midpoint.Client, correlationAttribute string) sdkauth.TokenVerifier {
+// claim is matched against ("" = the default, name). clientArchetypes limits a
+// client's own token to users holding one of those archetypes; a person's token
+// is not limited. Any failure returns an ErrInvalidToken-wrapped error, which the
+// SDK surfaces as a 401. The verify + correlation run as the service account (no
+// principal in the context), which is exactly the identity that holds #proxy.
+func bearerVerifier(authn *oidcauth.Authenticator, client *midpoint.Client, correlationAttribute string, clientArchetypes []string) sdkauth.TokenVerifier {
 	return func(ctx context.Context, token string, _ *http.Request) (*sdkauth.TokenInfo, error) {
 		claims, err := authn.Verify(ctx, token)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", sdkauth.ErrInvalidToken, err)
 		}
-		oid, err := client.CorrelateUser(ctx, claims.Subject, claims.CorrelationValue, correlationAttribute)
+		var archetypes []string
+		if claims.Client {
+			// CorrelateUser reads an empty list as a person's token and sends
+			// no archetype condition, so a client's token stops here without one.
+			if len(clientArchetypes) == 0 {
+				return nil, fmt.Errorf("%w: the token is a client's own, and %s lists no archetype such a token may run as. Set it to the oids of the archetypes your agent or service users hold",
+					sdkauth.ErrInvalidToken, midpoint.EnvOIDCClientArchetypes)
+			}
+			archetypes = clientArchetypes
+		}
+		oid, err := client.CorrelateUser(ctx, claims.Subject, claims.CorrelationValue, correlationAttribute, archetypes)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", sdkauth.ErrInvalidToken, err)
 		}

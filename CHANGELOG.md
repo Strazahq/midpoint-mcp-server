@@ -8,6 +8,19 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **Tokens a client obtains for itself (`MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM`,
+  `MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES`, both unset by default).** An agent or a
+  service that uses the OAuth client credentials grant has a token with no
+  person in it, and until now it matched no midPoint user. When the first
+  setting names a claim that only such a token carries (`client_id` on
+  Keycloak), the claim's value is the name to correlate. The second setting is
+  the guard that makes this safe: every correlation query for a client's token,
+  the `externalId` attempt included, also requires one of the listed archetypes,
+  so a client that someone named like a person can never run as that person.
+  One setting without the other is a startup error, a claim with an unusable
+  value is refused, and a person's token behaves exactly as before. Verified on
+  midPoint 4.10.3 (`archetypeRef matches (oid = "...")`, several oids OR-ed) and
+  Keycloak 26. No new dependency.
 - **`whoami`** — reports the identity midPoint executes as, how it was
   established (`personal` = the server's configured credentials, `resource-server`
   = a validated per-request end user), whether the request is impersonated, and

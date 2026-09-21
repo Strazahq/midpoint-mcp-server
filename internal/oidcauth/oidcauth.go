@@ -6,6 +6,7 @@ package oidcauth
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strconv"
 	"time"
@@ -24,7 +25,10 @@ type Claims struct {
 	// CorrelationValue is the value of the configured correlation claim
 	// (preferred_username by default), matched against a midPoint attribute.
 	CorrelationValue string
-	Expiry           time.Time
+	// Client reports that CorrelationValue came from the client correlation
+	// claim: the token is an OAuth client's own, not a person's.
+	Client bool
+	Expiry time.Time
 }
 
 // Authenticator verifies bearer tokens for a single issuer + audience.
@@ -33,20 +37,25 @@ type Authenticator struct {
 	// correlationClaim is the token claim whose value CorrelationValue carries.
 	// Empty means DefaultCorrelationClaim.
 	correlationClaim string
+	// clientCorrelationClaim is a claim that only a client's own token carries.
+	// Empty means no token is treated as a client's.
+	clientCorrelationClaim string
 }
 
 // New discovers the issuer's OIDC metadata (and thus its JWKS) and returns an
 // Authenticator that requires the given audience. correlationClaim names the token
-// claim to expose for correlation (empty = DefaultCorrelationClaim). It performs
-// network I/O.
-func New(ctx context.Context, issuer, audience, correlationClaim string) (*Authenticator, error) {
+// claim to expose for correlation (empty = DefaultCorrelationClaim).
+// clientCorrelationClaim names the claim that marks a client's own token and then
+// takes its place (empty = off). It performs network I/O.
+func New(ctx context.Context, issuer, audience, correlationClaim, clientCorrelationClaim string) (*Authenticator, error) {
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
 		return nil, err
 	}
 	return &Authenticator{
-		verifier:         provider.Verifier(&oidc.Config{ClientID: audience}),
-		correlationClaim: correlationClaim,
+		verifier:               provider.Verifier(&oidc.Config{ClientID: audience}),
+		correlationClaim:       correlationClaim,
+		clientCorrelationClaim: clientCorrelationClaim,
 	}, nil
 }
 
@@ -63,12 +72,28 @@ func (a *Authenticator) Verify(ctx context.Context, rawToken string) (Claims, er
 		claim = DefaultCorrelationClaim
 	}
 	var all map[string]any
-	_ = tok.Claims(&all) // best-effort; Subject/Expiry are already on tok
-	return Claims{
+	if err := tok.Claims(&all); err != nil && a.clientCorrelationClaim != "" {
+		// Without the claims a client's token would pass as a person's.
+		return Claims{}, fmt.Errorf("decoding the token claims to look for %q: %w", a.clientCorrelationClaim, err)
+	}
+	// Otherwise best-effort; Subject/Expiry are already on tok.
+	claims := Claims{
 		Subject:          tok.Subject,
 		CorrelationValue: claimString(all[claim]),
 		Expiry:           tok.Expiry,
-	}, nil
+	}
+	if raw, present := all[a.clientCorrelationClaim]; present && a.clientCorrelationClaim != "" {
+		// The claim's presence is what marks a client's token, so a value that
+		// cannot name the client is refused. Falling back to the person claim
+		// would take the token off the archetype-guarded path.
+		claims.CorrelationValue = claimString(raw)
+		claims.Client = true
+		if claims.CorrelationValue == "" {
+			return Claims{}, fmt.Errorf("token claim %q is present but is not a non-empty string or number, so the calling client cannot be identified. Check the identity provider's mapper for that claim",
+				a.clientCorrelationClaim)
+		}
+	}
+	return claims, nil
 }
 
 // claimString coerces a decoded JSON claim to a string for correlation. It

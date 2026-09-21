@@ -149,6 +149,51 @@ Notes:
 A token that validates but correlates to **no** midPoint user is refused — that is
 the correct outcome for a person who exists in the IdP but not in midPoint.
 
+### Tokens a client obtains for itself (agents and services)
+
+An agent or a service that signs in with the OAuth client credentials grant gets a
+token that names the client and no person. Such a token usually has no usable
+`preferred_username` (Keycloak sends `service-account-<client id>`), so by default
+it matches nobody and is refused. Two settings, always set together, let it run as
+a midPoint user of its own:
+
+| Variable | Example | Meaning |
+| --- | --- | --- |
+| `MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM` | `client_id` | A claim that only a client's own token carries. When a token has it, its value is the name to correlate, in place of the claim from the table above. |
+| `MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES` | `<oid of your agent archetype>` | Comma-separated archetype oids. A client's token is matched only to a user that holds one of them. |
+
+```sh
+MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM=client_id
+MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES=11111111-2222-3333-4444-5555555500a2
+```
+
+The midPoint side is one user per client: its `name` (or the attribute configured
+above) equals the client id, and it holds one of the listed archetypes. The same
+archetype has to be inside the scope of the service account's `#proxy`
+authorization (Requirement 3).
+
+The archetype list is the safety catch. Whoever can create clients at the identity
+provider can name a client `alice`. Without the list that client would run as the
+person alice. With it, every correlation query for a client's token, the
+`sub` → `externalId` step included, also requires
+`archetypeRef matches (oid = "...")`, so the token finds alice only if alice holds
+an agent archetype, which a person does not. For that reason the server refuses to
+start when one of the two settings is set without the other.
+
+Notes:
+
+- The claim's presence is what marks a token as a client's, so pick a claim that a
+  person's token never carries. Verified on Keycloak 26: a client credentials token
+  carries `client_id` and a person's token does not. A provider that puts the
+  client id on every token (Okta's `cid`, the `azp` claim in general) needs a
+  custom claim that is mapped only for client credentials tokens.
+- A token that carries the claim with an empty or non-scalar value is refused. It
+  is not retried as a person's token.
+- A person's token is untouched by both settings: it has no such claim, correlates
+  as before and is not limited by archetype.
+- The service account must be able to read the users' `archetypeRef`, because the
+  correlation search runs as the service account.
+
 ## Requirement 3 — the midPoint service account
 
 This is **the same for every provider** — it is a midPoint concern, not an IdP one.
@@ -260,6 +305,7 @@ The pattern is always the same:
 | Every request `401`, "issuer did not match" | `MIDPOINT_MCP_OIDC_ISSUER` ≠ the token's `iss` (host/port/version mismatch — classic behind proxies or Entra v1 vs v2). |
 | Every request `401`, audience/`aud` | Token's `aud` doesn't contain `MIDPOINT_MCP_OIDC_AUDIENCE`; provider isn't issuing the audience (Keycloak mapper missing, or client didn't request the API scope). Do **not** fix this by relaxing the check. |
 | Request refused, "no midPoint user matches …" | Correlation: neither `sub`→`externalId` nor `preferred_username`→`name` hit a user. |
+| Client token refused, "no midPoint user that holds an archetype listed in …" | The client id matches no user that holds a listed archetype. Create the client's midPoint user with that name and archetype, or add the archetype's oid to `MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES`. A client named like a person is refused here on purpose. |
 | Operation fails with midPoint "Access denied" (HTTP 500) | Service account lacks `…rest-3#proxy`, **or** the impersonated user lacks authorization for the operation (give them the End user role). |
 
 ## See also

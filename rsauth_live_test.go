@@ -70,7 +70,7 @@ func TestLiveOIDCResourceServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim)
+	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
 	if err != nil {
 		t.Fatalf("OIDC discovery against %q failed: %v", cfg.OIDCIssuer, err)
 	}

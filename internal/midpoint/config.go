@@ -23,6 +23,12 @@ const (
 	// overrides the midPoint attribute it is matched against (default name).
 	EnvOIDCCorrelationClaim     = "MIDPOINT_MCP_OIDC_CORRELATION_CLAIM"
 	EnvOIDCCorrelationAttribute = "MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE"
+	// EnvOIDCClientCorrelationClaim names a token claim that only an OAuth
+	// client's own token carries (client_id on Keycloak). EnvOIDCClientArchetypes
+	// lists, comma-separated, the oids of the archetypes such a token may run as.
+	// Both are set together; see Config.OIDCClientCorrelationClaim.
+	EnvOIDCClientCorrelationClaim = "MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM"
+	EnvOIDCClientArchetypes       = "MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES"
 	// EnvAnonymousDiscovery opens the MCP handshake and tool listing to callers
 	// with no bearer token. Off by default; see Config.AnonymousDiscovery.
 	EnvAnonymousDiscovery = "MIDPOINT_MCP_ANONYMOUS_DISCOVERY"
@@ -60,6 +66,17 @@ type Config struct {
 	// runs first regardless. Inert outside resource-server mode.
 	OIDCCorrelationClaim     string
 	OIDCCorrelationAttribute string
+
+	// OIDCClientCorrelationClaim enables tokens that an OAuth client obtained for
+	// itself (the client credentials grant), as an agent or a service does. When
+	// a validated token carries this claim, the claim's value replaces the
+	// correlation claim's, and every correlation query for that token, the
+	// externalId attempt included, also requires one of OIDCClientArchetypes. A
+	// client that someone named like a person therefore never runs as that
+	// person. Empty (the default) leaves every token on the person path. A token
+	// without the claim is a person's and is not restricted by archetype.
+	OIDCClientCorrelationClaim string
+	OIDCClientArchetypes       []string
 
 	// AnonymousDiscovery lets a caller with no bearer token complete the MCP
 	// handshake and list tools (initialize, notifications/initialized, ping,
@@ -99,6 +116,13 @@ func ConfigFromEnv() (Config, error) {
 		OIDCCorrelationClaim:     strings.TrimSpace(os.Getenv(EnvOIDCCorrelationClaim)),
 		OIDCCorrelationAttribute: strings.TrimSpace(os.Getenv(EnvOIDCCorrelationAttribute)),
 		AnonymousDiscovery:       strings.EqualFold(strings.TrimSpace(os.Getenv(EnvAnonymousDiscovery)), "true"),
+
+		OIDCClientCorrelationClaim: strings.TrimSpace(os.Getenv(EnvOIDCClientCorrelationClaim)),
+	}
+	for _, oid := range strings.Split(os.Getenv(EnvOIDCClientArchetypes), ",") {
+		if oid = strings.TrimSpace(oid); oid != "" {
+			cfg.OIDCClientArchetypes = append(cfg.OIDCClientArchetypes, oid)
+		}
 	}
 
 	var missing []string
@@ -126,6 +150,26 @@ func ConfigFromEnv() (Config, error) {
 	if cfg.OIDCCorrelationAttribute != "" && !ValidCorrelationAttribute(cfg.OIDCCorrelationAttribute) {
 		return Config{}, fmt.Errorf("%s %q is not a valid midPoint attribute path (letters, digits, and '/' only)",
 			EnvOIDCCorrelationAttribute, cfg.OIDCCorrelationAttribute)
+	}
+
+	// The archetype list is what keeps a client token away from people, so the
+	// claim never goes live without it. The reverse is refused too: a list that
+	// nothing reads would look like a guard and restrict nothing.
+	if cfg.OIDCClientCorrelationClaim != "" && len(cfg.OIDCClientArchetypes) == 0 {
+		return Config{}, fmt.Errorf("%s is set but %s is empty. A client's token is only matched to a midPoint user that holds one of the listed archetypes, which keeps a client named like a person from running as that person. Set %s to the comma-separated oids of the archetypes your agent or service users hold, or unset %s",
+			EnvOIDCClientCorrelationClaim, EnvOIDCClientArchetypes, EnvOIDCClientArchetypes, EnvOIDCClientCorrelationClaim)
+	}
+	if cfg.OIDCClientCorrelationClaim == "" && len(cfg.OIDCClientArchetypes) > 0 {
+		return Config{}, fmt.Errorf("%s is set but %s is not, so no token would ever be checked against the archetype list. Set %s to a claim that only a client's own token carries (client_id on Keycloak), or unset %s",
+			EnvOIDCClientArchetypes, EnvOIDCClientCorrelationClaim, EnvOIDCClientCorrelationClaim, EnvOIDCClientArchetypes)
+	}
+	// The oids are interpolated into a query filter, like the correlation
+	// attribute above.
+	for _, oid := range cfg.OIDCClientArchetypes {
+		if !validOID(oid) {
+			return Config{}, fmt.Errorf("%s entry %q is not a midPoint oid (letters, digits and '-' only). Copy each archetype's oid from midPoint and separate the oids with commas",
+				EnvOIDCClientArchetypes, oid)
+		}
 	}
 
 	file, err := LoadFileConfig()
@@ -164,6 +208,18 @@ func ValidCorrelationAttribute(s string) bool {
 		prev = ch
 	}
 	return true
+}
+
+// validOID reports whether s is safe to interpolate into a query filter as an
+// oid: letters, digits and '-' only.
+func validOID(s string) bool {
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		if !isAsciiLetter(rune(ch)) && (ch < '0' || ch > '9') && ch != '-' {
+			return false
+		}
+	}
+	return s != ""
 }
 
 func isAsciiLetter(r rune) bool {

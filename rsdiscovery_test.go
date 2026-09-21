@@ -235,7 +235,7 @@ func connectAnonymousDiscovery(t *testing.T, oidc *mockOIDCProvider, mp *recordi
 		AnonymousDiscovery: true,
 	}
 	client := midpoint.NewClient(cfg)
-	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim)
+	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
 	if err != nil {
 		t.Fatalf("oidcauth.New: %v", err)
 	}

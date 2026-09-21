@@ -42,7 +42,7 @@ func serveHTTP(addr string, client *midpoint.Client, cfg midpoint.Config) error 
 
 	var authn *oidcauth.Authenticator
 	if cfg.ResourceServerMode() {
-		a, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim)
+		a, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
 		if err != nil {
 			return fmt.Errorf("configuring OIDC issuer %q: %w", cfg.OIDCIssuer, err)
 		}
@@ -105,7 +105,7 @@ func mcpHTTPHandler(client *midpoint.Client, cfg midpoint.Config, authn *oidcaut
 
 	var handler http.Handler = streamable
 	if authn != nil {
-		requireAuth := sdkauth.RequireBearerToken(bearerVerifier(authn, client, cfg.OIDCCorrelationAttribute), nil)
+		requireAuth := sdkauth.RequireBearerToken(bearerVerifier(authn, client, cfg.OIDCCorrelationAttribute, cfg.OIDCClientArchetypes), nil)
 		if cfg.AnonymousDiscovery {
 			handler = discoveryGate(requireAuth, streamable)
 		} else {

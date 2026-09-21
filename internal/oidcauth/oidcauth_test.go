@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -136,6 +137,79 @@ func TestVerifyCustomCorrelationClaim(t *testing.T) {
 			t.Errorf("CorrelationValue = %q, want empty", claims.CorrelationValue)
 		}
 	})
+}
+
+func TestVerifyClientCorrelationClaim(t *testing.T) {
+	s := newSigner(t)
+	clientToken := func(clientID any) map[string]any {
+		c := baseClaims()
+		c["preferred_username"] = "service-account-build-agent"
+		c["client_id"] = clientID
+		return c
+	}
+
+	tests := []struct {
+		name        string
+		personClaim string // "" = default (preferred_username)
+		clientClaim string // "" = the setting is unset
+		claims      map[string]any
+		wantValue   string
+		wantClient  bool
+		wantErr     bool
+	}{
+		{
+			name: "client claim present names the client", clientClaim: "client_id",
+			claims: clientToken("build-agent"), wantValue: "build-agent", wantClient: true,
+		},
+		{
+			name: "person token has no client claim", clientClaim: "client_id",
+			claims: baseClaims(), wantValue: "jdoe",
+		},
+		{
+			name: "person token keeps a custom person claim", personClaim: "email", clientClaim: "client_id",
+			claims: func() map[string]any {
+				c := baseClaims()
+				c["email"] = "jane@example.com"
+				return c
+			}(),
+			wantValue: "jane@example.com",
+		},
+		{
+			name:   "unset setting ignores the client claim",
+			claims: clientToken("build-agent"), wantValue: "service-account-build-agent",
+		},
+		{
+			name: "empty client claim is refused", clientClaim: "client_id",
+			claims: clientToken(""), wantErr: true,
+		},
+		{
+			name: "non-scalar client claim is refused", clientClaim: "client_id",
+			claims: clientToken([]string{"build-agent"}), wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := authenticatorForClaim(s, tt.personClaim)
+			a.clientCorrelationClaim = tt.clientClaim
+			claims, err := a.Verify(context.Background(), s.mint(t, tt.claims))
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("Verify = %+v, want error", claims)
+				}
+				if !strings.Contains(err.Error(), `"client_id"`) {
+					t.Errorf("error %q does not name the claim", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Verify: %v", err)
+			}
+			if claims.CorrelationValue != tt.wantValue || claims.Client != tt.wantClient {
+				t.Errorf("CorrelationValue, Client = %q, %v, want %q, %v",
+					claims.CorrelationValue, claims.Client, tt.wantValue, tt.wantClient)
+			}
+		})
+	}
 }
 
 func TestVerifyRejectsBadTokens(t *testing.T) {

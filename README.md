@@ -65,6 +65,8 @@ Credentials are read from the environment at runtime (never written to disk):
 | `MIDPOINT_MCP_OIDC_AUDIENCE` | no | expected token audience for resource-server mode |
 | `MIDPOINT_MCP_OIDC_CORRELATION_CLAIM` | no | token claim matched to a midPoint user (default `preferred_username`); see [docs](docs/identity-providers.md#requirement-2--correlation-which-midpoint-user-is-this) |
 | `MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE` | no | midPoint attribute the claim is matched against (default `name`) |
+| `MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM` | no | claim that only an OAuth client's own token carries (`client_id` on Keycloak); its value is then the name to correlate. Set together with the archetypes below; see [docs](docs/identity-providers.md#tokens-a-client-obtains-for-itself-agents-and-services) |
+| `MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES` | no | comma-separated archetype oids; a client's token is matched only to a midPoint user that holds one of them |
 | `MIDPOINT_MCP_ANONYMOUS_DISCOVERY` | no | `true` serves the MCP handshake and `tools/list` without a token in resource-server mode; `tools/call` still requires one ([below](#anonymous-discovery)) |
 | `MIDPOINT_MCP_CONFIG` | no | path to a JSON settings file (below) — org modelling and self-service guardrails |
 

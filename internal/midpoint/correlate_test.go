@@ -39,7 +39,8 @@ func TestCorrelateUser(t *testing.T) {
 	tests := []struct {
 		name              string
 		subject, username string
-		attribute         string // "" = default (name)
+		attribute         string   // "" = default (name)
+		archetypes        []string // nil = a person's token, no archetype guard
 		respond           func(filter string) (int, string)
 		wantOID           string
 		wantErr           bool
@@ -96,6 +97,64 @@ func TestCorrelateUser(t *testing.T) {
 			wantOID: "oid-email",
 		},
 		{
+			// With no archetypes the filter is exactly what it was before the
+			// client settings existed.
+			name: "person token sends the bare name filter", subject: "", username: "jdoe",
+			respond: func(f string) (int, string) {
+				if f == `name = "jdoe"` {
+					return 200, one("oid-name")
+				}
+				return 200, empty
+			},
+			wantOID: "oid-name",
+		},
+		{
+			name: "client token requires the archetype on the name query", subject: "", username: "build-agent",
+			archetypes: []string{"oid-agent"},
+			respond: func(f string) (int, string) {
+				if f == `name = "build-agent" and (archetypeRef matches (oid = "oid-agent"))` {
+					return 200, one("oid-build-agent")
+				}
+				return 200, empty
+			},
+			wantOID: "oid-build-agent",
+		},
+		{
+			name: "several archetypes are OR-ed", subject: "", username: "build-agent",
+			archetypes: []string{"oid-agent", "oid-service"},
+			respond: func(f string) (int, string) {
+				if f == `name = "build-agent" and (archetypeRef matches (oid = "oid-agent") or archetypeRef matches (oid = "oid-service"))` {
+					return 200, one("oid-build-agent")
+				}
+				return 200, empty
+			},
+			wantOID: "oid-build-agent",
+		},
+		{
+			name: "client token requires the archetype on the externalId query", subject: "sub-1", username: "",
+			archetypes: []string{"oid-agent"},
+			respond: func(f string) (int, string) {
+				if f == `externalId = "sub-1" and (archetypeRef matches (oid = "oid-agent"))` {
+					return 200, one("oid-ext")
+				}
+				return 200, empty
+			},
+			wantOID: "oid-ext",
+		},
+		{
+			// midPoint answers an unguarded query with the person and a guarded
+			// one with nobody, as it does for a user without the archetype.
+			name: "client named like a person is refused", subject: "sub-1", username: "alice",
+			archetypes: []string{"oid-agent"},
+			respond: func(f string) (int, string) {
+				if strings.Contains(f, "archetypeRef") {
+					return 200, empty
+				}
+				return 200, one("oid-alice")
+			},
+			wantErr: true,
+		},
+		{
 			name: "no match anywhere", subject: "sub-1", username: "jdoe",
 			respond: func(string) (int, string) { return 200, empty },
 			wantErr: true,
@@ -110,7 +169,7 @@ func TestCorrelateUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := newSearchClient(t, tt.respond)
-			got, err := c.CorrelateUser(context.Background(), tt.subject, tt.username, tt.attribute)
+			got, err := c.CorrelateUser(context.Background(), tt.subject, tt.username, tt.attribute, tt.archetypes)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("CorrelateUser = %q, want error", got)
@@ -124,6 +183,27 @@ func TestCorrelateUser(t *testing.T) {
 				t.Errorf("CorrelateUser = %q, want %q", got, tt.wantOID)
 			}
 		})
+	}
+}
+
+// A refused client token must tell the operator which setting and which midPoint
+// fact to look at. A person's refusal keeps its wording.
+func TestCorrelateUserNoMatchMessages(t *testing.T) {
+	c := newSearchClient(t, func(string) (int, string) { return 200, `{"object":[]}` })
+
+	_, err := c.CorrelateUser(context.Background(), "sub-1", "jdoe", "", nil)
+	if err == nil || err.Error() != `no midPoint user matches subject="sub-1" name="jdoe"` {
+		t.Errorf("person no-match error = %v", err)
+	}
+
+	_, err = c.CorrelateUser(context.Background(), "sub-2", "build-agent", "", []string{"oid-agent"})
+	if err == nil {
+		t.Fatal("client no-match: want an error")
+	}
+	for _, want := range []string{`subject="sub-2"`, `name="build-agent"`, EnvOIDCClientArchetypes, "archetype"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("client no-match error %q does not name %q", err, want)
+		}
 	}
 }
 
