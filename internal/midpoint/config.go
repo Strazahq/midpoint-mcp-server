@@ -69,8 +69,8 @@ type Config struct {
 
 	// OIDCClientCorrelationClaim enables tokens that an OAuth client obtained for
 	// itself (the client credentials grant), as an agent or a service does. When
-	// a validated token carries this claim, the claim's value replaces the
-	// correlation claim's, and every correlation query for that token, the
+	// a validated token carries this claim, the claim's value is matched on the
+	// user's name, and every correlation query for that token, the
 	// externalId attempt included, also requires one of OIDCClientArchetypes. A
 	// client that someone named like a person therefore never runs as that
 	// person. Empty (the default) leaves every token on the person path. A token

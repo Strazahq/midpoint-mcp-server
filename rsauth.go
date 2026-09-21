@@ -21,8 +21,8 @@ const principalClaimKey = "midpointOID"
 // bearerVerifier verifies an OAuth bearer token and correlates it to a midPoint
 // user. correlationAttribute is the midPoint attribute the token's correlation
 // claim is matched against ("" = the default, name). clientArchetypes limits a
-// client's own token to users holding one of those archetypes; a person's token
-// is not limited. Any failure returns an ErrInvalidToken-wrapped error, which the
+// client's own token to users holding one of those archetypes, and such a token
+// is always matched on name; a person's token is not limited. Any failure returns an ErrInvalidToken-wrapped error, which the
 // SDK surfaces as a 401. The verify + correlation run as the service account (no
 // principal in the context), which is exactly the identity that holds #proxy.
 func bearerVerifier(authn *oidcauth.Authenticator, client *midpoint.Client, correlationAttribute string, clientArchetypes []string) sdkauth.TokenVerifier {
@@ -40,6 +40,9 @@ func bearerVerifier(authn *oidcauth.Authenticator, client *midpoint.Client, corr
 					sdkauth.ErrInvalidToken, midpoint.EnvOIDCClientArchetypes)
 			}
 			archetypes = clientArchetypes
+			// A client id names the client's midPoint user. The configured
+			// attribute is about people, whose claim may be an email or a number.
+			correlationAttribute = midpoint.DefaultCorrelationAttribute
 		}
 		oid, err := client.CorrelateUser(ctx, claims.Subject, claims.CorrelationValue, correlationAttribute, archetypes)
 		if err != nil {

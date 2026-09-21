@@ -313,6 +313,22 @@ func TestResourceServerClientToken(t *testing.T) {
 		}
 	})
 
+	// People may correlate on another attribute. A client id is the agent
+	// user's name, which midPoint keeps unique.
+	t.Run("client id is matched on name whatever people correlate on", func(t *testing.T) {
+		oidc, mp := newMockOIDC(t), newRecordingMidpoint(t)
+		cfg := config(oidc, mp)
+		cfg.OIDCCorrelationAttribute = "emailAddress"
+		cs, err := connectResourceServerConfig(t, cfg, clientToken(oidc, "build-agent"))
+		if err != nil {
+			t.Fatalf("connect with a client token: %v", err)
+		}
+		defer cs.Close()
+		if !slices.Contains(mp.searchFilters(), `name = "build-agent" and `+guard) {
+			t.Errorf("queries %q: the client id was not matched on name", mp.searchFilters())
+		}
+	})
+
 	t.Run("client named like a person is refused", func(t *testing.T) {
 		oidc, mp := newMockOIDC(t), newRecordingMidpoint(t)
 		mp.holdsArchetype = func(string) bool { return false }

@@ -167,8 +167,9 @@ MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM=client_id
 MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES=11111111-2222-3333-4444-5555555500a2
 ```
 
-The midPoint side is one user per client: its `name` (or the attribute configured
-above) equals the client id, and it holds one of the listed archetypes. The same
+The midPoint side is one user per client: its `name` equals the client id, and it
+holds one of the listed archetypes. A client id is always matched on `name`, which
+midPoint keeps unique, whatever attribute people correlate on. The same
 archetype has to be inside the scope of the service account's `#proxy`
 authorization (Requirement 3).
 

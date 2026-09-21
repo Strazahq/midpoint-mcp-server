@@ -13,7 +13,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   service that uses the OAuth client credentials grant has a token with no
   person in it, and until now it matched no midPoint user. When the first
   setting names a claim that only such a token carries (`client_id` on
-  Keycloak), the claim's value is the name to correlate. The second setting is
+  Keycloak), the claim's value is matched on the midPoint user's `name`. The second setting is
   the guard that makes this safe: every correlation query for a client's token,
   the `externalId` attempt included, also requires one of the listed archetypes,
   so a client that someone named like a person can never run as that person.
