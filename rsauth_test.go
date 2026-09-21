@@ -317,6 +317,8 @@ func TestResourceServerClientToken(t *testing.T) {
 	// user's name, which midPoint keeps unique.
 	t.Run("client id is matched on name whatever people correlate on", func(t *testing.T) {
 		oidc, mp := newMockOIDC(t), newRecordingMidpoint(t)
+		// No user holds the token subject as externalId, so the name query runs.
+		mp.holdsArchetype = func(f string) bool { return !strings.Contains(f, "externalId") }
 		cfg := config(oidc, mp)
 		cfg.OIDCCorrelationAttribute = "emailAddress"
 		cs, err := connectResourceServerConfig(t, cfg, clientToken(oidc, "build-agent"))
