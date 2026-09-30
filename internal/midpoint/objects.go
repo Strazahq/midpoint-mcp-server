@@ -3,6 +3,7 @@ package midpoint
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -85,12 +86,56 @@ func unwrapObject(body []byte) (json.RawMessage, error) {
 }
 
 // refJSON is midPoint's ObjectReferenceType. targetName is populated only when
-// the request uses ?options=resolveNames.
+// the request uses ?options=resolveNames. It decodes through UnmarshalJSON, so
+// the struct tags only document the plain spelling.
 type refJSON struct {
 	OID        string     `json:"oid"`
 	Type       string     `json:"type"`
 	Relation   string     `json:"relation"`
 	TargetName polyString `json:"targetName"`
+}
+
+// UnmarshalJSON reads a reference in either spelling midPoint uses for its
+// keys. A single-object GET writes them plain ({"oid":…,"type":…}); a search
+// result writes them namespace-prefixed ({"t:oid":…,"t:type":…,
+// "t:relation":…}, seen on 4.10.3 with and without resolveNames). A key is
+// matched on its local part, and the plain spelling wins if both are present.
+func (r *refJSON) UnmarshalJSON(data []byte) error {
+	var m map[string]json.RawMessage
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	*r = refJSON{}
+	for _, f := range []struct {
+		local string
+		dst   any
+	}{
+		{"oid", &r.OID},
+		{"type", &r.Type},
+		{"relation", &r.Relation},
+		{"targetName", &r.TargetName},
+	} {
+		if v, ok := refKey(m, f.local); ok {
+			if err := json.Unmarshal(v, f.dst); err != nil {
+				return fmt.Errorf("decoding reference %s: %w", f.local, err)
+			}
+		}
+	}
+	return nil
+}
+
+// refKey returns the value stored under local, or else under a prefixed key
+// whose local part is local ("t:oid" for "oid").
+func refKey(m map[string]json.RawMessage, local string) (json.RawMessage, bool) {
+	if v, ok := m[local]; ok {
+		return v, true
+	}
+	for k, v := range m {
+		if i := strings.LastIndex(k, ":"); i >= 0 && k[i+1:] == local {
+			return v, true
+		}
+	}
+	return nil, false
 }
 
 // activation carries a focus/assignment activation status.
@@ -165,15 +210,20 @@ type orgRef struct {
 	source string `json:"-"`
 }
 
-// parentOrgs decodes the user's parentOrgRef entries (tolerating single/array).
-// This is midPoint's computed org membership and the default source of truth.
+// parentOrgs decodes the user's parentOrgRef entries (tolerating single/array
+// and either key spelling, via refJSON). This is midPoint's computed org
+// membership and the default source of truth.
 func (u userJSON) parentOrgs() []orgRef {
 	out := make([]orgRef, 0, len(u.ParentOrgRef))
 	for _, raw := range u.ParentOrgRef {
-		var r orgRef
+		var r refJSON
 		if json.Unmarshal(raw, &r) == nil && r.OID != "" {
-			r.source = OrgSourceParentOrgRef
-			out = append(out, r)
+			out = append(out, orgRef{
+				OID:        r.OID,
+				Relation:   r.Relation,
+				TargetName: r.TargetName,
+				source:     OrgSourceParentOrgRef,
+			})
 		}
 	}
 	return out

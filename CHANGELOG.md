@@ -163,6 +163,17 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Fixed
 
+- **Search results carry namespace-prefixed reference keys; the inbox now
+  reads them.** In a `POST /{collection}/search` answer midPoint 4.10.3 writes a
+  reference as `{"t:oid":…,"t:type":…,"t:relation":…,"targetName":…}`, while a
+  single-object `GET` writes plain `oid` / `type` / `relation`. The reference
+  decoder read only the plain keys, so every `assigneeRef` in the case search
+  behind `list_work_items` came back without an OID and the inbox was empty for
+  a caller who had an open work item (found live). References now decode in
+  either spelling, matched on the key's local part with the plain key winning,
+  and the other reference readers (`parentOrgRef`, `roleMembershipRef`,
+  assignment targets) go through the same decoder. Regression tests use the
+  real search shape, single and multi-assignee.
 - **`list_work_items` read a work item's assignees as a single reference.**
   `assigneeRef` is multi-valued (delegation and escalation add assignees), so a
   work item with several assignees failed to decode and was silently left out of

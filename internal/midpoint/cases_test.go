@@ -307,3 +307,88 @@ func TestCheckDecidableRefusesSharedCredential(t *testing.T) {
 		t.Errorf("refused check made %d request(s) to midPoint", reads)
 	}
 }
+
+// searchCaseBody is a POST /cases/search answer in the shape midPoint 4.10.3
+// really returns: the nested ObjectListType envelope, and every reference
+// with namespace-prefixed keys ("t:oid", "t:type", "t:relation"), unlike the
+// plain keys of a single-object GET. Work item @id 1 is the caller's alone;
+// @id 2 has two assignees, the caller among them; @id 3 is someone else's.
+const searchCaseBody = `{"@ns":"http://prism.evolveum.com/xml/ns/public/types-3","object":{
+	"@type":"http://midpoint.evolveum.com/xml/ns/public/common/api-types-3#ObjectListType",
+	"object":[{
+		"@type":"c:CaseType","oid":"case-9","name":"Approving Superuser for Jane","state":"open",
+		"objectRef":{"t:oid":"u-jane","t:relation":"org:default","t:type":"c:UserType","targetName":"Jane Doe"},
+		"targetRef":{"t:oid":"role-su","t:relation":"org:default","t:type":"c:RoleType","targetName":"Superuser"},
+		"requestorRef":{"t:oid":"u-jane","t:relation":"org:default","t:type":"c:UserType","targetName":"Jane Doe"},
+		"workItem":[
+			{"@id":1,"stageNumber":1,
+			 "assigneeRef":{"t:oid":"u-self","t:relation":"org:default","t:type":"c:UserType","targetName":"selfuser"}},
+			{"@id":2,"stageNumber":1,"assigneeRef":[
+				{"t:oid":"u-other","t:relation":"org:default","t:type":"c:UserType","targetName":"Someone Else"},
+				{"t:oid":"u-self","t:relation":"org:default","t:type":"c:UserType","targetName":"selfuser"}]},
+			{"@id":3,"stageNumber":1,
+			 "assigneeRef":{"t:oid":"u-other","t:relation":"org:default","t:type":"c:UserType","targetName":"Someone Else"}}
+		]
+	}]
+}}`
+
+// The inbox rule itself, fed the real search answer: prefixed assignee keys
+// must still identify the caller.
+func TestInboxRuleReadsPrefixedAssigneeRefs(t *testing.T) {
+	raws, err := parseObjectList([]byte(searchCaseBody))
+	if err != nil || len(raws) != 1 {
+		t.Fatalf("parseObjectList = %d objects, %v", len(raws), err)
+	}
+	var cj caseJSON
+	if err := json.Unmarshal(raws[0], &cj); err != nil {
+		t.Fatalf("decoding case: %v", err)
+	}
+	items := cj.items()
+	if len(items) != 3 {
+		t.Fatalf("items = %d, want 3", len(items))
+	}
+	want := []struct {
+		assignees int
+		inInbox   bool
+	}{{1, true}, {2, true}, {1, false}}
+	for i, wi := range items {
+		if got := len(wi.assignees()); got != want[i].assignees {
+			t.Errorf("work item %s: %d assignee(s), want %d", wi.ID.s, got, want[i].assignees)
+		}
+		if got := wi.inInbox("u-self"); got != want[i].inInbox {
+			t.Errorf("work item %s: inInbox = %v, want %v", wi.ID.s, got, want[i].inInbox)
+		}
+	}
+	if s := cj.summary(); s.Object != "Jane Doe" || s.Target != "Superuser" || s.Requestor != "Jane Doe" {
+		t.Errorf("case summary = %+v", s)
+	}
+}
+
+// list_work_items end to end over the real search shape.
+func TestListWorkItemsPrefixedSearchRefs(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws/rest/self", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, selfJSON)
+	})
+	mux.HandleFunc("POST /ws/rest/cases/search", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, searchCaseBody)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c := NewClient(Config{BaseURL: srv.URL, Username: "u", Password: "p"})
+
+	res, err := c.ListWorkItems(context.Background(), 0)
+	if err != nil {
+		t.Fatalf("ListWorkItems: %v", err)
+	}
+	if len(res.WorkItems) != 2 {
+		t.Fatalf("got %d work items, want 2 (@id 1 and the two-assignee @id 2): %+v", len(res.WorkItems), res.WorkItems)
+	}
+	for i, id := range []string{"1", "2"} {
+		got := res.WorkItems[i]
+		if got.ID != id || got.CaseOID != "case-9" || got.Assignee != "selfuser" ||
+			got.Target != "Superuser" || got.Object != "Jane Doe" || got.Requestor != "Jane Doe" {
+			t.Errorf("work item %d = %+v", i, got)
+		}
+	}
+}

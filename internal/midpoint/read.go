@@ -192,9 +192,7 @@ func (c *Client) heldRoleOIDs(ctx context.Context, userOID string) (map[string]b
 	}
 	held := make(map[string]bool, len(u.RoleMembershipRef))
 	for _, raw := range u.RoleMembershipRef {
-		var ref struct {
-			OID string `json:"oid"`
-		}
+		var ref refJSON
 		if json.Unmarshal(raw, &ref) == nil && ref.OID != "" {
 			held[ref.OID] = true
 		}
