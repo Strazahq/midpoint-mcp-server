@@ -19,6 +19,7 @@ func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrit
 	registerGetCase(server, client)
 	registerCompleteWorkItem(server, client, allowWrites, true)
 	registerCompleteWorkItem(server, client, allowWrites, false)
+	registerDecideWorkItem(server, client, allowWrites)
 }
 
 // --- list_requestable_roles ---
@@ -215,4 +216,159 @@ func registerCompleteWorkItem(server *mcp.Server, client *midpoint.Client, allow
 		}
 		return runWrite(ctx, allowWrites, client, plan)
 	})
+}
+
+// --- decide_work_item ---
+
+type decideWorkItemInput struct {
+	CaseOID    string `json:"caseOid" jsonschema:"OID of the case (caseOid from list_work_items or get_case)"`
+	WorkItemID string `json:"workItemId" jsonschema:"id of the work item within the case (id from list_work_items or get_case)"`
+	Decision   string `json:"decision" jsonschema:"approve or reject"`
+	Comment    string `json:"comment,omitempty" jsonschema:"optional comment recorded with the decision"`
+}
+
+type decideWorkItemOutput struct {
+	writeOutput
+	Subject         midpoint.Subject `json:"subject" jsonschema:"the identity midPoint executed the decision as (or, in a dry run, would)"`
+	CaseOID         string           `json:"caseOid"`
+	Case            string           `json:"case,omitempty" jsonschema:"the case name"`
+	WorkItemID      string           `json:"workItemId"`
+	Decision        string           `json:"decision" jsonschema:"approve or reject, as submitted"`
+	Comment         string           `json:"comment,omitempty"`
+	Object          string           `json:"object,omitempty" jsonschema:"the focus the case changes"`
+	Target          string           `json:"target,omitempty" jsonschema:"what was requested"`
+	Requestor       string           `json:"requestor,omitempty"`
+	RecordedOutcome string           `json:"recordedOutcome,omitempty" jsonschema:"the outcome midPoint shows on the work item, read back after the decision"`
+	CaseState       string           `json:"caseState,omitempty" jsonschema:"the case state read back after the decision; it stays open while later approval stages remain"`
+}
+
+// parseDecision maps the decision argument to approve (true) or reject (false).
+func parseDecision(s string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "approve":
+		return true, nil
+	case "reject":
+		return false, nil
+	}
+	return false, fmt.Errorf("decision must be %q or %q, got %q", "approve", "reject", s)
+}
+
+func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
+	mcp.AddTool(server, &mcp.Tool{
+		Name:  "decide_work_item",
+		Title: "Decide work item",
+		Description: "Approve or reject an open approval work item assigned to the authenticated user, with an " +
+			"optional comment. Before writing anything it reads the case as that user and refuses a work item that is " +
+			"not open or not in their approval inbox (list_work_items). The decision executes as that user, and the " +
+			"result names the case, the outcome midPoint recorded, and the identity it ran as. Respects the write gate.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in decideWorkItemInput) (*mcp.CallToolResult, decideWorkItemOutput, error) {
+		approve, err := parseDecision(in.Decision)
+		if err != nil {
+			return nil, decideWorkItemOutput{}, err
+		}
+		decision := "reject"
+		if approve {
+			decision = "approve"
+		}
+
+		// Checked before the dry-run preview too: a preview that says "would
+		// approve" a work item that is not the caller's to decide is a false promise.
+		d, err := client.CheckDecidable(ctx, in.CaseOID, in.WorkItemID)
+		if err != nil {
+			return nil, decideWorkItemOutput{}, err
+		}
+		plan, err := client.PlanCompleteWorkItem(d.WorkItem.CaseOID, d.WorkItem.ID, approve, in.Comment)
+		if err != nil {
+			return nil, decideWorkItemOutput{}, err
+		}
+
+		out := decideWorkItemOutput{
+			Subject:    d.Subject,
+			CaseOID:    d.WorkItem.CaseOID,
+			Case:       d.Case.Name,
+			WorkItemID: d.WorkItem.ID,
+			Decision:   decision,
+			Object:     d.Case.Object,
+			Target:     d.Case.Target,
+			Requestor:  d.Case.Requestor,
+		}
+		if strings.TrimSpace(in.Comment) != "" {
+			out.Comment = in.Comment // sent as given, like the plan body
+		}
+		what := decidedWhat(out)
+		as := fmt.Sprintf("%s (%s mode)", d.Subject.Name, d.Subject.Mode)
+
+		if !allowWrites {
+			_, out.writeOutput = previewWrite(plan)
+			return text(fmt.Sprintf("DRY RUN — writes disabled. Would %s %s as %s via %s %s.\nSet %s=true to apply.",
+				decision, what, as, plan.Method, plan.Endpoint(), midpoint.EnvAllowWrites)), out, nil
+		}
+
+		applied, err := client.Apply(ctx, plan)
+		if err != nil {
+			return nil, decideWorkItemOutput{}, err
+		}
+		out.writeOutput = writeOutput{
+			Applied:  true,
+			Summary:  plan.Summary,
+			Method:   plan.Method,
+			Endpoint: plan.Endpoint(),
+			Body:     plan.Body,
+			Result:   fmt.Sprintf("status=%d", applied.StatusCode),
+		}
+
+		// Read back what midPoint recorded. The decision is already made, so a
+		// failed read is reported rather than returned as an error, and only a
+		// confirmed outcome is reported as the decision taken.
+		verb := fmt.Sprintf("Submitted %s on", decision)
+		recorded := "the case could not be re-read to confirm the recorded outcome"
+		if after, err := client.GetCase(ctx, out.CaseOID); err == nil {
+			out.CaseState = after.State
+			for _, wi := range after.WorkItems {
+				if wi.ID == out.WorkItemID {
+					out.RecordedOutcome = wi.Outcome
+				}
+			}
+			switch {
+			case out.RecordedOutcome == decision:
+				verb = "Rejected"
+				if approve {
+					verb = "Approved"
+				}
+				recorded = fmt.Sprintf("midPoint recorded outcome %s; the case is now %s", decision, caseStateText(out.CaseState))
+			case out.RecordedOutcome != "":
+				recorded = fmt.Sprintf("midPoint shows outcome %s on this work item, not the %s submitted, so it "+
+					"was most likely decided by someone else first; the case is now %s",
+					out.RecordedOutcome, decision, caseStateText(out.CaseState))
+			default:
+				recorded = fmt.Sprintf("midPoint accepted the request (status=%d) but the work item shows no recorded "+
+					"outcome yet; the case is %s", applied.StatusCode, caseStateText(out.CaseState))
+			}
+		}
+		return text(fmt.Sprintf("%s %s as %s: %s.", verb, what, as, recorded)), out, nil
+	})
+}
+
+// decidedWhat names a work item for a decision message: the item, its case,
+// and what the case would change, as far as midPoint named them.
+func decidedWhat(o decideWorkItemOutput) string {
+	s := fmt.Sprintf("work item %s in case %s", o.WorkItemID, o.CaseOID)
+	if o.Case != "" {
+		s = fmt.Sprintf("work item %s in case %q (%s)", o.WorkItemID, o.Case, o.CaseOID)
+	}
+	if o.Target != "" && o.Object != "" {
+		s += fmt.Sprintf(" — %s for %s", o.Target, o.Object)
+	}
+	if o.Requestor != "" {
+		s += ", requested by " + o.Requestor
+	}
+	return s
+}
+
+// caseStateText renders a case state read back after a decision.
+func caseStateText(s string) string {
+	if s == "" {
+		return "in an unknown state"
+	}
+	return s
 }

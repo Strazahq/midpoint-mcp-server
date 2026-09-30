@@ -145,6 +145,17 @@ func newRecordingMidpoint(t *testing.T) *recordingMidpoint {
 	mux.HandleFunc("GET /ws/rest/self", func(w http.ResponseWriter, r *http.Request) {
 		record(w, r, `{"user":{"oid":"`+e2eMappedOID+`","name":"`+e2eUsername+`"}}`)
 	})
+	// One open case with a work item assigned to the mapped user.
+	mux.HandleFunc("GET /ws/rest/cases/{oid}", func(w http.ResponseWriter, r *http.Request) {
+		record(w, r, `{"case":{"oid":"case-1","name":"req","state":"open","workItem":[`+
+			`{"@id":1,"assigneeRef":{"oid":"`+e2eMappedOID+`","type":"c:UserType","targetName":"`+e2eUsername+`"}}]}}`)
+	})
+	mux.HandleFunc("POST /ws/rest/cases/{oid}/workItems/{id}/complete", func(w http.ResponseWriter, r *http.Request) {
+		rm.mu.Lock()
+		rm.switch_[r.URL.Path] = r.Header.Get(midpoint.SwitchToPrincipalHeader)
+		rm.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
 	rm.server = httptest.NewServer(mux)
 	t.Cleanup(rm.server.Close)
 	return rm
@@ -237,6 +248,41 @@ func TestResourceServerImpersonatesCaller(t *testing.T) {
 	// Correlation itself runs as the service account (no impersonation).
 	if got := mp.switchTo("/ws/rest/users/search"); got != "" {
 		t.Errorf("correlation search carried Switch-To-Principal %q, want none", got)
+	}
+}
+
+// A decision is made by the token's user: the case read that checks the work
+// item is theirs and the completion itself both carry Switch-To-Principal, and
+// the result names that user.
+func TestResourceServerDecideWorkItemRunsAsCaller(t *testing.T) {
+	oidc := newMockOIDC(t)
+	mp := newRecordingMidpoint(t)
+
+	cs, err := connectResourceServerConfig(t, midpoint.Config{
+		BaseURL:      mp.server.URL,
+		Username:     "svc",
+		Password:     "p",
+		OIDCIssuer:   oidc.issuer(),
+		OIDCAudience: e2eAudience,
+		AllowWrites:  true,
+	}, oidc.mint(t, nil))
+	if err != nil {
+		t.Fatalf("connect with valid token: %v", err)
+	}
+	defer cs.Close()
+
+	out := callTool(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
+	if out["applied"] != true {
+		t.Fatalf("applied = %v, want true", out["applied"])
+	}
+	for _, path := range []string{"/ws/rest/self", "/ws/rest/cases/case-1", "/ws/rest/cases/case-1/workItems/1/complete"} {
+		if got := mp.switchTo(path); got != e2eMappedOID {
+			t.Errorf("Switch-To-Principal on %s = %q, want %q", path, got, e2eMappedOID)
+		}
+	}
+	subj, _ := out["subject"].(map[string]any)
+	if subj["name"] != e2eUsername || subj["oid"] != e2eMappedOID || subj["mode"] != midpoint.ModeResourceServer {
+		t.Errorf("subject = %v, want %s in resource-server mode", subj, e2eUsername)
 	}
 }
 

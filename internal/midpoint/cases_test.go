@@ -3,6 +3,7 @@ package midpoint
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +15,10 @@ const (
 	selfJSON = `{"user":{"oid":"u-self","name":"selfuser"}}`
 
 	// One open case: work item @id 1 is the caller's and open; @id 2 belongs to
-	// someone else; @id 3 is the caller's but already completed.
+	// someone else; @id 3 is the caller's but already completed; @id 4 is the
+	// caller's but was closed without a decision (cancelled when another
+	// approver decided the stage); @id 5 is open with two assignees, one of them
+	// the caller (assigneeRef is multi-valued).
 	caseBody = `{
 		"@type":"http://midpoint.evolveum.com/xml/ns/public/common/common-3#CaseType",
 		"oid":"case-1",
@@ -27,8 +31,23 @@ const (
 			{"@id":1,"assigneeRef":{"oid":"u-self","type":"c:UserType","targetName":"selfuser"},"stageNumber":1},
 			{"@id":2,"assigneeRef":{"oid":"u-other","type":"c:UserType","targetName":"Someone Else"},"stageNumber":1},
 			{"@id":3,"assigneeRef":{"oid":"u-self","type":"c:UserType","targetName":"selfuser"},"stageNumber":1,
-			 "output":{"outcome":"http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve","comment":"ok"}}
+			 "output":{"outcome":"http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve","comment":"ok"},
+			 "closeTimestamp":"2026-07-01T10:00:00.000Z"},
+			{"@id":4,"assigneeRef":{"oid":"u-self","type":"c:UserType","targetName":"selfuser"},"stageNumber":1,
+			 "closeTimestamp":"2026-07-01T10:00:00.000Z"},
+			{"@id":5,"assigneeRef":[
+				{"oid":"u-other","type":"c:UserType","targetName":"Someone Else"},
+				{"oid":"u-self","type":"c:UserType","targetName":"selfuser"}],"stageNumber":2}
 		]
+	}`
+
+	// The same request after midPoint closed it.
+	closedCaseBody = `{
+		"oid":"case-closed","name":"Approved already","state":"closed",
+		"outcome":"http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+		"workItem":[{"@id":1,"assigneeRef":{"oid":"u-self","type":"c:UserType","targetName":"selfuser"},
+			"output":{"outcome":"http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve"},
+			"closeTimestamp":"2026-07-01T10:00:00.000Z"}]
 	}`
 )
 
@@ -49,6 +68,7 @@ func newCasesClient(t *testing.T) (*Client, *[]capturedRequest) {
 	mux.HandleFunc("GET /ws/rest/self", serve(200, selfJSON))
 	mux.HandleFunc("POST /ws/rest/cases/search", serve(200, `{"object":[`+caseBody+`]}`))
 	mux.HandleFunc("GET /ws/rest/cases/{oid}", serve(200, `{"case":`+caseBody+`}`))
+	mux.HandleFunc("GET /ws/rest/cases/case-closed", serve(200, `{"case":`+closedCaseBody+`}`))
 	mux.HandleFunc("POST /ws/rest/cases/{caseOid}/workItems/{wid}/complete", serve(204, ""))
 
 	srv := httptest.NewServer(mux)
@@ -66,12 +86,16 @@ func TestGetCase(t *testing.T) {
 	if detail.State != "open" || detail.Target != "Superuser" || detail.Requestor != "selfuser" || detail.Object != "Jane Doe" {
 		t.Errorf("case summary = %+v", detail.CaseSummary)
 	}
-	if len(detail.WorkItems) != 3 {
-		t.Fatalf("got %d work items, want 3 (GetCase lists all)", len(detail.WorkItems))
+	if len(detail.WorkItems) != 5 {
+		t.Fatalf("got %d work items, want 5 (GetCase lists all)", len(detail.WorkItems))
 	}
 	// The completed item's outcome URI should render short.
 	if detail.WorkItems[2].Outcome != "approve" {
 		t.Errorf("work item 3 outcome = %q, want approve", detail.WorkItems[2].Outcome)
+	}
+	// A multi-assignee work item names every assignee.
+	if got := detail.WorkItems[4].Assignee; got != "Someone Else, selfuser" {
+		t.Errorf("work item 5 assignee = %q, want both assignees", got)
 	}
 	if q := lastRequest(t, reqs).rawQuery; q != "options=resolveNames" {
 		t.Errorf("query = %q, want options=resolveNames", q)
@@ -111,9 +135,10 @@ func TestListWorkItems(t *testing.T) {
 		t.Fatalf("ListWorkItems: %v", err)
 	}
 	items := res.WorkItems
-	// Only work item @id 1 qualifies: assigned to self and still open.
-	if len(items) != 1 {
-		t.Fatalf("got %d work items, want 1 (self + open only): %+v", len(items), items)
+	// Work items @id 1 and @id 5 qualify: assigned to self (5 among others) and
+	// still open. @id 4 is the caller's but closed without an output.
+	if len(items) != 2 {
+		t.Fatalf("got %d work items, want 2 (self + open only): %+v", len(items), items)
 	}
 	if res.Subject.Name != "selfuser" || res.Subject.Mode != ModePersonal {
 		t.Errorf("subject = %+v, want selfuser in personal mode", res.Subject)
@@ -121,6 +146,9 @@ func TestListWorkItems(t *testing.T) {
 	got := items[0]
 	if got.ID != "1" || got.CaseOID != "case-1" || got.Target != "Superuser" || got.Requestor != "selfuser" {
 		t.Errorf("work item = %+v", got)
+	}
+	if items[1].ID != "5" || items[1].Assignee != "selfuser" {
+		t.Errorf("multi-assignee work item = %+v, want @id 5 listed under the caller", items[1])
 	}
 
 	var sr searchRequest
@@ -189,5 +217,93 @@ func TestFindRequestCase(t *testing.T) {
 		!strings.Contains(sr.Query.Filter.Text, `objectRef matches (oid = "u-jane")`) ||
 		!strings.Contains(sr.Query.Filter.Text, `targetRef matches (oid = "role-su")`) {
 		t.Errorf("filter = %+v", sr.Query.Filter)
+	}
+}
+
+// CheckDecidable applies the inbox rule to one work item: only an open work
+// item assigned to the caller, in an open case, may be decided.
+func TestCheckDecidable(t *testing.T) {
+	c, reqs := newCasesClient(t)
+	ctx := context.Background()
+
+	for _, id := range []string{"1", "5"} {
+		d, err := c.CheckDecidable(ctx, "case-1", id)
+		if err != nil {
+			t.Fatalf("CheckDecidable(%s): %v", id, err)
+		}
+		if d.Subject.Name != "selfuser" || d.Subject.OID != "u-self" || d.Subject.Mode != ModePersonal {
+			t.Errorf("%s: subject = %+v", id, d.Subject)
+		}
+		if d.WorkItem.ID != id || d.WorkItem.CaseOID != "case-1" || d.WorkItem.Assignee != "selfuser" {
+			t.Errorf("%s: work item = %+v", id, d.WorkItem)
+		}
+		if d.Case.Name != "Approving Superuser for Jane" || d.Case.Target != "Superuser" || d.Case.Object != "Jane Doe" {
+			t.Errorf("%s: case = %+v", id, d.Case)
+		}
+	}
+
+	refusals := []struct {
+		name, caseOID, id string
+		want              []string
+	}{
+		{"someone else's", "case-1", "2", []string{"refused", "assigned to Someone Else", "not to selfuser", "list_work_items"}},
+		{"completed", "case-1", "3", []string{"refused", "already closed with outcome approve"}},
+		{"cancelled", "case-1", "4", []string{"refused", "already closed"}},
+		{"unknown id", "case-1", "99", []string{"refused", "has no work item 99"}},
+		{"closed case", "case-closed", "1", []string{"refused", "is closed, not open"}},
+	}
+	for _, r := range refusals {
+		_, err := c.CheckDecidable(ctx, r.caseOID, r.id)
+		if err == nil {
+			t.Errorf("%s: CheckDecidable succeeded, want a refusal", r.name)
+			continue
+		}
+		for _, w := range r.want {
+			if !strings.Contains(err.Error(), w) {
+				t.Errorf("%s: refusal %q does not mention %q", r.name, err, w)
+			}
+		}
+	}
+
+	// The check only reads: /self, then the case with names resolved.
+	for _, r := range *reqs {
+		if r.method != http.MethodGet {
+			t.Errorf("CheckDecidable made a %s %s request; it must only read", r.method, r.path)
+		}
+	}
+}
+
+func TestCheckDecidableValidates(t *testing.T) {
+	c, reqs := newCasesClient(t)
+	if _, err := c.CheckDecidable(context.Background(), "", "1"); err == nil {
+		t.Error("expected error for empty case oid")
+	}
+	if _, err := c.CheckDecidable(context.Background(), "case-1", " "); err == nil {
+		t.Error("expected error for empty work item id")
+	}
+	if len(*reqs) != 0 {
+		t.Errorf("invalid input reached midPoint: %+v", *reqs)
+	}
+}
+
+// A shared technical account has no inbox of its own to decide from: the check
+// refuses exactly as list_work_items does, before reading the case.
+func TestCheckDecidableRefusesSharedCredential(t *testing.T) {
+	var reads int
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws/rest/", func(w http.ResponseWriter, _ *http.Request) {
+		reads++
+		_, _ = io.WriteString(w, selfJSON)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	cfg := Config{BaseURL: srv.URL, Username: "svc", Password: "p"}
+	cfg.File.Identity.CredentialIsShared = true
+
+	if _, err := NewClient(cfg).CheckDecidable(context.Background(), "case-1", "1"); !errors.Is(err, ErrNoCallerIdentity) {
+		t.Errorf("error = %v, want ErrNoCallerIdentity", err)
+	}
+	if reads != 0 {
+		t.Errorf("refused check made %d request(s) to midPoint", reads)
 	}
 }

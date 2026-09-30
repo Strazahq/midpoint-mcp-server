@@ -308,7 +308,11 @@ and the approval actions respect the write gate):
 - `list_my_requests` — approval cases you initiated
 - `list_work_items` — your approval inbox
 - `get_case` — a case and its work items
-- `approve_work_item` / `reject_work_item` — decide a work item
+- `decide_work_item` — approve or reject a work item in your inbox, with an
+  optional comment. It first reads the case as you and refuses a work item that
+  is not open or not assigned to you, then runs as you and reports the outcome
+  midPoint recorded
+- `approve_work_item` / `reject_work_item` — decide a work item (no inbox check)
 
 Manager & team (**implemented**, read-only; run as the caller, so midPoint scopes
 them to what that manager may see):

@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -215,5 +219,253 @@ func TestRequestRoleGuardrailCanBeDisabled(t *testing.T) {
 	}
 	if findReq(*reqs, http.MethodPatch, "/ws/rest/users/u-self") == nil {
 		t.Error("guardrail disabled but no PATCH was made")
+	}
+}
+
+// decideMidpoint serves one open case whose work item @id 1 is the caller's and
+// @id 2 someone else's. A completion is recorded on the work item and closes the
+// case, so the re-read after a decision shows it, as midPoint does.
+type decideMidpoint struct {
+	srv     *httptest.Server
+	mu      sync.Mutex
+	reqs    []recordedReq
+	outcome string // recorded on work item 1 by a completion
+}
+
+const decideOutcomeNS = "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#"
+
+func newDecideMidpoint(t *testing.T) *decideMidpoint {
+	t.Helper()
+	m := &decideMidpoint{}
+	record := func(r *http.Request) string {
+		b, _ := io.ReadAll(r.Body)
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.reqs = append(m.reqs, recordedReq{r.Method, r.URL.Path, string(b)})
+		return string(b)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws/rest/self", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		_, _ = io.WriteString(w, `{"user":{"oid":"u-self","name":"selfuser"}}`)
+	})
+	mux.HandleFunc("GET /ws/rest/cases/case-1", func(w http.ResponseWriter, r *http.Request) {
+		record(r)
+		m.mu.Lock()
+		state, output := "open", ""
+		if m.outcome != "" {
+			state, output = "closed", `,"output":{"outcome":"`+m.outcome+`"},"closeTimestamp":"2026-07-01T10:00:00.000Z"`
+		}
+		m.mu.Unlock()
+		_, _ = io.WriteString(w, `{"case":{"oid":"case-1","name":"Approving Superuser for Jane","state":"`+state+`",
+			"objectRef":{"oid":"u-jane","type":"c:UserType","targetName":"Jane Doe"},
+			"targetRef":{"oid":"role-su","type":"c:RoleType","targetName":"Superuser"},
+			"requestorRef":{"oid":"u-jane","type":"c:UserType","targetName":"Jane Doe"},
+			"workItem":[
+				{"@id":1,"assigneeRef":{"oid":"u-self","type":"c:UserType","targetName":"selfuser"},"stageNumber":1`+output+`},
+				{"@id":2,"assigneeRef":{"oid":"u-other","type":"c:UserType","targetName":"Someone Else"},"stageNumber":1}
+			]}}`)
+	})
+	mux.HandleFunc("POST /ws/rest/cases/{caseOid}/workItems/{wid}/complete", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Output struct {
+				Outcome string `json:"outcome"`
+			} `json:"output"`
+		}
+		_ = json.Unmarshal([]byte(record(r)), &body)
+		m.mu.Lock()
+		m.outcome = body.Output.Outcome
+		m.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	m.srv = httptest.NewServer(mux)
+	t.Cleanup(m.srv.Close)
+	return m
+}
+
+func (m *decideMidpoint) requests() []recordedReq {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return slices.Clone(m.reqs)
+}
+
+func (m *decideMidpoint) completions() []recordedReq {
+	var out []recordedReq
+	for _, r := range m.requests() {
+		if r.method == http.MethodPost && hasSuffix(r.path, "/complete") {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// callToolText calls a tool expecting success and returns its structured output
+// and its text.
+func callToolText(t *testing.T, cs *mcp.ClientSession, name string, args map[string]any) (map[string]any, string) {
+	t.Helper()
+	res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: name, Arguments: args})
+	if err != nil {
+		t.Fatalf("CallTool(%s): %v", name, err)
+	}
+	if res.IsError {
+		t.Fatalf("CallTool(%s) tool error: %v", name, res.Content)
+	}
+	var b strings.Builder
+	for _, c := range res.Content {
+		if tc, ok := c.(*mcp.TextContent); ok {
+			b.WriteString(tc.Text)
+		}
+	}
+	raw, err := json.Marshal(res.StructuredContent)
+	if err != nil {
+		t.Fatalf("marshal structured: %v", err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatalf("unmarshal structured: %v", err)
+	}
+	return out, b.String()
+}
+
+func TestDecideWorkItem(t *testing.T) {
+	for _, tc := range []struct {
+		decision, comment, outcome, verb string
+	}{
+		{"approve", "", "approve", "Approved"},
+		{"reject", "not needed for this project", "reject", "Rejected"},
+		{" Approve ", "ok by me", "approve", "Approved"},
+	} {
+		t.Run(tc.decision+"/"+tc.comment, func(t *testing.T) {
+			mp := newDecideMidpoint(t)
+			cs := connectRequests(t, mp.srv, true) // gate ON
+
+			args := map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": tc.decision}
+			if tc.comment != "" {
+				args["comment"] = tc.comment
+			}
+			out := callTool(t, cs, "decide_work_item", args)
+
+			// Exactly one completion, carrying the outcome URI and the comment.
+			done := mp.completions()
+			if len(done) != 1 || done[0].path != "/ws/rest/cases/case-1/workItems/1/complete" {
+				t.Fatalf("completions = %+v, want one POST to work item 1", done)
+			}
+			output := map[string]any{"@type": "c:AbstractWorkItemOutputType", "outcome": decideOutcomeNS + tc.outcome}
+			if tc.comment != "" {
+				output["comment"] = tc.comment
+			}
+			var got any
+			if err := json.Unmarshal([]byte(done[0].body), &got); err != nil {
+				t.Fatalf("completion body is not JSON: %v (%s)", err, done[0].body)
+			}
+			if want := map[string]any{"output": output}; !reflect.DeepEqual(got, want) {
+				t.Errorf("completion body\n got: %s\nwant: %v", done[0].body, want)
+			}
+
+			// The result names the case, the recorded outcome, and the identity.
+			if out["applied"] != true || out["dryRun"] != false {
+				t.Errorf("applied=%v dryRun=%v", out["applied"], out["dryRun"])
+			}
+			if out["caseOid"] != "case-1" || out["case"] != "Approving Superuser for Jane" || out["workItemId"] != "1" {
+				t.Errorf("case fields = %v / %v / %v", out["caseOid"], out["case"], out["workItemId"])
+			}
+			if out["decision"] != tc.outcome || out["recordedOutcome"] != tc.outcome || out["caseState"] != "closed" {
+				t.Errorf("decision=%v recordedOutcome=%v caseState=%v", out["decision"], out["recordedOutcome"], out["caseState"])
+			}
+			if tc.comment != "" && out["comment"] != tc.comment {
+				t.Errorf("comment = %v, want %q", out["comment"], tc.comment)
+			}
+			subj, _ := out["subject"].(map[string]any)
+			if subj["name"] != "selfuser" || subj["oid"] != "u-self" || subj["mode"] != midpoint.ModePersonal {
+				t.Errorf("subject = %v, want selfuser in personal mode", subj)
+			}
+		})
+	}
+}
+
+func TestDecideWorkItemText(t *testing.T) {
+	mp := newDecideMidpoint(t)
+	cs := connectRequests(t, mp.srv, true) // gate ON
+
+	_, msg := callToolText(t, cs, "decide_work_item",
+		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
+	for _, want := range []string{"Approved work item 1", `"Approving Superuser for Jane" (case-1)`,
+		"Superuser for Jane Doe", "as selfuser (personal mode)", "recorded outcome approve", "now closed"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("text %q does not mention %q", msg, want)
+		}
+	}
+}
+
+// A work item in the case that is not the caller's is refused before any
+// write, with the write gate open or closed.
+func TestDecideWorkItemRefusesOthersWorkItem(t *testing.T) {
+	for _, gate := range []bool{true, false} {
+		mp := newDecideMidpoint(t)
+		cs := connectRequests(t, mp.srv, gate)
+
+		msg := callToolErr(t, cs, "decide_work_item",
+			map[string]any{"caseOid": "case-1", "workItemId": "2", "decision": "approve"})
+		for _, want := range []string{"refused", "assigned to Someone Else", "not to selfuser"} {
+			if !strings.Contains(msg, want) {
+				t.Errorf("gate=%v: refusal %q does not mention %q", gate, msg, want)
+			}
+		}
+		if done := mp.completions(); len(done) != 0 {
+			t.Errorf("gate=%v: refused decision still completed: %+v", gate, done)
+		}
+	}
+}
+
+// Once decided, the work item is closed; deciding it again is refused rather
+// than sent (midPoint would answer 204 and only log a warning).
+func TestDecideWorkItemRefusesClosedWorkItem(t *testing.T) {
+	mp := newDecideMidpoint(t)
+	cs := connectRequests(t, mp.srv, true) // gate ON
+
+	callTool(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
+	msg := callToolErr(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "reject"})
+	if !strings.Contains(msg, "refused") || !strings.Contains(msg, "not open") {
+		t.Errorf("refusal = %q, want the case reported as not open", msg)
+	}
+	if done := mp.completions(); len(done) != 1 {
+		t.Errorf("got %d completions, want only the first decision", len(done))
+	}
+}
+
+func TestDecideWorkItemGateOff(t *testing.T) {
+	mp := newDecideMidpoint(t)
+	cs := connectRequests(t, mp.srv, false) // gate OFF
+
+	out, msg := callToolText(t, cs, "decide_work_item",
+		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "reject", "comment": "no"})
+	if out["dryRun"] != true || out["applied"] != false {
+		t.Errorf("dryRun=%v applied=%v, want a preview", out["dryRun"], out["applied"])
+	}
+	if out["method"] != http.MethodPost || out["endpoint"] != "/ws/rest/cases/case-1/workItems/1/complete" {
+		t.Errorf("preview = %v %v", out["method"], out["endpoint"])
+	}
+	if subj, _ := out["subject"].(map[string]any); subj["name"] != "selfuser" {
+		t.Errorf("preview subject = %v, want selfuser", out["subject"])
+	}
+	if !strings.Contains(msg, "DRY RUN") || !strings.Contains(msg, "Would reject work item 1") || !strings.Contains(msg, midpoint.EnvAllowWrites) {
+		t.Errorf("preview text = %q", msg)
+	}
+	if done := mp.completions(); len(done) != 0 {
+		t.Errorf("write gate off, but a completion was sent: %+v", done)
+	}
+}
+
+func TestDecideWorkItemRejectsUnknownDecision(t *testing.T) {
+	mp := newDecideMidpoint(t)
+	cs := connectRequests(t, mp.srv, true) // gate ON
+
+	msg := callToolErr(t, cs, "decide_work_item",
+		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "maybe"})
+	if !strings.Contains(msg, `"approve" or "reject"`) {
+		t.Errorf("refusal = %q", msg)
+	}
+	if reqs := mp.requests(); len(reqs) != 0 {
+		t.Errorf("an invalid decision reached midPoint: %+v", reqs)
 	}
 }

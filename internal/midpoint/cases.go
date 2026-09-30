@@ -60,13 +60,67 @@ type caseJSON struct {
 }
 
 type workItemJSON struct {
-	ID          flexID   `json:"@id"`
-	AssigneeRef *refJSON `json:"assigneeRef"`
-	StageNumber int      `json:"stageNumber"`
-	Output      *struct {
+	ID flexID `json:"@id"`
+	// assigneeRef is multi-valued: delegation and escalation add assignees, and
+	// midPoint serializes a single value as a bare object.
+	AssigneeRef    flexSlice `json:"assigneeRef"`
+	StageNumber    int       `json:"stageNumber"`
+	CloseTimestamp string    `json:"closeTimestamp"`
+	Output         *struct {
 		Outcome string `json:"outcome"`
 		Comment string `json:"comment"`
 	} `json:"output"`
+}
+
+// assignees decodes the work item's assigneeRef values, skipping any that do
+// not decode as a reference.
+func (wi workItemJSON) assignees() []refJSON {
+	out := make([]refJSON, 0, len(wi.AssigneeRef))
+	for _, raw := range wi.AssigneeRef {
+		var r refJSON
+		if err := json.Unmarshal(raw, &r); err == nil && r.OID != "" {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// assignedTo returns the reference that assigns the work item to oid, or nil
+// when oid is not among its assignees.
+func (wi workItemJSON) assignedTo(oid string) *refJSON {
+	for _, r := range wi.assignees() {
+		if r.OID == oid {
+			return &r
+		}
+	}
+	return nil
+}
+
+// assigneeNames renders the assignees for display.
+func (wi workItemJSON) assigneeNames() string {
+	var names []string
+	for _, r := range wi.assignees() {
+		if n := r.TargetName.value(); n != "" {
+			names = append(names, n)
+		} else {
+			names = append(names, r.OID)
+		}
+	}
+	return strings.Join(names, ", ")
+}
+
+// open reports whether the work item still awaits a decision. midPoint closes a
+// work item by setting closeTimestamp ("if null, it is considered open"), which
+// also happens without an output when the item is cancelled, for example
+// because another approver already decided the stage.
+func (wi workItemJSON) open() bool {
+	return wi.Output == nil && wi.CloseTimestamp == ""
+}
+
+// inInbox is the approval-inbox rule list_work_items applies and
+// decide_work_item enforces: an open work item assigned to the subject.
+func (wi workItemJSON) inInbox(subjectOID string) bool {
+	return wi.open() && wi.assignedTo(subjectOID) != nil
 }
 
 func (cj caseJSON) summary() CaseSummary {
@@ -103,7 +157,7 @@ func (c *Client) GetCase(ctx context.Context, oid string) (CaseDetail, error) {
 		item := WorkItem{
 			CaseOID:  cj.OID,
 			ID:       wi.ID.s,
-			Assignee: refName(wi.AssigneeRef),
+			Assignee: wi.assigneeNames(),
 			Stage:    wi.StageNumber,
 		}
 		if wi.Output != nil {
@@ -172,14 +226,14 @@ func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, err
 		s := cj.summary()
 		for _, wi := range cj.items() {
 			// Only the caller's still-open work items belong in the inbox.
-			if wi.Output != nil || wi.AssigneeRef == nil || wi.AssigneeRef.OID != subj.OID {
+			if !wi.inInbox(subj.OID) {
 				continue
 			}
 			res.WorkItems = append(res.WorkItems, WorkItem{
 				CaseOID:   cj.OID,
 				ID:        wi.ID.s,
 				Stage:     wi.StageNumber,
-				Assignee:  refName(wi.AssigneeRef),
+				Assignee:  refName(wi.assignedTo(subj.OID)),
 				Case:      s.Name,
 				Object:    s.Object,
 				Target:    s.Target,
@@ -226,6 +280,102 @@ func (c *Client) PlanRequestRole(userOID, roleOID string) (Plan, error) {
 		Summary: fmt.Sprintf("Request role %s for user %s (subject to approval policy)", roleOID, userOID),
 		Body:    modifyBody(itemDelta{ModificationType: "add", Path: "assignment", Value: value}),
 	}, nil
+}
+
+// DecidableWorkItem is a work item confirmed to be in the subject's approval
+// inbox, together with the case it belongs to.
+type DecidableWorkItem struct {
+	Subject  Subject
+	Case     CaseSummary
+	WorkItem WorkItem
+}
+
+// CheckDecidable resolves the subject the way ListWorkItems does and reads the
+// case as that subject, refusing a work item the subject's inbox would not
+// list: the case is not open, the work item is closed, or it is not assigned to
+// the subject. It only reads, so a refusal happens before anything is written.
+//
+// The check matters beyond politeness: midPoint answers a completion of an
+// already-closed work item with a warning and HTTP 204, so without it a stale
+// decision would look like a successful one.
+func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string) (DecidableWorkItem, error) {
+	if err := requireOID(caseOID); err != nil {
+		return DecidableWorkItem{}, fmt.Errorf("case %w", err)
+	}
+	workItemID = strings.TrimSpace(workItemID)
+	if workItemID == "" {
+		return DecidableWorkItem{}, fmt.Errorf("workItemId is required")
+	}
+	subj, err := c.subject(ctx)
+	if err != nil {
+		return DecidableWorkItem{}, err
+	}
+
+	var cj caseJSON
+	if err := c.getObject(ctx, collCases, caseOID, true, &cj); err != nil {
+		return DecidableWorkItem{}, fmt.Errorf("reading case %s as %s: %w", caseOID, subj.Name, err)
+	}
+	s := cj.summary()
+	label := caseLabel(s)
+	if cj.State != "open" {
+		return DecidableWorkItem{}, fmt.Errorf("refused: case %s is %s, not open, so work item %s has nothing left to decide",
+			label, orUnknown(cj.State), workItemID)
+	}
+
+	for _, wi := range cj.items() {
+		if wi.ID.s != workItemID {
+			continue
+		}
+		if !wi.open() {
+			how := "closed"
+			if wi.Output != nil && wi.Output.Outcome != "" {
+				how = "closed with outcome " + shortURI(wi.Output.Outcome)
+			}
+			return DecidableWorkItem{}, fmt.Errorf("refused: work item %s in case %s is already %s; there is nothing left to decide",
+				workItemID, label, how)
+		}
+		mine := wi.assignedTo(subj.OID)
+		if mine == nil {
+			assigned := "no one"
+			if n := wi.assigneeNames(); n != "" {
+				assigned = n
+			}
+			return DecidableWorkItem{}, fmt.Errorf("refused: work item %s in case %s is assigned to %s, not to %s "+
+				"(the identity this server acts as, %s mode); only work items in that identity's approval inbox "+
+				"(list_work_items) can be decided", workItemID, label, assigned, subj.Name, subj.Mode)
+		}
+		return DecidableWorkItem{
+			Subject: subj,
+			Case:    s,
+			WorkItem: WorkItem{
+				CaseOID:   cj.OID,
+				ID:        wi.ID.s,
+				Stage:     wi.StageNumber,
+				Assignee:  refName(mine),
+				Case:      s.Name,
+				Object:    s.Object,
+				Target:    s.Target,
+				Requestor: s.Requestor,
+			},
+		}, nil
+	}
+	return DecidableWorkItem{}, fmt.Errorf("refused: case %s has no work item %s; list_work_items shows the work items %s can decide",
+		label, workItemID, subj.Name)
+}
+
+// caseLabel names a case as `"<name>" (<oid>)`, or just the oid when unnamed.
+func caseLabel(s CaseSummary) string {
+	if s.Name == "" {
+		return s.OID
+	}
+	return fmt.Sprintf("%q (%s)", s.Name, s.OID)
+}
+
+func orUnknown(s string) string {
+	if s == "" {
+		return "in an unknown state"
+	}
+	return s
 }
 
 // PlanCompleteWorkItem builds a plan to approve or reject a work item.

@@ -8,6 +8,25 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **`decide_work_item`** — approve or reject an approval work item with an
+  optional comment (`caseOid`, `workItemId`, `decision` = `approve` | `reject`,
+  `comment`). Before anything is written it reads the case as the caller and
+  refuses, with a sentence saying why, a work item the caller's inbox would not
+  list: the case is not open, the item is closed, or it is not assigned to the
+  caller. The check applies with the write gate closed too, so a dry-run preview
+  never promises a decision that would be refused. The rule is the one
+  `list_work_items` uses, shared rather than copied. It runs as the caller
+  (`Switch-To-Principal` in resource-server mode, the configured account in
+  personal mode) and refuses a declared shared credential like the other
+  self-scoped tools. The result names the case, what the request was for, the
+  identity it ran as (`subject`), and the outcome midPoint recorded, read back
+  from the case after the write (`recordedOutcome`, `caseState`). The pre-check
+  matters because midPoint answers a completion of an already-closed work item
+  with HTTP 204 and only a warning in the operation result. REST call
+  `POST /ws/rest/cases/{oid}/workItems/{id}/complete` with an
+  `AbstractWorkItemOutputType` body, checked against the midPoint 4.10 source
+  and its REST docs, not yet fired live. Unit-tested with fake midPoint
+  servers, including impersonation end to end. No new dependency.
 - **Tokens a client obtains for itself (`MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM`,
   `MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES`, both unset by default).** An agent or a
   service that uses the OAuth client credentials grant has a token with no
@@ -134,6 +153,14 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Fixed
 
+- **`list_work_items` read a work item's assignees as a single reference.**
+  `assigneeRef` is multi-valued (delegation and escalation add assignees), so a
+  work item with several assignees failed to decode and was silently left out of
+  the caller's inbox. It now lists such an item when the caller is among them.
+  It also no longer lists an item midPoint closed without a decision (a
+  `closeTimestamp` but no output, e.g. cancelled when another approver decided
+  the stage); `closeTimestamp` is midPoint's own open/closed marker. `get_case`
+  shows every assignee.
 - **`unassign_role` no longer sends a delta midPoint rejects.** The delete delta
   used an indexed path (`assignment[<id>]`), which midPoint answers with HTTP 400
   "Delta path must always point to item, not to value" — so the tool never removed

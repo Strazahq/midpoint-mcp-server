@@ -39,6 +39,13 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   read authorization filters to the requestable-and-visible set). Exact `#assign`
   eligibility (`getAssignableRoleSpecification`) was rejected: it needs the
   script path, unavailable under OIDC impersonation (same limit as `search_audit`).
+  **Extended (Unreleased):** `decide_work_item` (`decision` = approve | reject,
+  optional comment) is the guarded form of approve/reject: it refuses, before
+  any write and with the gate closed too, a work item the caller's inbox would
+  not list (same rule as `list_work_items`: open case, no `closeTimestamp`,
+  caller among the multi-valued `assigneeRef`), runs as the caller, and reads
+  the case back to report the outcome midPoint recorded. Needed because
+  midPoint answers completion of an already-closed item with 204 plus a warning.
 - **M4 — HTTP transport + packaging** (scoping decided 2026-07-15: transport
   and packaging ONLY — OIDC identity is deliberately NOT in this milestone,
   it is M4.5): `--http` streamable HTTP mode, Dockerfile (scratch, static),

@@ -178,7 +178,7 @@
     </authorization>
 
     <!--
-      approve_work_item / reject_work_item. Pair with rest-3#completeWorkItem above.
+      decide_work_item / approve_work_item / reject_work_item. Pair with rest-3#completeWorkItem above.
       Drop both if the assistant must never decide approvals.
     -->
     <authorization>

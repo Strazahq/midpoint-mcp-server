@@ -123,14 +123,14 @@ Everything the server sends, and what each call needs. `rest-3` =
 
 | Tools | Request | `rest-3` action | `model-3` action (object) |
 | --- | --- | --- | --- |
-| `ping`, and the `/self` step of `list_my_*`, `list_work_items`, `list_my_requests` | `GET /self` | `getSelf` | `read` (UserType) |
+| `ping`, and the `/self` step of `list_my_*`, `list_work_items`, `list_my_requests`, `decide_work_item` | `GET /self` | `getSelf` | `read` (UserType) |
 | `search_users`, `list_roles`, `list_requestable_roles`, `list_resources`, `search_objects`, `list_my_team`, `list_my_managers`, `list_my_requests`, `list_work_items` | `POST /{users,roles,resources,orgs,services,shadows,cases}/search` | `searchObjects` | `read` (each type searched) |
-| `get_user`, `get_user_assignments`, `get_role`, `get_resource`, `get_case` | `GET /{users,roles,resources,cases}/{oid}` | `getObject` | `read` (that type; plus RoleType/OrgType/ArchetypeType/ServiceType for `?options=resolveNames` to fill `targetName`) |
+| `get_user`, `get_user_assignments`, `get_role`, `get_resource`, `get_case`, and `decide_work_item`'s check and read-back of the case | `GET /{users,roles,resources,cases}/{oid}` | `getObject` | `read` (that type; plus RoleType/OrgType/ArchetypeType/ServiceType for `?options=resolveNames` to fill `targetName`) |
 | `create_user` | `POST /users` | `addObject` | `add` (UserType) |
 | `enable_user`, `disable_user` | `PATCH /users/{oid}` | `modifyObject` | `modify` (UserType, item `activation`) |
 | `assign_role`, `unassign_role`, `request_role` | `PATCH /users/{oid}` | `modifyObject` | `modify` (UserType, item `assignment`) + `assign`/`unassign` (UserType → target RoleType) |
 | `recompute_user` | `PATCH /users/{oid}?options=reconcile` | `modifyObject` | `modify` (UserType; empty delta) |
-| `approve_work_item`, `reject_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` (CaseType) |
+| `decide_work_item`, `approve_work_item`, `reject_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` (CaseType) |
 | (no direct call — midPoint's projector, as a consequence of the two rows above) | — | — | `add`/`modify`/`delete` (ShadowType) whenever the affected users are provisioned |
 | `search_audit` | `POST /rpc/executeScript` | `executeScript` | `executeScript` + `auditRead` + `read` (SystemConfigurationType) **and a deployment expression profile — see below** |
 

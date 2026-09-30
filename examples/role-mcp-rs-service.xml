@@ -29,7 +29,7 @@
   Adjust before importing:
   - the archetypeRef OIDs below (they are placeholders for YOUR archetypes);
   - drop #addObject if you do not want create_user;
-  - drop #completeWorkItem if you do not want approve/reject_work_item.
+  - drop #completeWorkItem if you do not want decide/approve/reject_work_item.
 
   Not included on purpose: rest-3#executeScript. search_audit needs bulk-action
   Groovy, which 4.10 unlocks only for full superusers or via a deployment-wide
