@@ -8,6 +8,23 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **Discovery from a separate URL (`MIDPOINT_MCP_OIDC_DISCOVERY_URL`, unset by
+  default).** A server that reaches the identity provider at another address
+  than the issuer its tokens carry could not fetch the discovery document. This
+  happens inside a container network where the issuer's hostname is the one
+  browsers use. The new setting is the full URL of the document and is used
+  exactly as given, with nothing appended. The document must still name
+  `MIDPOINT_MCP_OIDC_ISSUER` byte for byte, and every token is still checked
+  against that issuer, so the setting changes where the metadata comes from and
+  never which tokens are accepted. Unset, discovery works as before. The setting
+  without the issuer, a value that is not an absolute http or https URL with a
+  host, and a value that carries a user name or password are startup errors.
+  Signing algorithms in the document that go-oidc cannot verify are dropped, as
+  on the issuer path. Unit-tested with a fake provider whose issuer is never
+  dialed, not yet fired against a live provider. `golang.org/x/oauth2` moves
+  from an indirect to a direct dependency at the same version, because the
+  fetch uses the HTTP client that `oidc.ClientContext` puts on the context. No
+  new module.
 - **`decide_work_item`** — approve or reject an approval work item with an
   optional comment (`caseOid`, `workItemId`, `decision` = `approve` | `reject`,
   `comment`). Before anything is written it reads the case as the caller and

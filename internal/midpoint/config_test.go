@@ -83,6 +83,96 @@ func TestConfigOIDC(t *testing.T) {
 	})
 }
 
+func TestConfigOIDCDiscoveryURL(t *testing.T) {
+	const doc = "http://keycloak:8080/realms/x/.well-known/openid-configuration"
+	tests := []struct {
+		name      string
+		issuer    string
+		audience  string
+		discovery string
+		want      string
+		// wantErr lists what the startup error must name. Empty means the
+		// config loads.
+		wantErr []string
+		// wantNot lists what the startup error must not repeat.
+		wantNot []string
+	}{
+		{name: "unset keeps today's behavior", issuer: "https://kc.example.com/realms/x", audience: "midpoint-mcp"},
+		{
+			name: "set beside the issuer is kept as given", issuer: "http://localhost:8480/realms/x", audience: "midpoint-mcp",
+			discovery: " " + doc + " ", want: doc,
+		},
+		{
+			name: "https with a port and a custom path", issuer: "https://kc.example.com/realms/x", audience: "midpoint-mcp",
+			discovery: "https://idp.internal:8443/custom/discovery", want: "https://idp.internal:8443/custom/discovery",
+		},
+		{
+			name: "set without the issuer is rejected", discovery: doc,
+			wantErr: []string{EnvOIDCDiscoveryURL, EnvOIDCIssuer, "Set " + EnvOIDCIssuer},
+		},
+		{
+			name: "relative URL is rejected", issuer: "https://kc.example.com/realms/x", audience: "midpoint-mcp",
+			discovery: "/realms/x/.well-known/openid-configuration",
+			wantErr:   []string{EnvOIDCDiscoveryURL, "absolute http or https URL"},
+		},
+		{
+			name: "other scheme is rejected", issuer: "https://kc.example.com/realms/x", audience: "midpoint-mcp",
+			discovery: "file:///etc/openid-configuration",
+			wantErr:   []string{EnvOIDCDiscoveryURL, "absolute http or https URL"},
+		},
+		{
+			name: "URL without a host is rejected", issuer: "https://kc.example.com/realms/x", audience: "midpoint-mcp",
+			discovery: "http://:8080/realms/x/.well-known/openid-configuration",
+			wantErr:   []string{EnvOIDCDiscoveryURL, "absolute http or https URL"},
+		},
+		{
+			name: "user info is rejected without repeating it", issuer: "https://kc.example.com/realms/x", audience: "midpoint-mcp",
+			discovery: "http://admin:hunter2@keycloak:8080/realms/x/.well-known/openid-configuration",
+			wantErr:   []string{EnvOIDCDiscoveryURL, "user name or password"},
+			wantNot:   []string{"hunter2"},
+		},
+		{
+			name: "unparsable URL is rejected without repeating it", issuer: "https://kc.example.com/realms/x", audience: "midpoint-mcp",
+			discovery: "http://admin:hunter 2@keycloak:8080/x",
+			wantErr:   []string{EnvOIDCDiscoveryURL, "cannot be parsed"},
+			wantNot:   []string{"hunter"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(EnvURL, "https://mp.example.com/midpoint")
+			t.Setenv(EnvUsername, "svc")
+			t.Setenv(EnvPassword, "secret")
+			t.Setenv(EnvOIDCIssuer, tt.issuer)
+			t.Setenv(EnvOIDCAudience, tt.audience)
+			t.Setenv(EnvOIDCDiscoveryURL, tt.discovery)
+			cfg, err := ConfigFromEnv()
+			if len(tt.wantErr) > 0 {
+				if err == nil {
+					t.Fatalf("ConfigFromEnv loaded %+v, want a startup error", cfg)
+				}
+				for _, want := range tt.wantErr {
+					if !strings.Contains(err.Error(), want) {
+						t.Errorf("error %q does not name %q", err, want)
+					}
+				}
+				for _, not := range tt.wantNot {
+					if strings.Contains(err.Error(), not) {
+						t.Errorf("error %q repeats %q", err, not)
+					}
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.OIDCDiscoveryURL != tt.want {
+				t.Errorf("OIDCDiscoveryURL = %q, want %q", cfg.OIDCDiscoveryURL, tt.want)
+			}
+		})
+	}
+}
+
 func TestConfigOIDCClientCorrelation(t *testing.T) {
 	const (
 		agentOID   = "11111111-2222-3333-4444-5555555500a2"

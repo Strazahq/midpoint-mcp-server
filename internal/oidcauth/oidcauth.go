@@ -6,12 +6,16 @@ package oidcauth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"golang.org/x/oauth2"
 )
 
 // DefaultCorrelationClaim is the token claim read for correlation when a
@@ -43,12 +47,15 @@ type Authenticator struct {
 }
 
 // New discovers the issuer's OIDC metadata (and thus its JWKS) and returns an
-// Authenticator that requires the given audience. correlationClaim names the token
+// Authenticator that requires the given audience. discoveryURL, when set, is the
+// full URL of the discovery document, fetched in place of the issuer's
+// well-known path. Either way the document must name issuer exactly, and tokens
+// are checked against issuer. correlationClaim names the token
 // claim to expose for correlation (empty = DefaultCorrelationClaim).
 // clientCorrelationClaim names the claim that marks a client's own token and then
 // takes its place (empty = off). It performs network I/O.
-func New(ctx context.Context, issuer, audience, correlationClaim, clientCorrelationClaim string) (*Authenticator, error) {
-	provider, err := oidc.NewProvider(ctx, issuer)
+func New(ctx context.Context, issuer, discoveryURL, audience, correlationClaim, clientCorrelationClaim string) (*Authenticator, error) {
+	provider, err := newProvider(ctx, issuer, discoveryURL)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +64,70 @@ func New(ctx context.Context, issuer, audience, correlationClaim, clientCorrelat
 		correlationClaim:       correlationClaim,
 		clientCorrelationClaim: clientCorrelationClaim,
 	}, nil
+}
+
+// maxDiscoveryBytes caps how much of a discovery document newProvider reads.
+const maxDiscoveryBytes = 1 << 20
+
+// supportedAlgorithms are the signing algorithms that oidc.NewProvider keeps
+// from a discovery document.
+var supportedAlgorithms = map[string]bool{
+	oidc.RS256: true, oidc.RS384: true, oidc.RS512: true,
+	oidc.ES256: true, oidc.ES384: true, oidc.ES512: true,
+	oidc.PS256: true, oidc.PS384: true, oidc.PS512: true,
+	oidc.EdDSA: true,
+}
+
+// newProvider reads the issuer's metadata from its well-known path, or from
+// discoveryURL exactly as given when one is set. The document must name issuer
+// byte for byte on both paths, with no trailing-slash normalization.
+func newProvider(ctx context.Context, issuer, discoveryURL string) (*oidc.Provider, error) {
+	if discoveryURL == "" {
+		return oidc.NewProvider(ctx, issuer)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, discoveryURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("the discovery URL %s cannot be requested: %w. Correct MIDPOINT_MCP_OIDC_DISCOVERY_URL", discoveryURL, err)
+	}
+	// oidc.NewProvider uses the client that oidc.ClientContext put on ctx, so this does too.
+	client := http.DefaultClient
+	if c, ok := ctx.Value(oauth2.HTTPClient).(*http.Client); ok {
+		client = c
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching the discovery document at %s failed: %w. Check that this server can reach that address, or correct MIDPOINT_MCP_OIDC_DISCOVERY_URL", discoveryURL, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("the discovery document at %s answered %s instead of 200 OK. Check that MIDPOINT_MCP_OIDC_DISCOVERY_URL is the full URL of the document, which usually ends in /.well-known/openid-configuration", discoveryURL, resp.Status)
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxDiscoveryBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("reading the discovery document at %s failed: %w. Try again, and check the identity provider if it keeps failing", discoveryURL, err)
+	}
+	if len(body) > maxDiscoveryBytes {
+		return nil, fmt.Errorf("the answer from %s is larger than 1 MiB, so it is not a discovery document. Check that MIDPOINT_MCP_OIDC_DISCOVERY_URL points at the provider's discovery document", discoveryURL)
+	}
+	var cfg oidc.ProviderConfig
+	if err := json.Unmarshal(body, &cfg); err != nil {
+		return nil, fmt.Errorf("the answer from %s is not a JSON discovery document: %v. Check that MIDPOINT_MCP_OIDC_DISCOVERY_URL points at the provider's discovery document", discoveryURL, err)
+	}
+	if cfg.IssuerURL != issuer {
+		return nil, fmt.Errorf("the discovery document at %s names issuer %q, but MIDPOINT_MCP_OIDC_ISSUER is %q. Set MIDPOINT_MCP_OIDC_ISSUER to the issuer your identity provider puts in its tokens, or point MIDPOINT_MCP_OIDC_DISCOVERY_URL at that provider's own document",
+			discoveryURL, cfg.IssuerURL, issuer)
+	}
+	// ProviderConfig keeps every algorithm the document lists, and the verifier
+	// accepts that list. Filtering it as oidc.NewProvider does keeps the accepted
+	// set the same on both paths.
+	var algs []string
+	for _, a := range cfg.Algorithms {
+		if supportedAlgorithms[a] {
+			algs = append(algs, a)
+		}
+	}
+	cfg.Algorithms = algs
+	return cfg.NewProvider(ctx), nil
 }
 
 // Verify validates the token (signature against the JWKS, issuer, audience, and

@@ -206,7 +206,7 @@ func connectResourceServerConfig(t *testing.T, cfg midpoint.Config, token string
 	ctx := context.Background()
 
 	client := midpoint.NewClient(cfg)
-	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
+	authn, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCDiscoveryURL, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
 	if err != nil {
 		t.Fatalf("oidcauth.New: %v", err)
 	}

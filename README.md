@@ -63,6 +63,7 @@ Credentials are read from the environment at runtime (never written to disk):
 | `MIDPOINT_MCP_ALLOW_WRITES` | no | `true` enables the write tools; otherwise they return a dry-run preview |
 | `MIDPOINT_MCP_OIDC_ISSUER` | no | OIDC issuer URL; enables resource-server mode for HTTP (must be set with the audience) |
 | `MIDPOINT_MCP_OIDC_AUDIENCE` | no | expected token audience for resource-server mode |
+| `MIDPOINT_MCP_OIDC_DISCOVERY_URL` | no | full URL of the issuer's discovery document, used exactly as given, for a server that reaches the provider at another address than the issuer in its tokens, such as inside a container network. The document must still name `MIDPOINT_MCP_OIDC_ISSUER` exactly, and tokens are still checked against that issuer |
 | `MIDPOINT_MCP_OIDC_CORRELATION_CLAIM` | no | token claim matched to a midPoint user (default `preferred_username`); see [docs](docs/identity-providers.md#requirement-2--correlation-which-midpoint-user-is-this) |
 | `MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE` | no | midPoint attribute the claim is matched against (default `name`) |
 | `MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM` | no | claim that only an OAuth client's own token carries (`client_id` on Keycloak); its value is then the name to correlate. Set together with the archetypes below; see [docs](docs/identity-providers.md#tokens-a-client-obtains-for-itself-agents-and-services) |

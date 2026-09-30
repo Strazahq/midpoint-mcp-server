@@ -42,7 +42,7 @@ func serveHTTP(addr string, client *midpoint.Client, cfg midpoint.Config) error 
 
 	var authn *oidcauth.Authenticator
 	if cfg.ResourceServerMode() {
-		a, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
+		a, err := oidcauth.New(ctx, cfg.OIDCIssuer, cfg.OIDCDiscoveryURL, cfg.OIDCAudience, cfg.OIDCCorrelationClaim, cfg.OIDCClientCorrelationClaim)
 		if err != nil {
 			return fmt.Errorf("configuring OIDC issuer %q: %w", cfg.OIDCIssuer, err)
 		}

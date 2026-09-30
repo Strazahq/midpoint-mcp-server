@@ -1,11 +1,15 @@
 package oidcauth
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -253,4 +257,226 @@ func TestVerifyRejectsBadTokens(t *testing.T) {
 			t.Fatal("expected error for malformed token")
 		}
 	})
+}
+
+// fakeIdP serves discovery documents and the JWKS for a test key. Every
+// document names issuer, which is a URL no test dials, and puts jwks_uri on the
+// fake itself, the way a provider reached on an internal address does.
+type fakeIdP struct {
+	*httptest.Server
+	issuer string
+	// algs is the document's id_token_signing_alg_values_supported. Nil means
+	// RS256 only.
+	algs []string
+}
+
+// Paths the fake serves. discoveryPath is deliberately not a well-known path,
+// so a discovery URL only works when it is used exactly as given.
+const (
+	discoveryPath = "/internal/realms/x/discovery"
+	wellKnownPath = "/.well-known/openid-configuration"
+	notJSONPath   = "/not-json"
+	largePath     = "/large"
+	// selfIssuer stands for the fake's own URL in TestNewDiscovery rows.
+	selfIssuer = "{self}"
+)
+
+func newFakeIdP(t *testing.T, s *signer, issuer string) *fakeIdP {
+	t.Helper()
+	idp := &fakeIdP{issuer: issuer}
+	doc := func(w http.ResponseWriter, _ *http.Request) {
+		algs := idp.algs
+		if algs == nil {
+			algs = []string{"RS256"}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"issuer":                                idp.issuer,
+			"jwks_uri":                              idp.URL + "/certs",
+			"id_token_signing_alg_values_supported": algs,
+		})
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc(discoveryPath, doc)
+	mux.HandleFunc(wellKnownPath, doc)
+	mux.HandleFunc("/certs", func(w http.ResponseWriter, _ *http.Request) {
+		set := jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{
+			Key: s.key.Public(), Algorithm: "RS256", Use: "sig",
+		}}}
+		_ = json.NewEncoder(w).Encode(set)
+	})
+	mux.HandleFunc(notJSONPath, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "<html>sign in</html>")
+	})
+	mux.HandleFunc(largePath, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(bytes.Repeat([]byte(" "), 1<<20+1))
+	})
+	idp.Server = httptest.NewServer(mux)
+	t.Cleanup(idp.Close)
+	return idp
+}
+
+// claimsFrom is baseClaims with iss set to issuer.
+func claimsFrom(issuer string) map[string]any {
+	c := baseClaims()
+	c["iss"] = issuer
+	return c
+}
+
+func TestNewDiscovery(t *testing.T) {
+	const configured = "http://idp.example/realms/x"
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
+
+	tests := []struct {
+		name string
+		// issuer is the configured issuer and docIssuer the one the documents
+		// name. selfIssuer means the fake's own URL.
+		issuer, docIssuer string
+		// discovery is the discovery URL, with selfIssuer standing for the
+		// fake's own URL. Empty means none is set.
+		discovery string
+		algs      []string
+		// wantErr lists what New's error must contain, with selfIssuer
+		// standing for the fake's URL. Empty means New succeeds and a token
+		// carrying the configured issuer verifies.
+		wantErr []string
+	}{
+		{
+			name:   "no discovery URL, the issuer serves its own document",
+			issuer: selfIssuer, docIssuer: selfIssuer,
+		},
+		{
+			name:   "no discovery URL, the document names another issuer",
+			issuer: selfIssuer, docIssuer: configured,
+			wantErr: []string{"did not match"},
+		},
+		{
+			name:   "discovery URL, the document names the configured issuer",
+			issuer: configured, docIssuer: configured, discovery: selfIssuer + discoveryPath,
+		},
+		{
+			name:   "discovery URL, the document names another issuer",
+			issuer: configured, docIssuer: "http://idp.example/realms/other", discovery: selfIssuer + discoveryPath,
+			wantErr: []string{
+				`the discovery document at ` + selfIssuer + discoveryPath + ` names issuer "http://idp.example/realms/other", but MIDPOINT_MCP_OIDC_ISSUER is "http://idp.example/realms/x".`,
+				"Set MIDPOINT_MCP_OIDC_ISSUER to the issuer your identity provider puts in its tokens, or point MIDPOINT_MCP_OIDC_DISCOVERY_URL at that provider's own document",
+			},
+		},
+		{
+			name:   "discovery URL, the issuers differ only by a trailing slash",
+			issuer: configured + "/", docIssuer: configured, discovery: selfIssuer + discoveryPath,
+			wantErr: []string{`names issuer "http://idp.example/realms/x", but MIDPOINT_MCP_OIDC_ISSUER is "http://idp.example/realms/x/"`},
+		},
+		{
+			name:   "discovery URL, the document answers 404",
+			issuer: configured, docIssuer: configured, discovery: selfIssuer + "/missing",
+			wantErr: []string{selfIssuer + "/missing", "404"},
+		},
+		{
+			name:   "discovery URL, nothing listens there",
+			issuer: configured, docIssuer: configured, discovery: closed.URL + discoveryPath,
+			wantErr: []string{closed.URL + discoveryPath, "MIDPOINT_MCP_OIDC_DISCOVERY_URL"},
+		},
+		{
+			name:   "discovery URL, the answer is not JSON",
+			issuer: configured, docIssuer: configured, discovery: selfIssuer + notJSONPath,
+			wantErr: []string{selfIssuer + notJSONPath, "MIDPOINT_MCP_OIDC_DISCOVERY_URL"},
+		},
+		{
+			name:   "discovery URL, the answer is larger than the cap",
+			issuer: configured, docIssuer: configured, discovery: selfIssuer + largePath,
+			wantErr: []string{selfIssuer + largePath, "1 MiB"},
+		},
+		{
+			// The issuer path drops algorithms go-oidc cannot verify, and so
+			// must this one, or an HS256-only list would refuse RS256 tokens.
+			name:   "discovery URL, algorithms go-oidc does not support are dropped",
+			issuer: configured, docIssuer: configured, discovery: selfIssuer + discoveryPath,
+			algs: []string{"HS256", "none"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newSigner(t)
+			idp := newFakeIdP(t, s, "")
+			self := func(v string) string { return strings.ReplaceAll(v, selfIssuer, idp.URL) }
+			idp.issuer = self(tt.docIssuer)
+			idp.algs = tt.algs
+			issuer := self(tt.issuer)
+
+			a, err := New(context.Background(), issuer, self(tt.discovery), testAudience, "", "")
+			if len(tt.wantErr) > 0 {
+				if err == nil {
+					t.Fatal("New succeeded, want an error")
+				}
+				for _, want := range tt.wantErr {
+					if !strings.Contains(err.Error(), self(want)) {
+						t.Errorf("error %q does not contain %q", err, self(want))
+					}
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("New: %v", err)
+			}
+			if _, err := a.Verify(context.Background(), s.mint(t, claimsFrom(issuer))); err != nil {
+				t.Errorf("Verify of a token from %q: %v", issuer, err)
+			}
+		})
+	}
+}
+
+func TestVerifyAfterDiscoveryURL(t *testing.T) {
+	const configured = "http://idp.example/realms/x"
+	s := newSigner(t)
+	idp := newFakeIdP(t, s, configured)
+	a, err := New(context.Background(), configured, idp.URL+discoveryPath, testAudience, "", "")
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	tests := []struct {
+		name    string
+		mutate  func(map[string]any)
+		wantErr bool
+	}{
+		{name: "configured issuer and audience verify"},
+		{
+			// The address the document was fetched from is not an issuer.
+			name:    "issuer is the dial address",
+			mutate:  func(c map[string]any) { c["iss"] = idp.URL + "/internal/realms/x" },
+			wantErr: true,
+		},
+		{
+			name:    "issuer is the discovery URL",
+			mutate:  func(c map[string]any) { c["iss"] = idp.URL + discoveryPath },
+			wantErr: true,
+		},
+		{
+			name:    "wrong audience",
+			mutate:  func(c map[string]any) { c["aud"] = "some-other-service" },
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := claimsFrom(configured)
+			if tt.mutate != nil {
+				tt.mutate(c)
+			}
+			claims, err := a.Verify(context.Background(), s.mint(t, c))
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("Verify = %+v, want error", claims)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Verify: %v", err)
+			}
+			if claims.Subject != "user-sub-123" {
+				t.Errorf("Subject = %q, want user-sub-123", claims.Subject)
+			}
+		})
+	}
 }

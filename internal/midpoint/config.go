@@ -4,7 +4,9 @@
 package midpoint
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -18,6 +20,10 @@ const (
 	EnvAllowWrites  = "MIDPOINT_MCP_ALLOW_WRITES"
 	EnvOIDCIssuer   = "MIDPOINT_MCP_OIDC_ISSUER"
 	EnvOIDCAudience = "MIDPOINT_MCP_OIDC_AUDIENCE"
+	// EnvOIDCDiscoveryURL is the full URL of the issuer's discovery document,
+	// for a server that reaches the issuer at another address than the one in
+	// its tokens. See Config.OIDCDiscoveryURL.
+	EnvOIDCDiscoveryURL = "MIDPOINT_MCP_OIDC_DISCOVERY_URL"
 	// EnvOIDCCorrelationClaim overrides which token claim is matched against a
 	// midPoint user (default preferred_username). EnvOIDCCorrelationAttribute
 	// overrides the midPoint attribute it is matched against (default name).
@@ -59,6 +65,14 @@ type Config struct {
 	// mapped to a midPoint user (see PLAN.md M4.5). Both must be set together.
 	OIDCIssuer   string
 	OIDCAudience string
+
+	// OIDCDiscoveryURL is where the issuer's discovery document is fetched
+	// from, used exactly as given with nothing appended. Empty (the default)
+	// fetches it from OIDCIssuer's well-known path. Set, the document must still
+	// name OIDCIssuer exactly, and tokens are still checked against OIDCIssuer.
+	// It exists for a network where the issuer's own hostname does not resolve
+	// to the provider, such as a container network.
+	OIDCDiscoveryURL string
 
 	// OIDCCorrelationClaim and OIDCCorrelationAttribute customize how a validated
 	// token maps to a midPoint user in resource-server mode. Empty values keep the
@@ -113,6 +127,7 @@ func ConfigFromEnv() (Config, error) {
 		AllowWrites:              strings.EqualFold(strings.TrimSpace(os.Getenv(EnvAllowWrites)), "true"),
 		OIDCIssuer:               strings.TrimSpace(os.Getenv(EnvOIDCIssuer)),
 		OIDCAudience:             strings.TrimSpace(os.Getenv(EnvOIDCAudience)),
+		OIDCDiscoveryURL:         strings.TrimSpace(os.Getenv(EnvOIDCDiscoveryURL)),
 		OIDCCorrelationClaim:     strings.TrimSpace(os.Getenv(EnvOIDCCorrelationClaim)),
 		OIDCCorrelationAttribute: strings.TrimSpace(os.Getenv(EnvOIDCCorrelationAttribute)),
 		AnonymousDiscovery:       strings.EqualFold(strings.TrimSpace(os.Getenv(EnvAnonymousDiscovery)), "true"),
@@ -143,6 +158,34 @@ func ConfigFromEnv() (Config, error) {
 	// fall back to unauthenticated behavior, which must never happen.
 	if (cfg.OIDCIssuer == "") != (cfg.OIDCAudience == "") {
 		return Config{}, fmt.Errorf("%s and %s must be set together", EnvOIDCIssuer, EnvOIDCAudience)
+	}
+
+	// The discovery URL only moves where the metadata is fetched from. Tokens
+	// are still checked against the issuer, so it means nothing on its own.
+	if cfg.OIDCDiscoveryURL != "" {
+		if cfg.OIDCIssuer == "" {
+			return Config{}, fmt.Errorf("%s is set but %s is not. The discovery URL only says where to fetch the provider's metadata, and tokens are still checked against the issuer. Set %s to the issuer your identity provider puts in its tokens, or unset %s",
+				EnvOIDCDiscoveryURL, EnvOIDCIssuer, EnvOIDCIssuer, EnvOIDCDiscoveryURL)
+		}
+		u, err := url.Parse(cfg.OIDCDiscoveryURL)
+		if err != nil {
+			// The parse error repeats the raw value, which may hold a password.
+			reason := err
+			var uerr *url.Error
+			if errors.As(err, &uerr) {
+				reason = uerr.Err
+			}
+			return Config{}, fmt.Errorf("%s cannot be parsed as a URL: %v. Set it to the full URL of the discovery document, for example https://idp.example.com/realms/corp/.well-known/openid-configuration",
+				EnvOIDCDiscoveryURL, reason)
+		}
+		if u.User != nil {
+			return Config{}, fmt.Errorf("%s carries a user name or password. The discovery document is fetched without credentials, so remove them from the URL",
+				EnvOIDCDiscoveryURL)
+		}
+		if (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {
+			return Config{}, fmt.Errorf("%s %q is not an absolute http or https URL with a host. Set it to the full URL of the discovery document, for example https://idp.example.com/realms/corp/.well-known/openid-configuration",
+				EnvOIDCDiscoveryURL, cfg.OIDCDiscoveryURL)
+		}
 	}
 
 	// The correlation attribute is interpolated into a query filter, so reject
