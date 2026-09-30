@@ -10,15 +10,13 @@ import (
 )
 
 // registerRequestTools installs the M3 requests & approvals tools. The mutating
-// ones (request_role, approve/reject) respect the write gate.
+// ones (request_role, decide_work_item) respect the write gate.
 func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
 	registerListRequestableRoles(server, client)
 	registerRequestRole(server, client, allowWrites)
 	registerListMyRequests(server, client)
 	registerListWorkItems(server, client)
 	registerGetCase(server, client)
-	registerCompleteWorkItem(server, client, allowWrites, true)
-	registerCompleteWorkItem(server, client, allowWrites, false)
 	registerDecideWorkItem(server, client, allowWrites)
 }
 
@@ -189,32 +187,6 @@ func registerGetCase(server *mcp.Server, client *midpoint.Client) {
 			return nil, midpoint.CaseDetail{}, err
 		}
 		return text(fmt.Sprintf("Case %s: state=%s, %d work item(s).", c.OID, c.State, len(c.WorkItems))), c, nil
-	})
-}
-
-// --- approve_work_item / reject_work_item ---
-
-type workItemInput struct {
-	CaseOID    string `json:"caseOid" jsonschema:"OID of the case"`
-	WorkItemID string `json:"workItemId" jsonschema:"id of the work item within the case"`
-	Comment    string `json:"comment,omitempty" jsonschema:"optional decision comment"`
-}
-
-func registerCompleteWorkItem(server *mcp.Server, client *midpoint.Client, allowWrites, approve bool) {
-	name, title, desc := "reject_work_item", "Reject work item", "Reject an approval work item. Respects the write gate."
-	if approve {
-		name, title, desc = "approve_work_item", "Approve work item", "Approve an approval work item. Respects the write gate."
-	}
-	mcp.AddTool(server, &mcp.Tool{
-		Name:        name,
-		Title:       title,
-		Description: desc,
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in workItemInput) (*mcp.CallToolResult, writeOutput, error) {
-		plan, err := client.PlanCompleteWorkItem(in.CaseOID, in.WorkItemID, approve, in.Comment)
-		if err != nil {
-			return nil, writeOutput{}, err
-		}
-		return runWrite(ctx, allowWrites, client, plan)
 	})
 }
 

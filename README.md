@@ -312,7 +312,6 @@ and the approval actions respect the write gate):
   optional comment. It first reads the case as you and refuses a work item that
   is not open or not assigned to you, then runs as you and reports the outcome
   midPoint recorded
-- `approve_work_item` / `reject_work_item` — decide a work item (no inbox check)
 
 Manager & team (**implemented**, read-only; run as the caller, so midPoint scopes
 them to what that manager may see):

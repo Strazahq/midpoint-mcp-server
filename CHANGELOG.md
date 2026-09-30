@@ -151,6 +151,16 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 - **A `request_role` that executes immediately now says so plainly.** The result
   reads `GRANTED directly — no approval case was created` instead of hedging.
 
+### Removed
+
+- **`approve_work_item` and `reject_work_item`**, retired in favour of
+  `decide_work_item`. The old tools completed whatever work item they were
+  given; `decide_work_item` first checks that the item is open and assigned to
+  the caller, refusing before any write otherwise, and reads back the outcome
+  midPoint recorded. Clients calling the old names must switch to
+  `decide_work_item` with `decision` set to `approve` or `reject` (same
+  `caseOid`, `workItemId` and optional `comment`).
+
 ### Fixed
 
 - **`list_work_items` read a work item's assignees as a single reference.**

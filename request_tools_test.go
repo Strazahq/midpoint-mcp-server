@@ -85,8 +85,7 @@ func TestRequestToolsRoundTrip(t *testing.T) {
 		{"list_my_requests", map[string]any{}},
 		{"list_work_items", map[string]any{}},
 		{"get_case", map[string]any{"oid": "case-1"}},
-		{"approve_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1"}},
-		{"reject_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1"}},
+		{"decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"}},
 	}
 	for _, c := range calls {
 		out := callTool(t, cs, c.tool, c.args)
@@ -122,8 +121,8 @@ func TestRequestWritesGateOff(t *testing.T) {
 		args map[string]any
 	}{
 		{"request_role", map[string]any{"roleOid": "role-su"}},
-		{"approve_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1"}},
-		{"reject_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1"}},
+		{"decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"}},
+		{"decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "reject"}},
 	} {
 		out := callTool(t, cs, c.tool, c.args)
 		if out["dryRun"] != true || out["applied"] != false {

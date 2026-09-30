@@ -30,7 +30,7 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
 - **M3 — requests & approvals (self-service)**: request_role (assignment-add
   delta → midPoint approval policy turns it into a Case instead of executing),
   list_my_requests, list_work_items (the caller's approval inbox),
-  approve_work_item / reject_work_item (behind the write gate), get_case.
+  decide_work_item (approve or reject, behind the write gate), get_case.
   Exact case/work-item REST endpoints verified against midPoint 4.10 during
   implementation. AC against a live midPoint: request → case opens attributed
   to the correct requester → approve via work item → assignment appears.
@@ -39,8 +39,9 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   read authorization filters to the requestable-and-visible set). Exact `#assign`
   eligibility (`getAssignableRoleSpecification`) was rejected: it needs the
   script path, unavailable under OIDC impersonation (same limit as `search_audit`).
-  **Extended (Unreleased):** `decide_work_item` (`decision` = approve | reject,
-  optional comment) is the guarded form of approve/reject: it refuses, before
+  **Changed (Unreleased):** `decide_work_item` (`decision` = approve | reject,
+  optional comment) replaces the original separate approve and reject tools,
+  which completed any work item they were pointed at. It refuses, before
   any write and with the gate closed too, a work item the caller's inbox would
   not list (same rule as `list_work_items`: open case, no `closeTimestamp`,
   caller among the multi-valued `assigneeRef`), runs as the caller, and reads
@@ -147,8 +148,8 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
     midPoint's approval policy still applies.
   - View a report's access: the existing `get_user_assignments` (by OID from
     `list_my_team`) — documented as the manager flow, not new code.
-  - Approvals already exist (`list_work_items`, `approve_work_item`,
-    `reject_work_item`) — the manager's inbox is the same tools.
+  - Approvals already exist (`list_work_items`, `decide_work_item`) — the
+    manager's inbox is the same tools.
 
   **Verified live 2026-07-16** with a manager→report fixture: `list_my_team`
   returns real reports and `list_requestable_roles?forUser=` excludes roles the

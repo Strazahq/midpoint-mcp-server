@@ -130,7 +130,7 @@ Everything the server sends, and what each call needs. `rest-3` =
 | `enable_user`, `disable_user` | `PATCH /users/{oid}` | `modifyObject` | `modify` (UserType, item `activation`) |
 | `assign_role`, `unassign_role`, `request_role` | `PATCH /users/{oid}` | `modifyObject` | `modify` (UserType, item `assignment`) + `assign`/`unassign` (UserType → target RoleType) |
 | `recompute_user` | `PATCH /users/{oid}?options=reconcile` | `modifyObject` | `modify` (UserType; empty delta) |
-| `decide_work_item`, `approve_work_item`, `reject_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` (CaseType) |
+| `decide_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` (CaseType) |
 | (no direct call — midPoint's projector, as a consequence of the two rows above) | — | — | `add`/`modify`/`delete` (ShadowType) whenever the affected users are provisioned |
 | `search_audit` | `POST /rpc/executeScript` | `executeScript` | `executeScript` + `auditRead` + `read` (SystemConfigurationType) **and a deployment expression profile — see below** |
 
