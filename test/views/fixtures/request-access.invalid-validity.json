@@ -1,0 +1,25 @@
+{
+  "call": {
+    "arguments": {
+      "roleOid": "20000000-0000-0000-0000-0000000000f1",
+      "validTo": "yesterday"
+    },
+    "name": "request_role"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: invalid-validity",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "invalid-validity",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "invalid validity: validTo must be RFC 3339 with offset"
+      }
+    ],
+    "isError": true
+  }
+}

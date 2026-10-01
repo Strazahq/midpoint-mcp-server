@@ -1,0 +1,66 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_my_team"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: team",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "jdoe manages 1 direct report(s), via org(s): dev-ops."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "count": 1,
+      "orgs": [
+        {
+          "manager": true,
+          "name": "dev-ops",
+          "oid": "30000000-0000-0000-0000-000000000001",
+          "relation": "manager",
+          "selected": true,
+          "source": "parentOrgRef"
+        }
+      ],
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1"
+      },
+      "tool": "list_my_team",
+      "users": [
+        {
+          "fullName": "Bob Stone",
+          "name": "bstone",
+          "oid": "10000000-0000-0000-0000-0000000000b1"
+        }
+      ]
+    }
+  }
+}

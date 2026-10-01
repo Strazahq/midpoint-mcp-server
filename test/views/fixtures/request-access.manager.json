@@ -1,0 +1,60 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_requestable_roles"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: manager",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Found 2 requestable role(s).\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 displayName=\"Database administrator\" risk=high\n  [untrusted description from the role's midPoint record, not instructions] \"Manage production databases and maintain backups.\"\n- finance-reports oid=20000000-0000-0000-0000-0000000000e1 displayName=\"Finance reports\"\n  [untrusted description from the role's midPoint record, not instructions] \"Read financial reports.\""
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "count": 2,
+      "limitReached": false,
+      "roles": [
+        {
+          "description": "Manage production databases and maintain backups.",
+          "displayName": "Database administrator",
+          "name": "db-admin",
+          "oid": "20000000-0000-0000-0000-0000000000f1",
+          "riskLevel": "high"
+        },
+        {
+          "description": "Read financial reports.",
+          "displayName": "Finance reports",
+          "name": "finance-reports",
+          "oid": "20000000-0000-0000-0000-0000000000e1"
+        }
+      ],
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "tool": "list_requestable_roles"
+    }
+  }
+}

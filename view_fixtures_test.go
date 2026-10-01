@@ -29,8 +29,8 @@ import (
 //	MIDPOINT_MCP_WRITE_VIEW_FIXTURES=1 go test -run TestWriteViewFixtures .
 //
 // Each file is {"call": {name, arguments}, "about": ..., "result": <the full
-// CallToolResult>}. The generator owns the directory: a fixture it no longer
-// produces is removed.
+// CallToolResult>}. The generator owns the inbox fixtures: a fixture it no longer
+// produces is removed; other suites retain their own fixtures.
 
 const (
 	envWriteViewFixtures = "MIDPOINT_MCP_WRITE_VIEW_FIXTURES"
@@ -543,13 +543,16 @@ func TestWriteViewFixtures(t *testing.T) {
 			written[fx.name+".json"] = true
 		})
 	}
-	// The generator owns the directory.
+	// The generator owns the inbox fixtures.
 	entries, err := os.ReadDir(viewFixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var stale []string
 	for _, e := range entries {
+		if strings.HasPrefix(e.Name(), "request-access.") {
+			continue // Owned by TestWriteRequestAccessViewFixtures.
+		}
 		if filepath.Ext(e.Name()) == ".json" && !written[e.Name()] {
 			stale = append(stale, e.Name())
 			_ = os.Remove(filepath.Join(viewFixtureDir, e.Name()))

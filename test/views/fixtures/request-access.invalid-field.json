@@ -1,0 +1,25 @@
+{
+  "call": {
+    "arguments": {
+      "roleOid": "20000000-0000-0000-0000-0000000000f1"
+    },
+    "name": "request_role"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: invalid-field",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "invalid-field",
+        "field": "projectCode",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "invalid request field projectCode: required"
+      }
+    ],
+    "isError": true
+  }
+}

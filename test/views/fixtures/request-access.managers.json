@@ -1,0 +1,66 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_my_managers"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: managers",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "bstone reports to 1 manager(s), via org(s): dev-ops."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Bob Stone",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "orgs": [
+          {
+            "manager": false,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "default",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "count": 1,
+      "orgs": [
+        {
+          "manager": false,
+          "name": "dev-ops",
+          "oid": "30000000-0000-0000-0000-000000000001",
+          "relation": "default",
+          "selected": true,
+          "source": "parentOrgRef"
+        }
+      ],
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1"
+      },
+      "tool": "list_my_managers",
+      "users": [
+        {
+          "fullName": "Jane Doe",
+          "name": "jdoe",
+          "oid": "10000000-0000-0000-0000-0000000000c1"
+        }
+      ]
+    }
+  }
+}
