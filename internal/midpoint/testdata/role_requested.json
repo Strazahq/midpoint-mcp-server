@@ -1,0 +1,112 @@
+{
+  "role": {
+    "@metadata": {
+      "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+      "storage": {
+        "createTimestamp": "2026-10-01T10:53:40.617Z",
+        "creatorRef": {
+          "oid": "00000000-0000-0000-0000-000000000002",
+          "relation": "org:default",
+          "type": "c:UserType"
+        },
+        "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+      },
+      "process": {
+        "requestTimestamp": "2026-10-01T10:53:40.579Z",
+        "requestorRef": {
+          "oid": "00000000-0000-0000-0000-000000000002",
+          "relation": "org:default",
+          "type": "c:UserType"
+        }
+      },
+      "@id": 2
+    },
+    "oid": "20000000-0000-0000-0000-0000000000f1",
+    "version": "0",
+    "name": "db-admin",
+    "description": "Full access to the production databases.",
+    "assignment": {
+      "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+      "@metadata": {
+        "storage": {
+          "createTimestamp": "2026-10-01T10:53:40.617Z",
+          "creatorRef": {
+            "oid": "00000000-0000-0000-0000-000000000002",
+            "relation": "org:default",
+            "type": "c:UserType"
+          },
+          "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+        },
+        "process": {
+          "requestTimestamp": "2026-10-01T10:53:40.579Z",
+          "requestorRef": {
+            "oid": "00000000-0000-0000-0000-000000000002",
+            "relation": "org:default",
+            "type": "c:UserType"
+          }
+        },
+        "provenance": {
+          "acquisition": {
+            "actorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType"
+            },
+            "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+            "timestamp": "2026-10-01T10:53:40.579Z",
+            "@id": "4"
+          }
+        },
+        "@id": 3
+      },
+      "@id": 1,
+      "targetRef": {
+        "oid": "20000000-0000-0000-0000-0000000000d1",
+        "relation": "org:default",
+        "type": "c:RoleType"
+      },
+      "activation": {
+        "effectiveStatus": "enabled"
+      }
+    },
+    "roleMembershipRef": {
+      "@metadata": {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@id": 5,
+        "storage": {
+          "createTimestamp": "2026-10-01T10:53:40.595Z"
+        },
+        "provenance": {
+          "assignmentPath": {
+            "sourceRef": {
+              "oid": "20000000-0000-0000-0000-0000000000f1",
+              "relation": "org:default",
+              "type": "c:RoleType"
+            },
+            "segment": {
+              "@id": 6,
+              "segmentOrder": 1,
+              "assignmentId": 1,
+              "targetRef": {
+                "oid": "20000000-0000-0000-0000-0000000000d1",
+                "relation": "org:default",
+                "type": "c:RoleType"
+              },
+              "matchingOrder": true
+            }
+          }
+        }
+      },
+      "oid": "20000000-0000-0000-0000-0000000000d1",
+      "relation": "org:default",
+      "type": "c:RoleType"
+    },
+    "activation": {
+      "effectiveStatus": "enabled",
+      "enableTimestamp": "2026-10-01T10:53:40.580Z"
+    },
+    "displayName": "Database admin",
+    "requestable": true,
+    "riskLevel": "high"
+  }
+}

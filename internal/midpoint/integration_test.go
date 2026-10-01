@@ -246,12 +246,12 @@ func TestIntegrationTeam(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListMyManagers: %v", err)
 	}
-	for _, u := range append(append([]UserSummary{}, team...), managers...) {
+	for _, u := range append(append([]UserSummary{}, team.Users...), managers.Users...) {
 		if u.OID == "" || u.Name == "" {
 			t.Errorf("team/manager result has empty oid/name: %+v", u)
 		}
 	}
-	t.Logf("list_my_team=%d, list_my_managers=%d", len(team), len(managers))
+	t.Logf("list_my_team=%d, list_my_managers=%d", len(team.Users), len(managers.Users))
 }
 
 // TestIntegrationSearchObjects exercises the generic object search live.

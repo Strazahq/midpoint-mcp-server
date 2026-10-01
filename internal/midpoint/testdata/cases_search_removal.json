@@ -1,0 +1,190 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3",
+    "@type": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3#ObjectListType",
+    "object": [
+      {
+        "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+        "@type": "c:CaseType",
+        "@metadata": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "@id": 1,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:58:27.442Z"
+          }
+        },
+        "oid": "40000000-0000-0000-0000-000000000003",
+        "version": "1",
+        "name": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "orig": "Unassigning role \"Database admin\" from user \"Bob Stone (bstone)\"",
+          "norm": "unassigning role database admin from user bob stone bstone"
+        },
+        "archetypeRef": {
+          "t:oid": "00000000-0000-0000-0000-000000000342",
+          "t:relation": "org:default",
+          "t:type": "c:ArchetypeType",
+          "targetName": "Approval case"
+        },
+        "parentRef": {
+          "t:oid": "40000000-0000-0000-0000-000000000103",
+          "t:relation": "org:default",
+          "t:type": "c:CaseType",
+          "targetName": "Approving and executing change of user \"Bob Stone (bstone)\" (started Oct 1, 2026, 10:58:27 AM)"
+        },
+        "objectRef": {
+          "t:oid": "10000000-0000-0000-0000-0000000000b1",
+          "t:relation": "org:default",
+          "t:type": "c:UserType",
+          "targetName": "bstone"
+        },
+        "targetRef": {
+          "t:oid": "20000000-0000-0000-0000-0000000000f1",
+          "t:relation": "org:default",
+          "t:type": "c:RoleType",
+          "targetName": "db-admin"
+        },
+        "requestorRef": {
+          "t:oid": "00000000-0000-0000-0000-000000000002",
+          "t:relation": "org:default",
+          "t:type": "c:UserType",
+          "targetName": "administrator"
+        },
+        "state": "open",
+        "workItem": {
+          "@id": 5,
+          "name": {
+            "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+            "orig": "Unassigning role \"Database admin\" from user \"Bob Stone (bstone)\"",
+            "norm": "unassigning role database admin from user bob stone bstone"
+          },
+          "stageNumber": 1,
+          "createTimestamp": "2026-10-01T10:58:27.496Z",
+          "originalAssigneeRef": {
+            "t:oid": "10000000-0000-0000-0000-0000000000a2",
+            "t:relation": "org:default",
+            "t:type": "c:UserType",
+            "targetName": "mkovac"
+          },
+          "assigneeRef": {
+            "t:oid": "10000000-0000-0000-0000-0000000000a2",
+            "t:relation": "org:default",
+            "t:type": "c:UserType",
+            "targetName": "mkovac"
+          }
+        },
+        "approvalContext": {
+          "changeAspect": "com.evolveum.midpoint.wf.impl.processors.primary.policy.PolicyRuleBasedAspect",
+          "deltasToApprove": {
+            "focusPrimaryDelta": {
+              "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+              "changeType": "modify",
+              "objectType": "c:UserType",
+              "oid": "10000000-0000-0000-0000-0000000000b1",
+              "itemDelta": [
+                {
+                  "modificationType": "delete",
+                  "path": "c:assignment",
+                  "value": [
+                    {
+                      "@type": "c:AssignmentType",
+                      "@metadata": {
+                        "storage": {
+                          "createTimestamp": "2026-10-01T10:58:03.615Z",
+                          "creatorRef": {
+                            "oid": "10000000-0000-0000-0000-0000000000b1",
+                            "relation": "org:default",
+                            "type": "c:UserType"
+                          },
+                          "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+                          "createTaskRef": {
+                            "oid": "50000000-0000-0000-0000-000000000001",
+                            "relation": "org:default",
+                            "type": "c:TaskType"
+                          }
+                        },
+                        "process": {
+                          "requestTimestamp": "2026-10-01T10:53:58.720Z",
+                          "requestorRef": {
+                            "oid": "10000000-0000-0000-0000-0000000000b1",
+                            "relation": "org:default",
+                            "type": "c:UserType"
+                          },
+                          "createApproverRef": [
+                            {
+                              "oid": "10000000-0000-0000-0000-0000000000a1",
+                              "relation": "org:default",
+                              "type": "c:UserType"
+                            },
+                            {
+                              "oid": "10000000-0000-0000-0000-0000000000c1",
+                              "relation": "org:default",
+                              "type": "c:UserType"
+                            }
+                          ],
+                          "createApprovalComment": [
+                            "Fine by me.",
+                            "Approved on behalf of the team.",
+                            "Role approver agrees."
+                          ]
+                        },
+                        "provenance": {
+                          "acquisition": {
+                            "actorRef": {
+                              "oid": "10000000-0000-0000-0000-0000000000b1",
+                              "relation": "org:default",
+                              "type": "c:UserType"
+                            },
+                            "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+                            "timestamp": "2026-10-01T10:53:58.719Z",
+                            "@id": "36"
+                          }
+                        },
+                        "@id": 35
+                      },
+                      "@id": 34,
+                      "c:extension": {
+                        "@ns": "http://example.com/xml/ns/access-request",
+                        "justification": "Needed for the quarter-end close."
+                      },
+                      "c:targetRef": {
+                        "oid": "20000000-0000-0000-0000-0000000000f1",
+                        "relation": "org:default",
+                        "type": "c:RoleType"
+                      },
+                      "c:activation": {
+                        "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+                        "effectiveStatus": "disabled",
+                        "validFrom": "2026-10-02T00:00:00+02:00",
+                        "validTo": "2026-10-31T23:59:59+01:00"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "immediateExecution": false,
+          "approvalSchema": {
+            "stage": {
+              "@id": 3,
+              "number": 1,
+              "name": "Removal check",
+              "approverRef": {
+                "t:oid": "10000000-0000-0000-0000-0000000000a2",
+                "t:relation": "org:default",
+                "t:type": "c:UserType",
+                "targetName": "mkovac"
+              },
+              "evaluationStrategy": "firstDecides",
+              "outcomeIfNoApprovers": "reject",
+              "groupExpansion": "byClaimingWorkItem"
+            }
+          }
+        },
+        "stageNumber": 1
+      }
+    ]
+  }
+}

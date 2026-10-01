@@ -1,0 +1,426 @@
+{
+  "case": {
+    "@metadata": {
+      "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+      "@id": 1,
+      "storage": {
+        "createTimestamp": "2026-10-01T10:53:58.855Z"
+      }
+    },
+    "oid": "40000000-0000-0000-0000-000000000001",
+    "version": "7",
+    "name": {
+      "orig": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
+      "norm": "assigning role database admin to user bob stone bstone"
+    },
+    "assignment": {
+      "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+      "@id": 2,
+      "targetRef": {
+        "oid": "00000000-0000-0000-0000-000000000342",
+        "relation": "org:default",
+        "type": "c:ArchetypeType",
+        "targetName": "Approval case"
+      }
+    },
+    "archetypeRef": {
+      "oid": "00000000-0000-0000-0000-000000000342",
+      "relation": "org:default",
+      "type": "c:ArchetypeType",
+      "targetName": "Approval case"
+    },
+    "parentRef": {
+      "oid": "40000000-0000-0000-0000-000000000101",
+      "relation": "org:default",
+      "type": "c:CaseType",
+      "targetName": "Approving and executing change of user \"Bob Stone (bstone)\" (started Oct 1, 2026, 10:53:58 AM)"
+    },
+    "objectRef": {
+      "oid": "10000000-0000-0000-0000-0000000000b1",
+      "relation": "org:default",
+      "type": "c:UserType",
+      "targetName": "bstone"
+    },
+    "targetRef": {
+      "oid": "20000000-0000-0000-0000-0000000000f1",
+      "relation": "org:default",
+      "type": "c:RoleType",
+      "targetName": "db-admin"
+    },
+    "requestorRef": {
+      "oid": "10000000-0000-0000-0000-0000000000b1",
+      "relation": "org:default",
+      "type": "c:UserType",
+      "targetName": "bstone"
+    },
+    "state": "closed",
+    "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+    "closeTimestamp": "2026-10-01T10:58:03.417Z",
+    "event": [
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@type": "c:CaseCreationEventType",
+        "@id": 5,
+        "timestamp": "2026-10-01T10:53:58.856Z",
+        "initiatorRef": {
+          "oid": "10000000-0000-0000-0000-0000000000b1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "bstone"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@type": "c:WorkItemDelegationEventType",
+        "@id": 8,
+        "timestamp": "2026-10-01T10:56:06.406Z",
+        "initiatorRef": {
+          "oid": "00000000-0000-0000-0000-000000000002",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "administrator"
+        },
+        "stageNumber": 1,
+        "assigneeBefore": {
+          "oid": "10000000-0000-0000-0000-0000000000a2",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "mkovac"
+        },
+        "delegatedTo": {
+          "oid": "10000000-0000-0000-0000-0000000000c1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "jdoe"
+        },
+        "delegationMethod": "addAssignees",
+        "externalWorkItemId": "40000000-0000-0000-0000-000000000001:7",
+        "workItemId": 7,
+        "originalAssigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a2",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "mkovac"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@type": "c:WorkItemCompletionEventType",
+        "@id": 9,
+        "timestamp": "2026-10-01T10:57:35.331Z",
+        "initiatorRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "stageNumber": 1,
+        "externalWorkItemId": "40000000-0000-0000-0000-000000000001:6",
+        "workItemId": 6,
+        "originalAssigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "output": {
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+          "comment": "Fine by me."
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@type": "c:WorkItemCompletionEventType",
+        "@id": 10,
+        "timestamp": "2026-10-01T10:57:47.984Z",
+        "initiatorRef": {
+          "oid": "10000000-0000-0000-0000-0000000000c1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "jdoe"
+        },
+        "stageNumber": 1,
+        "externalWorkItemId": "40000000-0000-0000-0000-000000000001:7",
+        "workItemId": 7,
+        "originalAssigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a2",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "mkovac"
+        },
+        "output": {
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+          "comment": "Approved on behalf of the team."
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@type": "c:WorkItemCompletionEventType",
+        "@id": 11,
+        "timestamp": "2026-10-01T10:58:03.363Z",
+        "initiatorRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "stageNumber": 2,
+        "externalWorkItemId": "40000000-0000-0000-0000-000000000001:10",
+        "workItemId": 10,
+        "originalAssigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "output": {
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+          "comment": "Role approver agrees."
+        }
+      }
+    ],
+    "workItem": [
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@id": 6,
+        "name": {
+          "orig": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
+          "norm": "assigning role database admin to user bob stone bstone"
+        },
+        "stageNumber": 1,
+        "createTimestamp": "2026-10-01T10:53:58.967Z",
+        "deadline": "2026-10-04T10:53:58.967Z",
+        "originalAssigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "assigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "performerRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "output": {
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+          "comment": "Fine by me."
+        },
+        "closeTimestamp": "2026-10-01T10:57:35.330Z"
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@id": 7,
+        "name": {
+          "orig": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
+          "norm": "assigning role database admin to user bob stone bstone"
+        },
+        "stageNumber": 1,
+        "createTimestamp": "2026-10-01T10:53:58.967Z",
+        "deadline": "2026-10-04T10:53:58.967Z",
+        "originalAssigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a2",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "mkovac"
+        },
+        "assigneeRef": [
+          {
+            "oid": "10000000-0000-0000-0000-0000000000a2",
+            "relation": "org:default",
+            "type": "c:UserType",
+            "targetName": "mkovac"
+          },
+          {
+            "oid": "10000000-0000-0000-0000-0000000000c1",
+            "relation": "org:default",
+            "type": "c:UserType",
+            "targetName": "jdoe"
+          }
+        ],
+        "performerRef": {
+          "oid": "10000000-0000-0000-0000-0000000000c1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "jdoe"
+        },
+        "output": {
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+          "comment": "Approved on behalf of the team."
+        },
+        "closeTimestamp": "2026-10-01T10:57:47.983Z"
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@id": 10,
+        "name": {
+          "orig": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
+          "norm": "assigning role database admin to user bob stone bstone"
+        },
+        "stageNumber": 2,
+        "createTimestamp": "2026-10-01T10:57:48.018Z",
+        "originalAssigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "assigneeRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "performerRef": {
+          "oid": "10000000-0000-0000-0000-0000000000a1",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "dlee"
+        },
+        "output": {
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve",
+          "comment": "Role approver agrees."
+        },
+        "closeTimestamp": "2026-10-01T10:58:03.361Z"
+      }
+    ],
+    "approvalContext": {
+      "changeAspect": "com.evolveum.midpoint.wf.impl.processors.primary.policy.PolicyRuleBasedAspect",
+      "deltasToApprove": {
+        "focusPrimaryDelta": {
+          "changeType": "modify",
+          "objectType": "c:UserType",
+          "oid": "10000000-0000-0000-0000-0000000000b1",
+          "itemDelta": [
+            {
+              "modificationType": "add",
+              "path": "c:assignment",
+              "value": [
+                {
+                  "@type": "c:AssignmentType",
+                  "@metadata": {
+                    "provenance": {
+                      "acquisition": {
+                        "actorRef": {
+                          "oid": "10000000-0000-0000-0000-0000000000b1",
+                          "type": "c:UserType"
+                        },
+                        "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+                        "timestamp": "2026-10-01T10:53:58.719Z"
+                      }
+                    }
+                  },
+                  "extension": {
+                    "justification": "Needed for the quarter-end close."
+                  },
+                  "targetRef": {
+                    "oid": "20000000-0000-0000-0000-0000000000f1",
+                    "type": "c:RoleType"
+                  },
+                  "activation": {
+                    "validFrom": "2026-10-02T00:00:00+02:00",
+                    "validTo": "2026-10-31T23:59:59+01:00"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "resultingDeltas": {
+        "focusPrimaryDelta": {
+          "changeType": "modify",
+          "objectType": "c:UserType",
+          "oid": "10000000-0000-0000-0000-0000000000b1",
+          "itemDelta": [
+            {
+              "modificationType": "add",
+              "path": "c:assignment",
+              "value": [
+                {
+                  "@metadata": {
+                    "provenance": {
+                      "acquisition": {
+                        "actorRef": {
+                          "oid": "10000000-0000-0000-0000-0000000000b1",
+                          "type": "c:UserType"
+                        },
+                        "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+                        "timestamp": "2026-10-01T10:53:58.719Z"
+                      }
+                    }
+                  },
+                  "#extension": {
+                    "@ns": "http://example.com/xml/ns/access-request",
+                    "justification": "Needed for the quarter-end close."
+                  },
+                  "#targetRef": {
+                    "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+                    "oid": "20000000-0000-0000-0000-0000000000f1",
+                    "type": "c:RoleType"
+                  },
+                  "#activation": {
+                    "#validFrom": "2026-10-02T00:00:00+02:00",
+                    "#validTo": "2026-10-31T23:59:59+01:00"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "immediateExecution": false,
+      "approvalSchema": {
+        "stage": [
+          {
+            "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+            "@id": 3,
+            "number": 1,
+            "name": "Team leads",
+            "approverRef": [
+              {
+                "oid": "10000000-0000-0000-0000-0000000000a1",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "dlee"
+              },
+              {
+                "oid": "10000000-0000-0000-0000-0000000000a2",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "mkovac"
+              }
+            ],
+            "evaluationStrategy": "allMustApprove",
+            "outcomeIfNoApprovers": "reject",
+            "groupExpansion": "byClaimingWorkItem",
+            "duration": "P3D"
+          },
+          {
+            "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+            "@id": 4,
+            "number": 2,
+            "name": "Role approvers",
+            "approverRef": {
+              "oid": "10000000-0000-0000-0000-0000000000a1",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "dlee"
+            },
+            "approverRelation": [],
+            "evaluationStrategy": "firstDecides",
+            "outcomeIfNoApprovers": "reject",
+            "groupExpansion": "byClaimingWorkItem"
+          }
+        ]
+      }
+    },
+    "stageNumber": 2
+  }
+}

@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"strings"
@@ -229,6 +231,9 @@ type decideMidpoint struct {
 	mu      sync.Mutex
 	reqs    []recordedReq
 	outcome string // recorded on work item 1 by a completion
+	// staysOpen keeps the case open after a completion, with a later step's
+	// work item for another approver, as a multi-step approval does.
+	staysOpen bool
 }
 
 const decideOutcomeNS = "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#"
@@ -251,9 +256,13 @@ func newDecideMidpoint(t *testing.T) *decideMidpoint {
 	mux.HandleFunc("GET /ws/rest/cases/case-1", func(w http.ResponseWriter, r *http.Request) {
 		record(r)
 		m.mu.Lock()
-		state, output := "open", ""
+		state, output, later := "open", "", ""
 		if m.outcome != "" {
 			state, output = "closed", `,"output":{"outcome":"`+m.outcome+`"},"closeTimestamp":"2026-07-01T10:00:00.000Z"`
+			if m.staysOpen {
+				state = "open"
+				later = `,{"@id":3,"assigneeRef":{"oid":"u-next","type":"c:UserType","targetName":"Next Approver"},"stageNumber":2}`
+			}
 		}
 		m.mu.Unlock()
 		_, _ = io.WriteString(w, `{"case":{"oid":"case-1","name":"Approving Superuser for Jane","state":"`+state+`",
@@ -262,7 +271,7 @@ func newDecideMidpoint(t *testing.T) *decideMidpoint {
 			"requestorRef":{"oid":"u-jane","type":"c:UserType","targetName":"Jane Doe"},
 			"workItem":[
 				{"@id":1,"assigneeRef":{"oid":"u-self","type":"c:UserType","targetName":"selfuser"},"stageNumber":1`+output+`},
-				{"@id":2,"assigneeRef":{"oid":"u-other","type":"c:UserType","targetName":"Someone Else"},"stageNumber":1}
+				{"@id":2,"assigneeRef":{"oid":"u-other","type":"c:UserType","targetName":"Someone Else"},"stageNumber":1}`+later+`
 			]}}`)
 	})
 	mux.HandleFunc("POST /ws/rest/cases/{caseOid}/workItems/{wid}/complete", func(w http.ResponseWriter, r *http.Request) {
@@ -378,7 +387,34 @@ func TestDecideWorkItem(t *testing.T) {
 			if subj["name"] != "selfuser" || subj["oid"] != "u-self" || subj["mode"] != midpoint.ModePersonal {
 				t.Errorf("subject = %v, want selfuser in personal mode", subj)
 			}
+			// The case closed: nobody is next.
+			if next, ok := out["nextApprovers"].([]any); !ok || len(next) != 0 {
+				t.Errorf("nextApprovers = %v, want []", out["nextApprovers"])
+			}
 		})
+	}
+}
+
+// A decision that leaves the case open names who still has to decide, read
+// back from the case after the decision.
+func TestDecideWorkItemNextApprovers(t *testing.T) {
+	mp := newDecideMidpoint(t)
+	mp.staysOpen = true
+	cs := connectRequests(t, mp.srv, true) // gate ON
+
+	out := callTool(t, cs, "decide_work_item",
+		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
+	if out["caseState"] != "open" || out["recordedOutcome"] != "approve" {
+		t.Fatalf("caseState=%v recordedOutcome=%v", out["caseState"], out["recordedOutcome"])
+	}
+	// This fake serves no users, so both are named from the case and marked
+	// unreadable.
+	want := []any{
+		map[string]any{"oid": "u-other", "type": "User", "name": "Someone Else", "readable": false},
+		map[string]any{"oid": "u-next", "type": "User", "name": "Next Approver", "readable": false},
+	}
+	if !reflect.DeepEqual(out["nextApprovers"], want) {
+		t.Errorf("nextApprovers = %v, want %v", out["nextApprovers"], want)
 	}
 }
 
@@ -453,6 +489,9 @@ func TestDecideWorkItemGateOff(t *testing.T) {
 	if done := mp.completions(); len(done) != 0 {
 		t.Errorf("write gate off, but a completion was sent: %+v", done)
 	}
+	if next, ok := out["nextApprovers"].([]any); !ok || len(next) != 0 {
+		t.Errorf("dry run nextApprovers = %v, want []", out["nextApprovers"])
+	}
 }
 
 func TestDecideWorkItemRejectsUnknownDecision(t *testing.T) {
@@ -470,5 +509,80 @@ func TestDecideWorkItemRejectsUnknownDecision(t *testing.T) {
 		if r.method != http.MethodGet || r.path != "/ws/rest/self" {
 			t.Errorf("an invalid decision reached midPoint: %+v", r)
 		}
+	}
+}
+
+// testdataFile reads a midPoint answer recorded on 4.10.3 (made neutral) from
+// the client package's testdata.
+func testdataFile(t *testing.T, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("internal", "midpoint", "testdata", name))
+	if err != nil {
+		t.Fatalf("reading %s: %v", name, err)
+	}
+	return string(b)
+}
+
+// The recorded answers through an MCP session: the enrichment fills, the
+// results still validate against the tools' outputSchema, and the server
+// block says requests carry a reason.
+func TestInboxDataThroughMCP(t *testing.T) {
+	serve := func(body string) http.HandlerFunc {
+		return func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, body)
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws/rest/self", serve(testdataFile(t, "self_approver.json")))
+	mux.HandleFunc("POST /ws/rest/cases/search", serve(testdataFile(t, "cases_search_approver.json")))
+	mux.HandleFunc("GET /ws/rest/cases/{oid}", serve(testdataFile(t, "case_get_closed.json")))
+	// Every user read answers the requestee and every role read the
+	// requested role: enough to fill each field.
+	mux.HandleFunc("GET /ws/rest/users/{oid}", serve(testdataFile(t, "user_requestee.json")))
+	mux.HandleFunc("GET /ws/rest/roles/{oid}", serve(testdataFile(t, "role_requested.json")))
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	cfg := midpoint.Config{BaseURL: srv.URL, Username: "u", Password: "p"}
+	cfg.File.Requests.JustificationItem = "{http://example.com/xml/ns/access-request}justification"
+	cs := connectViewRequests(t, cfg)
+
+	out, text := callToolText(t, cs, "list_work_items", map[string]any{})
+	if server, _ := out["server"].(map[string]any); server["requestReason"] != true {
+		t.Errorf("server = %v, want requestReason true", out["server"])
+	}
+	items, _ := out["workItems"].([]any)
+	if len(items) != 1 {
+		t.Fatalf("workItems = %v", out["workItems"])
+	}
+	wc, _ := items[0].(map[string]any)["context"].(map[string]any)
+	if wc["justification"] != "Needed for the quarter-end close." || wc["reason"] != "roleApprover" {
+		t.Errorf("context = %v", wc)
+	}
+	access, _ := wc["requesteeAccess"].(map[string]any)
+	roles, _ := access["roles"].([]any)
+	if len(roles) != 4 {
+		t.Fatalf("requesteeAccess = %v", access)
+	}
+	if via, _ := roles[3].(map[string]any)["via"].(map[string]any); via["name"] != "build-runner" {
+		t.Errorf("included role = %v, want via build-runner", roles[3])
+	}
+	if !strings.Contains(text, "[untrusted justification") {
+		t.Errorf("text has no justification line:\n%s", text)
+	}
+
+	out = callTool(t, cs, "get_case", map[string]any{"oid": "40000000-0000-0000-0000-000000000001"})
+	stages, _ := out["stages"].([]any)
+	wis, _ := out["workItems"].([]any)
+	if len(stages) != 2 || len(wis) != 3 {
+		t.Fatalf("stages = %v, workItems = %v", out["stages"], out["workItems"])
+	}
+	delegated, _ := wis[1].(map[string]any)
+	if as, _ := delegated["assignees"].([]any); len(as) != 2 || delegated["performer"] == nil || delegated["comment"] == "" {
+		t.Errorf("delegated work item = %v", delegated)
+	}
+	if _, ok := out["nextApprovers"]; ok {
+		t.Error("get_case returns nextApprovers")
 	}
 }

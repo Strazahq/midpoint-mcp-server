@@ -176,12 +176,19 @@ func selfMemoFromContext(ctx context.Context) *selfMemo {
 // subject resolves who a self-scoped call answers for, refusing first when the
 // deployment says the credentials cannot stand in for a caller.
 func (c *Client) subject(ctx context.Context) (Subject, error) {
+	s, _, err := c.subjectUser(ctx)
+	return s, err
+}
+
+// subjectUser is subject plus the caller's own user object, for self-scoped
+// calls that need more of it than the name.
+func (c *Client) subjectUser(ctx context.Context) (Subject, userJSON, error) {
 	if err := c.requireCallerIdentity(ctx); err != nil {
-		return Subject{}, err
+		return Subject{}, userJSON{}, err
 	}
 	self, err := c.selfUser(ctx)
 	if err != nil {
-		return Subject{}, fmt.Errorf("resolving self: %w", err)
+		return Subject{}, userJSON{}, fmt.Errorf("resolving self: %w", err)
 	}
-	return Subject{OID: self.OID, Name: self.Name.value(), Mode: c.Mode(ctx)}, nil
+	return Subject{OID: self.OID, Name: self.Name.value(), Mode: c.Mode(ctx)}, self, nil
 }

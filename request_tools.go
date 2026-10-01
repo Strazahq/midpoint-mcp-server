@@ -318,6 +318,7 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 		recorded := "the case could not be re-read to confirm the recorded outcome"
 		if after, err := client.GetCase(ctx, out.CaseOID); err == nil {
 			out.CaseState = after.State
+			out.NextApprovers = after.NextApprovers
 			for _, wi := range after.WorkItems {
 				if wi.ID == out.WorkItemID {
 					out.RecordedOutcome = wi.Outcome

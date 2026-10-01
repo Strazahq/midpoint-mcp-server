@@ -56,6 +56,10 @@ type CaseDetail struct {
 	Stage         *StageInfo     `json:"stage,omitempty" jsonschema:"the current step of an open case"`
 	Stages        []StageInfo    `json:"stages" jsonschema:"the approval steps in order"`
 	WorkItems     []CaseWorkItem `json:"workItems"`
+	// NextApprovers are who still has to decide: what decide_work_item
+	// reports as nextApprovers after reading the case back. get_case does not
+	// return it.
+	NextApprovers []ObjectRef `json:"-"`
 }
 
 type caseJSON struct {
@@ -67,16 +71,27 @@ type caseJSON struct {
 	TargetRef    *refJSON   `json:"targetRef"`
 	RequestorRef *refJSON   `json:"requestorRef"`
 	WorkItem     flexSlice  `json:"workItem"`
+	// StageNumber is the current approval step.
+	StageNumber    int    `json:"stageNumber"`
+	CloseTimestamp string `json:"closeTimestamp"`
+	// The parts below are parsed on demand (approval.go), so one that does not
+	// decode never fails the case.
+	ValueMetadata   json.RawMessage `json:"@metadata"`
+	Metadata        json.RawMessage `json:"metadata"`
+	ApprovalContext json.RawMessage `json:"approvalContext"`
 }
 
 type workItemJSON struct {
 	ID flexID `json:"@id"`
 	// assigneeRef is multi-valued: delegation and escalation add assignees, and
 	// midPoint serializes a single value as a bare object.
-	AssigneeRef    flexSlice `json:"assigneeRef"`
-	StageNumber    int       `json:"stageNumber"`
-	CloseTimestamp string    `json:"closeTimestamp"`
-	Output         *struct {
+	AssigneeRef     flexSlice `json:"assigneeRef"`
+	StageNumber     int       `json:"stageNumber"`
+	CreateTimestamp string    `json:"createTimestamp"`
+	Deadline        string    `json:"deadline"`
+	CloseTimestamp  string    `json:"closeTimestamp"`
+	PerformerRef    *refJSON  `json:"performerRef"`
+	Output          *struct {
 		Outcome string `json:"outcome"`
 		Comment string `json:"comment"`
 	} `json:"output"`
@@ -85,14 +100,7 @@ type workItemJSON struct {
 // assignees decodes the work item's assigneeRef values, skipping any that do
 // not decode as a reference.
 func (wi workItemJSON) assignees() []refJSON {
-	out := make([]refJSON, 0, len(wi.AssigneeRef))
-	for _, raw := range wi.AssigneeRef {
-		var r refJSON
-		if err := json.Unmarshal(raw, &r); err == nil && r.OID != "" {
-			out = append(out, r)
-		}
-	}
-	return out
+	return decodeRefs(wi.AssigneeRef)
 }
 
 // assignedTo returns the reference that assigns the work item to oid, or nil
@@ -162,28 +170,7 @@ func (c *Client) GetCase(ctx context.Context, oid string) (CaseDetail, error) {
 	if err := c.getObject(ctx, collCases, oid, true, &cj); err != nil {
 		return CaseDetail{}, err
 	}
-	detail := CaseDetail{
-		CaseSummary: cj.summary(),
-		Change:      ChangeUnknown,
-		Stages:      []StageInfo{},
-		WorkItems:   []CaseWorkItem{},
-	}
-	for _, wi := range cj.items() {
-		item := CaseWorkItem{
-			WorkItem: WorkItem{
-				CaseOID:  cj.OID,
-				ID:       wi.ID.s,
-				Assignee: wi.assigneeNames(),
-				Stage:    wi.StageNumber,
-			},
-			Assignees: []ObjectRef{},
-		}
-		if wi.Output != nil {
-			item.Outcome = shortURI(wi.Output.Outcome)
-		}
-		detail.WorkItems = append(detail.WorkItems, item)
-	}
-	return detail, nil
+	return c.caseDetail(ctx, cj), nil
 }
 
 // RequestsResult is the caller's requests plus the identity they were resolved
@@ -225,7 +212,7 @@ func (c *Client) ListMyRequests(ctx context.Context, limit int) (RequestsResult,
 // ListWorkItems returns the authenticated user's approval inbox: open work items
 // assigned to them and not yet completed.
 func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, error) {
-	subj, err := c.subject(ctx)
+	subj, self, err := c.subjectUser(ctx)
 	if err != nil {
 		return InboxResult{}, err
 	}
@@ -236,19 +223,23 @@ func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, err
 	if err != nil {
 		return InboxResult{}, err
 	}
+	e := c.newEnricher(self)
 	for _, raw := range raws {
 		var cj caseJSON
 		if err := json.Unmarshal(raw, &cj); err != nil {
 			return InboxResult{}, fmt.Errorf("decoding case: %w", err)
 		}
 		s := cj.summary()
-		for _, wi := range cj.items() {
+		a := cj.approval()
+		items := cj.items()
+		for _, wi := range items {
 			// Only the caller's still-open work items belong in the inbox.
 			if !wi.inInbox(subj.OID) {
 				continue
 			}
-			ctx := newWorkItemContext()
-			ctx.Stage.Number = wi.StageNumber
+			// Past the cap, an item's context uses only what earlier items
+			// already read.
+			e.reader.closed = len(res.WorkItems) >= inboxEnrichLimit
 			res.WorkItems = append(res.WorkItems, InboxWorkItem{
 				WorkItem: WorkItem{
 					CaseOID:   cj.OID,
@@ -260,7 +251,7 @@ func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, err
 					Target:    s.Target,
 					Requestor: s.Requestor,
 				},
-				Context: ctx,
+				Context: e.workItemContext(ctx, cj, a, items, wi),
 			})
 		}
 	}

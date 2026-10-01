@@ -97,8 +97,25 @@ func TestGetCase(t *testing.T) {
 	if got := detail.WorkItems[4].Assignee; got != "Someone Else, selfuser" {
 		t.Errorf("work item 5 assignee = %q, want both assignees", got)
 	}
-	if q := lastRequest(t, reqs).rawQuery; q != "options=resolveNames" {
-		t.Errorf("query = %q, want options=resolveNames", q)
+	var caseReads int
+	for _, r := range *reqs {
+		if r.method == http.MethodGet && r.path == "/ws/rest/cases/case-1" {
+			caseReads++
+			if r.rawQuery != "options=resolveNames" {
+				t.Errorf("case query = %q, want options=resolveNames", r.rawQuery)
+			}
+		}
+	}
+	if caseReads != 1 {
+		t.Errorf("case read %d times, want 1", caseReads)
+	}
+	// This fake serves no users or roles: the case's references are named
+	// from the case and marked unreadable, and the case still comes back.
+	if d := detail.ObjectRef; d == nil || d.Name != "Jane Doe" || d.Readable == nil || *d.Readable {
+		t.Errorf("objectRef = %+v, want Jane Doe marked unreadable", d)
+	}
+	if got := detail.WorkItems[4].Assignees; len(got) != 2 || got[1].OID != "u-self" {
+		t.Errorf("work item 5 assignees = %+v, want both", got)
 	}
 }
 
