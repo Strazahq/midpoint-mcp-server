@@ -108,7 +108,8 @@ export function hostContext(entryTool, zone, over = {}) {
 export const diagnostics = [];
 
 // Answers every scenario has unless it says otherwise (checks.mjs sets them).
-export const defaults = { tools: {} };
+// A suite sets its view's tool allowlist here (allowedTools); the inbox's is the fallback.
+export const defaults = { tools: {}, allowedTools: null };
 
 // inLiveRegion reports whether text is announced: it sits in a live region
 // of the given politeness, or such a region anywhere in the view holds it.
@@ -329,7 +330,7 @@ export async function openView(browser, viewDoc, check, s = {}) {
     resultDelayMs: s.resultDelayMs ?? 0,
     tools: { ...defaults.tools, ...(s.tools ?? {}) },
     echo: s.echo ?? false,
-    allowedTools: INBOX_TOOLS,
+    allowedTools: s.allowedTools ?? defaults.allowedTools ?? INBOX_TOOLS,
   };
   const context = await browser.newContext({
     locale: 'en-GB',

@@ -313,8 +313,8 @@ func TestAnonymousDiscoveryReachesViewTemplates(t *testing.T) {
 	if len(read.Contents) != 1 || read.Contents[0].Text != string(doc) || read.Contents[0].MIMEType != viewMIMEType {
 		t.Errorf("anonymous read of the inbox view did not return the embedded document")
 	}
-	if _, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "ui://midpoint/request-access"}); err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Errorf("anonymous read of a view without a document = %v, want the server's not-found", err)
+	if _, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "ui://midpoint/not-a-view"}); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("anonymous read of an unknown view URI = %v, want the server's not-found", err)
 	}
 	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "file:///etc/passwd"})
 	if err == nil || !strings.Contains(err.Error(), "Unauthorized") {

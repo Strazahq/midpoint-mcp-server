@@ -1,28 +1,38 @@
 #!/usr/bin/env node
 // Runs the view checks in headless Chromium against a view document.
 //
-//   node test/views/run.mjs [--view views/approval-inbox.html] [--only text]
+//   node test/views/run.mjs [--suite inbox] [--view views/approval-inbox.html] [--only text]
 //                           [--jobs 4] [--screenshots dir] [--json file] [--list]
+//
+// A suite is one view's checks: its module exports checks and runWide, and
+// SUITES names its default view document.
 //
 // Exit code: 0 all PASS, 1 any FAIL, 2 the harness could not run.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checks, runWide } from './checks.mjs';
 import { T, loadPlaywright } from './harness.mjs';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+const SUITES = {
+  inbox: { module: './checks.mjs', view: 'views/approval-inbox.html' },
+  'request-access': { module: './request-access/checks.mjs', view: 'views/request-access.html' },
+  'my-requests': { module: './my-requests/checks.mjs', view: 'views/my-requests.html' },
+  'access-review': { module: './access-review/checks.mjs', view: 'views/access-review.html' },
+};
+
 function parseArgs(argv) {
-  const o = { view: 'views/approval-inbox.html', jobs: 4, only: null, screenshots: null, json: null, list: false };
+  const o = { suite: 'inbox', view: null, jobs: 4, only: null, screenshots: null, json: null, list: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => {
       if (i + 1 >= argv.length) throw new Error(`${a} needs a value`);
       return argv[++i];
     };
-    if (a === '--view') o.view = next();
+    if (a === '--suite') o.suite = next();
+    else if (a === '--view') o.view = next();
     else if (a === '--only') o.only = next();
     else if (a === '--jobs') o.jobs = Math.max(1, parseInt(next(), 10) || 1);
     else if (a === '--screenshots') o.screenshots = next();
@@ -58,9 +68,20 @@ async function main() {
     return 2;
   }
   if (o.help) {
-    console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 8).join('\n'));
+    console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 11).join('\n'));
     return 0;
   }
+  const suite = SUITES[o.suite];
+  if (!suite) {
+    console.error(`unknown suite ${o.suite} (one of ${Object.keys(SUITES).join(', ')})`);
+    return 2;
+  }
+  if (!existsSync(resolve(dirname(fileURLToPath(import.meta.url)), suite.module))) {
+    console.error(`suite ${o.suite} has no checks yet (${suite.module})`);
+    return 2;
+  }
+  const { checks, runWide } = await import(suite.module);
+  o.view ??= suite.view;
   const match = (c) => !o.only || c.id.includes(o.only) || c.criterion.includes(o.only);
   const selected = checks.filter(match);
   if (o.list) {
