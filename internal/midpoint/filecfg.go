@@ -71,6 +71,8 @@ type TeamConfig struct {
 
 // RequestsConfig holds the self-service guardrails.
 type RequestsConfig struct {
+	// FormItems selects single-valued assignment extension items for requests.
+	FormItems []string `json:"formItems"`
 	// RequireRequestable (default true) refuses request_role for roles that are
 	// not flagged requestable in midPoint's catalog. Without it, request_role is
 	// an unrestricted grant path wearing a reassuring name: midPoint turns an
@@ -274,6 +276,17 @@ func (f FileConfig) validate() error {
 		if _, err := parseQName(j); err != nil {
 			return fmt.Errorf("requests.justificationItem %q is not a qualified name {namespace}localName: %w", j, err)
 		}
+	}
+	locals := map[string]bool{}
+	for _, item := range f.Requests.FormItems {
+		q, err := parseQName(item)
+		if err != nil {
+			return fmt.Errorf("requests.formItems: %w", err)
+		}
+		if locals[q.Local] {
+			return fmt.Errorf("requests.formItems: duplicate local name %q", q.Local)
+		}
+		locals[q.Local] = true
 	}
 	return nil
 }

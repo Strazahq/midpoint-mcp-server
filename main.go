@@ -49,6 +49,9 @@ func run(httpAddr string) error {
 
 	// Protocol traffic owns stdout; diagnostics go to stderr.
 	log.SetOutput(os.Stderr)
+	if err := client.LoadRequestForm(context.Background(), func(message string) { log.Print(message) }); err != nil {
+		return fmt.Errorf("loading request form: %w", err)
+	}
 
 	if httpAddr == "" {
 		return serveStdio(client, cfg)

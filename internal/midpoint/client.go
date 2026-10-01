@@ -23,8 +23,9 @@ const maxResponseBytes = 4 << 20 // 4 MiB
 
 // Client talks to a midPoint deployment's REST API using HTTP Basic auth.
 type Client struct {
-	cfg  Config
-	http *http.Client
+	cfg         Config
+	http        *http.Client
+	requestForm *RequestForm // immutable after startup
 }
 
 // NewClient returns a Client for the given config. It configures a sane

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -26,11 +27,16 @@ func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrit
 // --- list_requestable_roles ---
 
 type listRequestableRolesInput struct {
+	Query   string `json:"query,omitempty" jsonschema:"case-insensitive substring of role name, display name or description; at most 100 characters"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"maximum results, default 20, max 100"`
 	ForUser string `json:"forUser,omitempty" jsonschema:"OID of a user to list requestable roles FOR — e.g. a direct report from list_my_team; returns roles they do not already hold, so you can request one for them. Omit to list your own."`
 }
 
 type listRequestableRolesOutput struct {
+	ForUserRef   *midpoint.ObjectRef   `json:"forUserRef,omitempty"`
+	LimitReached bool                  `json:"limitReached"`
+	Query        string                `json:"query,omitempty"`
+	Form         *midpoint.RequestForm `json:"form,omitempty"`
 	viewFields
 	Roles   []midpoint.RoleSummary `json:"roles"`
 	Count   int                    `json:"count"`
@@ -44,26 +50,31 @@ func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client, i
 		Description: "List requestable roles (self-service, or for a report via forUser): roles flagged " +
 			"requestable in midPoint's catalog, filtered to what the caller is authorized to see. With forUser, " +
 			"returns roles that report does not already hold. Pair with request_role (which accepts the same target " +
-			"user) to submit one, then list_my_requests / list_work_items to track approval.",
+			"user) to submit one, then list_my_requests / list_work_items to track approval. " + untrustedTextNote,
 	}, viewTool("list_requestable_roles", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in listRequestableRolesInput) (*mcp.CallToolResult, listRequestableRolesOutput, error) {
 		target := strings.TrimSpace(in.ForUser)
-		roles, err := client.ListRequestableRolesFor(ctx, target, in.Limit)
+		catalog, err := client.RequestableCatalog(ctx, target, in.Query, in.Limit)
 		if err != nil {
 			return nil, listRequestableRolesOutput{}, err
 		}
+		roles := catalog.Roles
 		msg := fmt.Sprintf("Found %d requestable role(s).", len(roles))
 		if target != "" {
 			msg = fmt.Sprintf("Found %d role(s) you can request for user %s.", len(roles), target)
 		}
-		return text(msg), listRequestableRolesOutput{Roles: roles, Count: len(roles), ForUser: target}, nil
+		form := client.RequestForm()
+		return text(requestCatalogText(msg, roles, form)), listRequestableRolesOutput{Roles: roles, Count: len(roles), ForUser: target, ForUserRef: catalog.ForUserRef, LimitReached: catalog.LimitReached, Query: catalog.Query, Form: form}, nil
 	}))
 }
 
 // --- request_role ---
 
 type requestRoleInput struct {
-	RoleOID string `json:"roleOid" jsonschema:"OID of the role to request"`
-	UserOID string `json:"userOid,omitempty" jsonschema:"OID of the user the role is for; defaults to the authenticated user (self-service)"`
+	ValidFrom string         `json:"validFrom,omitempty" jsonschema:"inclusive start in RFC 3339 with offset; no earlier than today"`
+	ValidTo   string         `json:"validTo,omitempty" jsonschema:"end in RFC 3339 with offset; after the start and in the future"`
+	Fields    map[string]any `json:"fields,omitempty" jsonschema:"values keyed by local names from list_requestable_roles form.items"`
+	RoleOID   string         `json:"roleOid" jsonschema:"OID of the role to request"`
+	UserOID   string         `json:"userOid,omitempty" jsonschema:"OID of the user the role is for; defaults to the authenticated user (self-service)"`
 }
 
 func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
@@ -75,19 +86,19 @@ func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrite
 			"that midPoint's catalog does not flag requestable (see list_requestable_roles), because for those it " +
 			"would grant rather than request. Use assign_role for a deliberate grant. The requester is always the " +
 			"authenticated user. Respects the write gate.",
-	}, viewTool("request_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in requestRoleInput) (*mcp.CallToolResult, viewWriteOutput, error) {
+	}, viewTool("request_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in requestRoleInput) (*mcp.CallToolResult, requestRoleOutput, error) {
 		res, out, err := requestRole(ctx, client, allowWrites, in)
-		return res, viewWriteOutput{writeOutput: out}, err
+		return res, out, err
 	}))
 }
 
 // requestRole is request_role's handler, apart from the view fields.
-func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool, in requestRoleInput) (*mcp.CallToolResult, writeOutput, error) {
+func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool, in requestRoleInput) (*mcp.CallToolResult, requestRoleOutput, error) {
 	target := strings.TrimSpace(in.UserOID)
 	if target == "" {
 		self, err := client.Self(ctx)
 		if err != nil {
-			return nil, writeOutput{}, fmt.Errorf("resolving self: %w", err)
+			return nil, requestRoleOutput{}, fmt.Errorf("resolving self: %w", err)
 		}
 		target = self.OID
 	}
@@ -95,38 +106,50 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 	// Checked before the dry-run preview too: a preview that says "would
 	// request" for a role that would in fact be granted is the same lie.
 	if err := client.EnsureRequestable(ctx, in.RoleOID); err != nil {
-		return nil, writeOutput{}, err
+		return nil, requestRoleOutput{}, err
 	}
 
-	plan, err := client.PlanRequestRole(target, in.RoleOID)
+	plan, fields, err := client.PlanRequestRoleWithValues(target, in.RoleOID, in.ValidFrom, in.ValidTo, in.Fields)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return nil, requestRoleOutput{}, err
+	}
+	user, role := client.RequestRefs(ctx, target, in.RoleOID)
+	req := requestOutcome{Role: role, User: user, Approvers: []midpoint.ObjectRef{}, Fields: fields}
+	if in.ValidFrom != "" || in.ValidTo != "" {
+		req.Validity = &midpoint.Validity{ValidFrom: in.ValidFrom, ValidTo: in.ValidTo}
 	}
 	if !allowWrites {
 		res, out := previewWrite(plan)
-		return res, out, nil
+		req.Outcome = "preview"
+		return res, requestRoleOutput{writeOutput: out, Request: req}, nil
 	}
 
 	applied, err := client.Apply(ctx, plan)
 	if err != nil {
-		return nil, writeOutput{}, err
+		return nil, requestRoleOutput{}, err
 	}
-	out := writeOutput{
+	out := requestRoleOutput{Request: req, writeOutput: writeOutput{
 		Applied:  true,
 		Summary:  plan.Summary,
 		Method:   plan.Method,
 		Endpoint: plan.Endpoint(),
 		Body:     plan.Body,
-	}
+	}}
 	// Best-effort: surface the approval case, if policy created one. This is
 	// robust to whether midPoint signals approval via status code.
 	if caseOID := client.FindRequestCase(ctx, target, in.RoleOID); caseOID != "" {
+		out.Request.Outcome = "pending-approval"
+		out.Request.CaseOID = caseOID
+		if detail, err := client.GetCase(ctx, caseOID); err == nil {
+			out.Request.Approvers = detail.NextApprovers
+		}
 		out.Result = "pending approval; caseOid=" + caseOID
 		return text(fmt.Sprintf("Requested role %s for %s — pending approval (case %s).", in.RoleOID, target, caseOID)), out, nil
 	}
 	// No case means midPoint applied the assignment then and there. Say so
 	// plainly: the caller asked to request access and instead received it,
 	// and a hedge like "likely executed directly" leaves that ambiguous.
+	out.Request.Outcome = "granted"
 	out.Result = fmt.Sprintf("GRANTED directly — no approval case was created (status=%d)", applied.StatusCode)
 	return text(fmt.Sprintf("Role %s was GRANTED to %s immediately: midPoint applied the assignment and no "+
 		"approval policy matched, so this was not a request. (status=%d)", in.RoleOID, target, applied.StatusCode)), out, nil
@@ -366,4 +389,43 @@ func caseStateText(s string) string {
 		return "in an unknown state"
 	}
 	return s
+}
+
+// requestOutcome describes what the request changed, including previews.
+type requestOutcome struct {
+	Role      midpoint.ObjectRef   `json:"role"`
+	User      midpoint.ObjectRef   `json:"user"`
+	Outcome   string               `json:"outcome"`
+	CaseOID   string               `json:"caseOid,omitempty"`
+	Approvers []midpoint.ObjectRef `json:"approvers"`
+	Validity  *midpoint.Validity   `json:"validity,omitempty"`
+	Fields    map[string]any       `json:"fields,omitempty"`
+}
+type requestRoleOutput struct {
+	viewFields
+	writeOutput
+	Request requestOutcome `json:"request"`
+}
+
+// requestCatalogText keeps line one stable and names every role and form item.
+func requestCatalogText(first string, roles []midpoint.RoleSummary, form *midpoint.RequestForm) string {
+	t := newListText(first)
+	if form != nil {
+		t.group("Roles:")
+	}
+	for _, r := range roles {
+		t.item(r.Name, textField{"oid", r.OID}, textField{"displayName", r.DisplayName}, textField{"risk", r.RiskLevel})
+		t.untrusted(fieldDescription, fromRoleRecord, r.Description)
+	}
+	if form != nil {
+		t.group("Request form fields:")
+		for _, i := range form.Items {
+			j := ""
+			if i.Justification {
+				j = "true"
+			}
+			t.item(i.Name, textField{"type", i.Type}, textField{"required", strconv.FormatBool(i.Required)}, textField{"label", i.DisplayName}, textField{"justification", j})
+		}
+	}
+	return t.String()
 }

@@ -1,0 +1,9 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:a="http://prism.evolveum.com/xml/ns/public/annotation-3"
+ xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+ targetNamespace="http://example.com/xml/ns/request-file">
+ <xsd:complexType name="AssignmentExtensionType">
+  <xsd:annotation><xsd:appinfo><a:extension ref="c:AssignmentType"/></xsd:appinfo></xsd:annotation>
+  <xsd:sequence><xsd:element name="costCenter" type="xsd:string" minOccurs="0"/></xsd:sequence>
+ </xsd:complexType>
+</xsd:schema>

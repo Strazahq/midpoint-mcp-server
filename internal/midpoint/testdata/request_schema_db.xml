@@ -1,0 +1,32 @@
+<objects xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3">
+  <!-- Recorded-style SchemaType XML. Neutral schema authored for form tests. -->
+  <object><name>Access request fields</name><definition>
+    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:a="http://prism.evolveum.com/xml/ns/public/annotation-3"
+        xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+        targetNamespace="http://example.com/xml/ns/access-request">
+      <xsd:complexType name="AssignmentExtensionType">
+        <xsd:annotation><xsd:appinfo><a:extension ref="c:AssignmentType"/></xsd:appinfo></xsd:annotation>
+        <xsd:sequence>
+          <xsd:element name="justification" type="xsd:string" minOccurs="0">
+            <xsd:annotation><xsd:appinfo><a:help>Explain why this access is needed.</a:help></xsd:appinfo></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="projectCode" type="xsd:string">
+            <xsd:annotation><xsd:appinfo><a:displayName>Project code</a:displayName></xsd:appinfo><xsd:documentation>The project this access supports.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="ticket" type="xsd:int" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Change ticket</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="acknowledged" type="xsd:boolean"><xsd:annotation><xsd:appinfo><a:displayName>Policy acknowledged</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="neededOn" type="xsd:date" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Needed on</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="handover" type="xsd:dateTime" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Handover time</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="multiple" type="xsd:string" maxOccurs="unbounded"/>
+          <xsd:element name="decimal" type="xsd:decimal"/>
+          <xsd:element name="internalNote" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence>
+      </xsd:complexType>
+      <xsd:complexType name="UserExtensionType">
+        <xsd:annotation><xsd:appinfo><a:extension ref="c:UserType"/></xsd:appinfo></xsd:annotation>
+        <xsd:sequence><xsd:element name="userOnly" type="xsd:string"/></xsd:sequence>
+      </xsd:complexType>
+    </xsd:schema>
+  </definition></object>
+</objects>
