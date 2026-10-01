@@ -8,6 +8,33 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **Approval inbox view, `ui://midpoint/approval-inbox` (PLAN.md M10.3;
+  contract 7.1, `1.0-draft.9`).** One self-contained document
+  (`views/approval-inbox.html`, about 88 KB, no network, no storage), built
+  from the reviewed mockup and embedded in the binary. In a UI session
+  `list_work_items` and `decide_work_item` now link to it. Cards lead with
+  the person, show the risk, the decision clock, what the role allows, who
+  asked, how long, the reason, why you're asked and "Step 1 of 2" (D37);
+  Details add the requested time, the person's roles in effect and the
+  approval steps without names (one `get_case`, first opening only).
+  Approve and Reject confirm in a dialog; Reject needs a reason; one call per
+  confirmation; dry run, read-only hosts, intermediary slots, errors by
+  their stable codes and the shared-credential refusal all follow the
+  contract. A person the approver can't see gets no Approve (D36) and is
+  named once, in the title (D30).
+- **View harness (`test/views/`).** A fake MCP Apps host in headless
+  Chromium: it loads a view in a sandboxed iframe, speaks the host side of
+  the bridge, answers the view's tool calls from fixtures and runs 125 named
+  checks for the 7.1 acceptance list, D37 and the shared criteria
+  (`node test/views/run.mjs`; all pass). The fixtures are this server's own
+  results in a UI session against the recorded midPoint 4.10.3 answers,
+  regenerated with `MIDPOINT_MCP_WRITE_VIEW_FIXTURES=1 go test -run
+  TestWriteViewFixtures .`; edge cases are named mutations of them. Not part
+  of `go test ./...`. **Dependency:** Node and Playwright with its Chromium,
+  for this developer check only; nothing is added to the module or the repo
+  (no `package.json`), the runner finds Playwright in the npx cache or via
+  `PLAYWRIGHT_MODULE`. A browser is the only way to check a view's
+  behaviour, focus and accessible names, and Playwright drives one headless.
 - **Approval inbox data (PLAN.md M10.2; contract S4, S5, S8, S23, S25).**
   `list_work_items` fills `workItems[].context` with what an approver needs
   to decide:
@@ -277,6 +304,9 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   removals without validity or reason, function names instead of stale line
   numbers, the input checks still coded `internal`, and the items fired on
   4.10.3 marked [live]. Views report `server.uiContract` `1.0-draft.9`.
+  A person the approver can't see is named once: the reason's label, the
+  reject sentence and the current-roles line got wordings without the name
+  (D30).
 - **The eleven view tools read the caller's own user first.** Building
   `acting` costs one `GET /ws/rest/self` (plus the by-OID re-read that names
   org links, as `whoami` does) before the tool runs, so a write never happens
