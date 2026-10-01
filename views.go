@@ -19,7 +19,7 @@ import (
 
 // uiContractVersion is the version of docs/ui-contract.md this server
 // implements, reported to views as server.uiContract.
-const uiContractVersion = "1.0-draft.8"
+const uiContractVersion = "1.0-draft.9"
 
 const (
 	// uiExtension is the client capability extension a host advertises when it

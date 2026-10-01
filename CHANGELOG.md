@@ -267,6 +267,16 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- **Docs: `docs/ui-contract.md` `1.0-draft.9`.** The owner's D37 ("you
+  approve your own part"): an inbox card shows "Step 1 of 2" instead of who
+  else decides; the approve dialog's sentence follows the steps only; the
+  approver's "Approval steps" name no people; an approval that leaves the
+  case open no longer names the next approvers (`inbox.outcome.approvedNext`
+  removed). Plus the fixes found building the inbox data (M10.2): text key
+  order as the server writes it, best-effort approver lists, `allMustApprove`,
+  removals without validity or reason, function names instead of stale line
+  numbers, the input checks still coded `internal`, and the items fired on
+  4.10.3 marked [live]. Views report `server.uiContract` `1.0-draft.9`.
 - **The eleven view tools read the caller's own user first.** Building
   `acting` costs one `GET /ws/rest/self` (plus the by-OID re-read that names
   org links, as `whoami` does) before the tool runs, so a write never happens

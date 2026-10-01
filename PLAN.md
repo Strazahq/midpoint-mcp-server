@@ -213,7 +213,7 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   (the SDK skips its session-hijack check when the session's user ID is empty —
   pinned by `TestAnonymousDiscoveryThenAuthenticatedCall`); default-off proven.
 - **M10 — MCP Apps views, approval inbox first**: the four interactive views of
-  [`docs/ui-contract.md`](docs/ui-contract.md) (`1.0-draft.8`), built in the
+  [`docs/ui-contract.md`](docs/ui-contract.md) (`1.0-draft.9`), built in the
   contract's order (inbox, Get access, My requests, My team's access). The
   contract is the spec; its section 8 numbers the server changes (S1 to S25)
   and the slices below cite them. Each slice is one session.
