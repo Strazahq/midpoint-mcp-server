@@ -44,7 +44,7 @@ func registerListMyTeam(server *mcp.Server, client *midpoint.Client, info server
 		if err != nil {
 			return nil, teamViewOutput{}, err
 		}
-		return text(teamMessage(res, "manages", "direct report", "manages no orgs")), teamViewOutput{teamOutput: teamResult(res)}, nil
+		return text(accessReviewTeamText(res)), teamViewOutput{teamOutput: teamResult(res)}, nil
 	}))
 }
 

@@ -153,14 +153,18 @@ func registerUnassignRole(server *mcp.Server, client *midpoint.Client, allowWrit
 		Name:        "unassign_role",
 		Title:       "Unassign role",
 		Description: "Remove a user's assignment to a role. Requires the write gate; otherwise a dry-run preview.",
-	}, viewTool("unassign_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in roleAssignmentInput) (*mcp.CallToolResult, viewWriteOutput, error) {
+	}, viewTool("unassign_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in roleAssignmentInput) (*mcp.CallToolResult, revocationOutput, error) {
 		// Resolves the assignment id via a read even in dry-run, so the preview is accurate.
 		plan, err := client.PlanUnassignRole(ctx, in.UserOID, in.RoleOID)
 		if err != nil {
-			return nil, viewWriteOutput{}, err
+			return nil, revocationOutput{}, err
 		}
 		res, out, err := runWrite(ctx, allowWrites, client, plan)
-		return res, viewWriteOutput{writeOutput: out}, err
+		if err != nil {
+			return nil, revocationOutput{}, err
+		}
+		revocation, err := client.ReadRevocation(ctx, in.UserOID, in.RoleOID, out.Applied)
+		return res, revocationOutput{viewWriteOutput: viewWriteOutput{writeOutput: out}, Revocation: revocation}, err
 	}))
 }
 

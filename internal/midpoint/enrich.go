@@ -231,7 +231,7 @@ func (r *refReader) target(ctx context.Context, ref *refJSON) TargetRef {
 // read carries neither memberships nor assignments counts as not visible:
 // midPoint drops the items a reader may not see, so an empty answer cannot be
 // told from a hidden one.
-func (r *refReader) requesteeAccess(u userJSON, st readState) RequesteeAccess {
+func (r *refReader) requesteeAccess(ctx context.Context, u userJSON, st readState) RequesteeAccess {
 	acc := RequesteeAccess{Roles: []RoleMembership{}}
 	if st != readOK || (len(u.RoleMembershipRef) == 0 && len(u.Assignment) == 0) {
 		return acc
@@ -240,8 +240,11 @@ func (r *refReader) requesteeAccess(u userJSON, st readState) RequesteeAccess {
 	acc.Roles = inEffectRoles(u)
 	for i := range acc.Roles {
 		m := &acc.Roles[i]
-		if ro, ok := r.cachedRole(m.Type, m.OID); ok {
-			m.DisplayName = ro.DisplayName.value()
+		if coll := abstractCollections[m.Type]; coll != "" {
+			ro, st := r.role(ctx, coll, m.OID)
+			if st == readOK {
+				m.DisplayName = ro.DisplayName.value()
+			}
 		}
 	}
 	return acc
@@ -395,7 +398,7 @@ func (e *enricher) workItemContext(ctx context.Context, cj caseJSON, a approval,
 		skip[r.OID] = true
 	}
 	wc.StageApprovers = e.reader.objectRefs(ctx, stageApprovers(items, a, wi, e.self.OID), skip)
-	wc.RequesteeAccess = e.reader.requesteeAccess(u, st)
+	wc.RequesteeAccess = e.reader.requesteeAccess(ctx, u, st)
 	return wc
 }
 
