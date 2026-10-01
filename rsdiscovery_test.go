@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -286,8 +287,7 @@ func TestAnonymousDiscoveryListsToolsWithoutToken(t *testing.T) {
 
 // The view templates are discovery too (contract S17): a tokenless caller can
 // list resources and read a ui://midpoint/ URI, which never reaches midPoint.
-// No view is embedded yet, so the read gets the server's not-found answer
-// rather than the gate's 401: proof that it went through.
+// The read returns the embedded inbox document rather than the gate's 401.
 func TestAnonymousDiscoveryReachesViewTemplates(t *testing.T) {
 	oidc := newMockOIDC(t)
 	mp := newRecordingMidpoint(t)
@@ -302,9 +302,19 @@ func TestAnonymousDiscoveryReachesViewTemplates(t *testing.T) {
 	if _, err := cs.ListResources(ctx, nil); err != nil {
 		t.Fatalf("anonymous ListResources: %v", err)
 	}
-	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "ui://midpoint/approval-inbox"})
-	if err == nil || !strings.Contains(err.Error(), "not found") {
-		t.Errorf("anonymous read of a view URI = %v, want the server's not-found", err)
+	read, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "ui://midpoint/approval-inbox"})
+	if err != nil {
+		t.Fatalf("anonymous read of a view URI: %v", err)
+	}
+	doc, err := fs.ReadFile(viewFiles, "views/approval-inbox.html")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(read.Contents) != 1 || read.Contents[0].Text != string(doc) || read.Contents[0].MIMEType != viewMIMEType {
+		t.Errorf("anonymous read of the inbox view did not return the embedded document")
+	}
+	if _, err := cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "ui://midpoint/request-access"}); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("anonymous read of a view without a document = %v, want the server's not-found", err)
 	}
 	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "file:///etc/passwd"})
 	if err == nil || !strings.Contains(err.Error(), "Unauthorized") {
