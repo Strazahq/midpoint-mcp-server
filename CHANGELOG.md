@@ -144,6 +144,13 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   - An anonymously-initialized session still accepts a later authenticated
     `tools/call` and executes it as the token's user, which is the flow a
     gateway actually uses.
+- **Docs: `docs/ui-contract.md` (`1.0-draft.8`)** — the contract for four MCP
+  Apps views (`ui://midpoint/*`): Requests to approve (the approval inbox,
+  built first), Get access, My requests, and My team's access. It fixes what the server adds to
+  tool results and `tools/list` for UI sessions (section 8, S1 to S25), the
+  view states and strings, the midPoint-GUI look, the rules for intermediaries
+  in the path, and every owner decision (D1 to D36) with three open questions.
+  Writes stay plain REST. Nothing in it is implemented yet.
 
 ### Changed
 
