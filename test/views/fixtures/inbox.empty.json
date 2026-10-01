@@ -1,0 +1,41 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_work_items"
+  },
+  "about": "nothing waiting, resource-server mode",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "0 work item(s) in the approval inbox of dlee."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Dana Lee",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "count": 0,
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1"
+      },
+      "tool": "list_work_items",
+      "workItems": []
+    }
+  }
+}

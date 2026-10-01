@@ -1,0 +1,72 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "decision": "approve",
+      "workItemId": "6"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "approved; read back: case open, Mia Kovac next (recorded after dlee's decision)",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Approved work item 6 in case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) — db-admin for bstone, requested by bstone as dlee (resource-server mode): midPoint recorded outcome approve; the case is now open."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Dana Lee",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "applied": true,
+      "body": {
+        "output": {
+          "@type": "c:AbstractWorkItemOutputType",
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve"
+        }
+      },
+      "case": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "caseState": "open",
+      "decision": "approve",
+      "dryRun": false,
+      "endpoint": "/ws/rest/cases/40000000-0000-0000-0000-000000000001/workItems/6/complete",
+      "method": "POST",
+      "nextApprovers": [
+        {
+          "displayName": "Mia Kovac",
+          "name": "mkovac",
+          "oid": "10000000-0000-0000-0000-0000000000a2",
+          "type": "User"
+        }
+      ],
+      "object": "bstone",
+      "recordedOutcome": "approve",
+      "requestor": "bstone",
+      "result": "status=204",
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1"
+      },
+      "summary": "Approve work item 6 in case 40000000-0000-0000-0000-000000000001",
+      "target": "db-admin",
+      "tool": "decide_work_item",
+      "workItemId": "6"
+    }
+  }
+}

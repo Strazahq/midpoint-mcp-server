@@ -1,0 +1,40 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "whoami"
+  },
+  "about": "a shared service account in personal mode: acting.sharedCredential true",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Acting as \"svc-access\" (oid 10000000-0000-0000-0000-0000000000d1), personal mode. There is no per-caller identity: midPoint sees this server's configured credentials, whoever is driving the MCP client, and every self-scoped tool answers for that account. This identity is linked to no orgs, so list_my_team / list_my_managers can only be empty."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Access service",
+        "impersonated": false,
+        "mode": "personal",
+        "name": "svc-access",
+        "oid": "10000000-0000-0000-0000-0000000000d1",
+        "orgs": [],
+        "sharedCredential": true
+      },
+      "fullName": "Access service",
+      "impersonated": false,
+      "mode": "personal",
+      "name": "svc-access",
+      "oid": "10000000-0000-0000-0000-0000000000d1",
+      "orgs": [],
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "tool": "whoami"
+    }
+  }
+}

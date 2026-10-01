@@ -1,0 +1,93 @@
+{
+  "call": {
+    "arguments": {
+      "oid": "40000000-0000-0000-0000-000000000003"
+    },
+    "name": "get_case"
+  },
+  "about": "the removal case as mkovac reads it",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Case 40000000-0000-0000-0000-000000000003: state=open, 1 work item(s).\nWork items:\n- 5 stage=1 assignees=mkovac outcome=open"
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Mia Kovac",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "mkovac",
+        "oid": "10000000-0000-0000-0000-0000000000a2",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "change": "delete",
+      "name": "Unassigning role \"Database admin\" from user \"Bob Stone (bstone)\"",
+      "object": "bstone",
+      "objectRef": {
+        "displayName": "Bob Stone",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "type": "User"
+      },
+      "oid": "40000000-0000-0000-0000-000000000003",
+      "requestedAt": "2026-10-01T10:58:27.442Z",
+      "requestor": "administrator",
+      "requestorRef": {
+        "name": "administrator",
+        "oid": "00000000-0000-0000-0000-000000000002",
+        "readable": false,
+        "type": "User"
+      },
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "stage": {
+        "count": 1,
+        "name": "Removal check",
+        "number": 1,
+        "strategy": "firstDecides"
+      },
+      "stages": [
+        {
+          "count": 1,
+          "name": "Removal check",
+          "number": 1,
+          "strategy": "firstDecides"
+        }
+      ],
+      "state": "open",
+      "target": "db-admin",
+      "targetRef": {
+        "displayName": "Database admin",
+        "name": "db-admin",
+        "oid": "20000000-0000-0000-0000-0000000000f1",
+        "type": "Role"
+      },
+      "tool": "get_case",
+      "workItems": [
+        {
+          "assignee": "mkovac",
+          "assignees": [
+            {
+              "displayName": "Mia Kovac",
+              "name": "mkovac",
+              "oid": "10000000-0000-0000-0000-0000000000a2",
+              "type": "User"
+            }
+          ],
+          "caseOid": "40000000-0000-0000-0000-000000000003",
+          "createdAt": "2026-10-01T10:58:27.496Z",
+          "id": "5",
+          "stage": 1
+        }
+      ]
+    }
+  }
+}

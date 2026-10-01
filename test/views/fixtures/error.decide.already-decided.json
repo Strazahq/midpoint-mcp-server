@@ -1,0 +1,26 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "decision": "approve",
+      "workItemId": "6"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "the item was decided meanwhile (the case read before writing is the after-decision recording)",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "already-decided",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "refused: work item 6 in case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) is already closed with outcome approve; there is nothing left to decide"
+      }
+    ],
+    "isError": true
+  }
+}

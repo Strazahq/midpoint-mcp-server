@@ -1,0 +1,22 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_work_items"
+  },
+  "about": "the case search answered 503",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "midpoint-unavailable",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "midPoint /cases/search: unexpected status 503 Service Unavailable"
+      }
+    ],
+    "isError": true
+  }
+}

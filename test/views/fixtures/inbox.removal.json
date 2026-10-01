@@ -1,0 +1,121 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_work_items"
+  },
+  "about": "mkovac: a removal (change delete), requested by an administrator the approver can't read",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "1 work item(s) in the approval inbox of mkovac.\n- \"Unassigning role \\\"Database admin\\\" from user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000003 workItem=5 change=delete target=db-admin targetOid=20000000-0000-0000-0000-0000000000f1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=administrator stage=1/1 requested=2026-10-01T10:58:27.442Z reason=assigned strategy=firstDecides"
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Mia Kovac",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "mkovac",
+        "oid": "10000000-0000-0000-0000-0000000000a2",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "count": 1,
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "mkovac",
+        "oid": "10000000-0000-0000-0000-0000000000a2"
+      },
+      "tool": "list_work_items",
+      "workItems": [
+        {
+          "assignee": "mkovac",
+          "case": "Unassigning role \"Database admin\" from user \"Bob Stone (bstone)\"",
+          "caseOid": "40000000-0000-0000-0000-000000000003",
+          "context": {
+            "change": "delete",
+            "coAssignees": [],
+            "createdAt": "2026-10-01T10:58:27.496Z",
+            "reason": "assigned",
+            "requestedAt": "2026-10-01T10:58:27.442Z",
+            "requestee": {
+              "displayName": "Bob Stone",
+              "name": "bstone",
+              "oid": "10000000-0000-0000-0000-0000000000b1",
+              "status": "enabled",
+              "type": "User"
+            },
+            "requesteeAccess": {
+              "roles": [
+                {
+                  "direct": true,
+                  "name": "End user",
+                  "oid": "00000000-0000-0000-0000-000000000008",
+                  "type": "Role"
+                },
+                {
+                  "direct": true,
+                  "name": "dev-ops",
+                  "oid": "30000000-0000-0000-0000-000000000001",
+                  "type": "Org"
+                },
+                {
+                  "direct": true,
+                  "name": "build-runner",
+                  "oid": "20000000-0000-0000-0000-0000000000f3",
+                  "type": "Role"
+                },
+                {
+                  "direct": false,
+                  "name": "artifact-read",
+                  "oid": "20000000-0000-0000-0000-0000000000f4",
+                  "type": "Role",
+                  "via": {
+                    "name": "build-runner",
+                    "oid": "20000000-0000-0000-0000-0000000000f3",
+                    "type": "Role"
+                  }
+                }
+              ],
+              "visible": true
+            },
+            "requester": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            },
+            "stage": {
+              "count": 1,
+              "name": "Removal check",
+              "number": 1,
+              "strategy": "firstDecides"
+            },
+            "stageApprovers": [],
+            "target": {
+              "description": "Full access to the production databases.",
+              "displayName": "Database admin",
+              "name": "db-admin",
+              "oid": "20000000-0000-0000-0000-0000000000f1",
+              "riskLevel": "high",
+              "type": "Role"
+            }
+          },
+          "id": "5",
+          "object": "bstone",
+          "requestor": "administrator",
+          "stage": 1,
+          "target": "db-admin"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "call": {
+    "arguments": {
+      "oid": "40000000-0000-0000-0000-000000000002"
+    },
+    "name": "get_case"
+  },
+  "about": "the managers' case as jdoe reads it",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Case 40000000-0000-0000-0000-000000000002: state=open, 1 work item(s).\nWork items:\n- 5 stage=1 assignees=jdoe outcome=open"
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "change": "add",
+      "name": "Assigning role \"Finance reports\" to user \"Bob Stone (bstone)\"",
+      "object": "bstone",
+      "objectRef": {
+        "displayName": "Bob Stone",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "type": "User"
+      },
+      "oid": "40000000-0000-0000-0000-000000000002",
+      "requestedAt": "2026-10-01T10:57:06.124Z",
+      "requestor": "bstone",
+      "requestorRef": {
+        "displayName": "Bob Stone",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "type": "User"
+      },
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "stage": {
+        "count": 1,
+        "name": "Requestee's manager",
+        "number": 1,
+        "strategy": "firstDecides"
+      },
+      "stages": [
+        {
+          "count": 1,
+          "name": "Requestee's manager",
+          "number": 1,
+          "strategy": "firstDecides"
+        }
+      ],
+      "state": "open",
+      "target": "Finance reports",
+      "targetRef": {
+        "displayName": "Finance reports",
+        "name": "finance-reports",
+        "oid": "20000000-0000-0000-0000-0000000000e1",
+        "type": "Role"
+      },
+      "tool": "get_case",
+      "workItems": [
+        {
+          "assignee": "jdoe",
+          "assignees": [
+            {
+              "displayName": "Jane Doe",
+              "name": "jdoe",
+              "oid": "10000000-0000-0000-0000-0000000000c1",
+              "type": "User"
+            }
+          ],
+          "caseOid": "40000000-0000-0000-0000-000000000002",
+          "createdAt": "2026-10-01T10:57:06.629Z",
+          "id": "5",
+          "stage": 1
+        }
+      ]
+    }
+  }
+}
