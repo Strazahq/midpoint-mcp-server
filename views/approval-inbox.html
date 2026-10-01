@@ -277,6 +277,7 @@ const CAT = {
 'confirm.approve.submit':`Approve`,
 'confirm.reject.title':`{change, select, add {Reject {role} for {requestee}?} delete {Reject removing {role} from {requestee}?} other {Reject this request about {role}?}}`,
 'confirm.reject.body':`{requester} can see your reason.`,
+'confirm.reject.bodyHidden':`The requester can see your reason.`,
 'confirm.reject.submit':`Reject`,
 'error.generic':`midPoint couldn't complete this.`,
 'error.sharedCredential':`This server signs in to midPoint with a shared account, so it can't answer for you personally. Ask your midPoint administrator to set up per-person sign-in.`,
@@ -325,6 +326,7 @@ const CAT = {
 'inbox.item.deadline':`Decide by {time}`,
 'inbox.item.overdue':`Decision overdue since {time}`,
 'inbox.item.justification':`Reason given by {requester}`,
+'inbox.item.justificationHidden':`Reason given`,
 'inbox.item.noReason':`No reason given`,
 'inbox.item.cantApprove':`You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you.`,
 'inbox.item.risk':`Risk: {level}`,
@@ -336,6 +338,7 @@ const CAT = {
 'inbox.item.step':`Step {number} of {count}`,
 'inbox.item.currentRoles':`{requestee} has {count, plural, one {# role} other {# roles}} in effect now, including ones that come with other roles`,
 'inbox.item.currentRolesHidden':`You can't see {requestee}'s current roles.`,
+'inbox.item.currentRolesHiddenPerson':`You can't see this person's current roles.`,
 'inbox.item.currentRolesNone':`{requestee} has no roles now.`,
 'inbox.action.approve':`Approve`,
 'inbox.action.reject':`Reject`,
@@ -480,8 +483,9 @@ function ref(v){
     status:str(v.status), description:str(v.description), riskLevel:str(v.riskLevel)};
 }
 /* D16: never an OID or a login next to a full name; a person the caller can't read is said in words */
-const hiddenRef = r => !r || !r.readable || (!r.displayName && !r.name);
 const isPerson = r => !r || !r.type || r.type === 'User';
+/* 4.5: an unreadable person is hidden; any other object keeps the name its reference carries */
+const hiddenRef = r => !r || (isPerson(r) && !r.readable) || (!r.displayName && !r.name);
 const dispName = r => hiddenRef(r) ? ts(isPerson(r) ? 'common.personHidden' : 'common.itemHidden') : (r.displayName || r.name);
 /* at the start of a sentence or a title (D33) */
 const dispNameStart = r => hiddenRef(r) && isPerson(r) ? ts('common.personHiddenStart') : dispName(r);
@@ -970,7 +974,8 @@ function cardEl(it){
   body.push(whoAsked(x));
   /* draft.9: how long and "No reason given" belong to a request for access; a removal or other change has neither */
   if (x.change === 'add') body.push(line(icon('hourglass', 13), requestValidity(x.validity)));
-  if (x.justification) body.push(quote(t('inbox.item.justification', {requester:dispName(x.requester)}), x.justification, 'j:' + k, 3));
+  /* D30: a person you can't see is named once, in the title, so the quote label leaves them out */
+  if (x.justification) body.push(quote(hiddenRef(x.requester) ? t('inbox.item.justificationHidden') : t('inbox.item.justification', {requester:dispName(x.requester)}), x.justification, 'j:' + k, 3));
   else if (x.change === 'add' && S.server && S.server.requestReason) body.push(h('p', {class:'mp-noreason'}, t('inbox.item.noReason')));
   const step = stepLine(x.stage);
   body.push(h('div', {class:'mp-lines'}, line(icon('info', 13), whyText(x)), step ? line(icon('layers', 13), step) : null));
@@ -1001,7 +1006,8 @@ function detailsEl(it, k){
   const x = it.context, acc = x.requesteeAccess, out = [];
   const when = x.requestedAt || x.createdAt;
   if (when) out.push(h('p', {class:'mp-note'}, t('inbox.item.requestedAt', {time:timeEl(when, {withAbs:true})})));
-  if (!hiddenRef(x.requestee)){
+  if (hiddenRef(x.requestee)) out.push(h('p', {class:'mp-note'}, t('inbox.item.currentRolesHiddenPerson')));
+  else {
     const who = dispName(x.requestee);
     if (!acc.visible) out.push(h('p', {class:'mp-note'}, t('inbox.item.currentRolesHidden', {requestee:who})));
     else if (!acc.roles.length) out.push(h('p', {class:'mp-note'}, t('inbox.item.currentRolesNone', {requestee:who})));
@@ -1092,7 +1098,7 @@ function dialogEl(){
   upd();
   const box = h('div', {class:'mp-dialog', role:'dialog', 'aria-modal':'true', 'aria-labelledby':'dlg-t', 'aria-describedby':'dlg-d', tabindex:'-1', 'data-k':'dlg-box', onkeydown:dialogKeys},
     h('h2', {id:'dlg-t'}, t(approve ? 'confirm.approve.title' : 'confirm.reject.title', p)),
-    h('div', {class:'mp-dialog-body', id:'dlg-d'}, h('p', null, t(approve ? approveBodyKey(x.stage) : 'confirm.reject.body', p))),
+    h('div', {class:'mp-dialog-body', id:'dlg-d'}, h('p', null, t(approve ? approveBodyKey(x.stage) : hiddenRef(x.requester) ? 'confirm.reject.bodyHidden' : 'confirm.reject.body', p))),
     h('div', {class:'mp-field'}, h('label', {for:'dlg-c'}, t(approve ? 'confirm.comment.optional' : 'confirm.comment.required')), ta,
       d.error ? h('p', {class:'mp-field-error', id:'dlg-e'}, icon('alert', 12), t('confirm.comment.requiredError')) : null,
       h('div', {class:'mp-field-foot'}, counter)),

@@ -47,7 +47,7 @@
       "server": {
         "requestReason": true,
         "requireRequestable": true,
-        "uiContract": "1.0-draft.8",
+        "uiContract": "1.0-draft.9",
         "version": "0.0.1-dev",
         "writesEnabled": false
       },

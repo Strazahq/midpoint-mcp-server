@@ -95,6 +95,7 @@ export function expectItem(wi) {
   const target = objectName(c.target);
   const change = S.inbox.change[c.change] ? c.change : 'unknown';
   const selfRequest = c.requester?.oid && c.requester.oid === c.requestee?.oid;
+  const requesterHidden = personName(c.requester) === S.personHidden;
   return {
     wi,
     change,
@@ -109,7 +110,7 @@ export function expectItem(wi) {
     previewRejectLabel: S.inbox.previewRejectLabel(target, requestee),
     approveTitle: S.confirm.approveTitle(change, target, requestee),
     rejectTitle: S.confirm.rejectTitle(change, target, requestee),
-    rejectBody: S.confirm.rejectBody(personName(c.requester, true)),
+    rejectBody: requesterHidden ? S.confirm.rejectBodyHidden : S.confirm.rejectBody(personName(c.requester, true)),
     requestedBy: selfRequest ? S.inbox.selfRequested(requestee) : S.inbox.requestedBy(personName(c.requester)),
     readable: c.requestee?.readable !== false,
   };

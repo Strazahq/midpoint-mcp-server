@@ -47,6 +47,10 @@ Everything from D14 to D36 stays, except D20 on the card.
 - **Removals** (7.1): a `delete` carries no justification and no validity
   **[live]**; its card shows no "How long" and no "No reason given"
   [default].
+- **A person you can't see is named once** (D30, owner, found by the view
+  tests): the reason's label, the reject dialog and the current-roles line
+  have wordings without the name, so the hidden person appears only in the
+  card title.
 - **Fired in M10.2, now [live] on 4.10.3** (7.1, S4, S8, S23, S25, 8.1): the
   parked change's JSON path, `requestedAt` in the value metadata,
   `stage.count`, midPoint's `allMustApprove` (reported as `allMustAgree`) and
@@ -73,6 +77,9 @@ Added:
 | `inbox.item.step` | Step {number} of {count} | D37: the card's step line, where "who else decides" was, on every card, "Step 1 of 1" included (draft.7's `inbox.item.stage` had the same words in Details; draft.8 removed it). |
 | `timeline.step` | Step {number} | D37: the approver's step line in Details, without people. |
 | `timeline.stepNamed` | Step {number}, {name} | D37: the same, with the step's name. |
+| `inbox.item.justificationHidden` | Reason given | D30: the reason's label when the requester can't be read, so the hidden person isn't named again. |
+| `confirm.reject.bodyHidden` | The requester can see your reason. | D30: the reject sentence when the requester can't be read. |
+| `inbox.item.currentRolesHiddenPerson` | You can't see this person's current roles. | D30: the current-roles line when the requestee can't be read ("You can't see a person you can't see in midPoint's current roles" read badly). |
 
 Changed:
 
@@ -1478,7 +1485,7 @@ without a recorded reason), by draft.5 D4.
 | Action | Dialog | Comment | Note under the field | Confirm button | Tool |
 | --- | --- | --- | --- | --- | --- |
 | Approve (V1) | `confirm.approve.title`, then one sentence: `confirm.approve.bodyFinal`, `confirm.approve.bodyMore` or `confirm.approve.bodyUnknown` | optional, `confirm.comment.optional` | none | `confirm.approve.submit` (primary) | `decide_work_item` |
-| Reject (V1) | `confirm.reject.title`, then `confirm.reject.body` | **required**, `confirm.comment.required` | none | `confirm.reject.submit` (danger) | `decide_work_item` |
+| Reject (V1) | `confirm.reject.title`, then `confirm.reject.body` (`confirm.reject.bodyHidden` when the requester can't be read, D30) | **required**, `confirm.comment.required` | none | `confirm.reject.submit` (danger) | `decide_work_item` |
 | Request (V2) | `confirm.request.*`, with the validity choice and the request form fields ([7.2](#72-get-access)) | none | none | `confirm.request.submit` (primary) | `request_role` |
 | Withdraw (V3) | `confirm.withdraw.*` | none | none | `confirm.withdraw.submit` (danger) | `cancel_request` |
 | Revoke (V4) | `confirm.revoke.*` | none | none | `confirm.revoke.submit` (danger) | `unassign_role` |
@@ -1502,7 +1509,9 @@ approvers (`coAssignees`, `stageApprovers`, `stage.strategy`):
 in a step where everyone must agree, others may still have to approve, and
 the view doesn't look (D37).
 
-Reject: `confirm.reject.body`.
+Reject: `confirm.reject.body`, or `confirm.reject.bodyHidden` when the
+requester has `readable: false` (D30: the hidden person is named once, in the
+card title).
 
 Dialog rules (MUST):
 
@@ -2112,8 +2121,9 @@ agents: the view ignores it (D37).
         `validity` above), and "No end date" would be wrong there
         [default].
      4. **Their reason**: when `justification` is present, a quoted block
-        titled `inbox.item.justification`, plain text, clamped to 3 lines with
-        `common.showMore`. When it is absent, `change` is `add` and
+        titled `inbox.item.justification` (`inbox.item.justificationHidden`
+        when the requester can't be read, D30), plain text, clamped to 3
+        lines with `common.showMore`. When it is absent, `change` is `add` and
         `server.requestReason` is true, the muted line `inbox.item.noReason`
         (D30); for any other `change` nothing, because a removal has no
         reason field [default]; when the deployment has no reason field,
@@ -2154,8 +2164,9 @@ agents: the view ignores it (D37).
         what it counts: roles in effect now, including those that come with
         other roles), each role with its icon and name, and for an included
         one `common.inheritedVia` ("Comes with Build runner") from `via`,
-        else `common.inherited`; or `inbox.item.currentRolesHidden`; or
-        `inbox.item.currentRolesNone`.
+        else `common.inherited`; or `inbox.item.currentRolesHidden`
+        (`inbox.item.currentRolesHiddenPerson` when the requestee can't be
+        read, D30); or `inbox.item.currentRolesNone`.
      3. `inbox.details.history`: the approval steps, the approver variant of
         the [case timeline](#615-case-timeline): one line per step with its
         name and state, and no people's names (D37). Read with
@@ -2188,7 +2199,7 @@ agents: the view ignores it (D37).
 | Button | Confirm | Comment | Tool call | After |
 | --- | --- | --- | --- | --- |
 | `inbox.action.approve` | `confirm.approve.title` and one sentence chosen by the step alone (`confirm.approve.bodyFinal` on the last step, `bodyMore` when more steps follow, else `bodyUnknown`; [6.5](#65-confirm-dialogs-and-comments), D37); no rows | optional | `decide_work_item` `{caseOid, workItemId, decision: "approve", comment?}` | outcome below |
-| `inbox.action.reject` | `confirm.reject.title` and `confirm.reject.body`; no rows | **required** | `decide_work_item` `{…, decision: "reject", comment}` | outcome below |
+| `inbox.action.reject` | `confirm.reject.title` and `confirm.reject.body` (or `bodyHidden`, D30); no rows | **required** | `decide_work_item` `{…, decision: "reject", comment}` | outcome below |
 | `inbox.action.details` | none (read) | | first opening only: `get_case` `{oid: caseOid}` | Details open |
 | dry run: `inbox.action.previewApprove`, `inbox.action.previewReject` (accessible names `inbox.action.previewApproveLabel`, `inbox.action.previewRejectLabel`) | the same dialogs, submit `dryrun.submit` | same rules | the same call; the server previews | dry-run outcome ([6.7](#67-states)) |
 
@@ -3166,6 +3177,7 @@ the join rules of [6.11](#611-dates-times-numbers-lists-of-names).
 | `confirm.approve.submit` | Approve |
 | `confirm.reject.title` | {change, select, add {Reject {role} for {requestee}?} delete {Reject removing {role} from {requestee}?} other {Reject this request about {role}?}} |
 | `confirm.reject.body` | {requester} can see your reason. |
+| `confirm.reject.bodyHidden` | The requester can see your reason. |
 | `confirm.reject.submit` | Reject |
 | `confirm.request.title` | Request {role}? |
 | `confirm.request.bodySelf` | You're requesting {role} for yourself. |
@@ -3267,6 +3279,7 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `inbox.item.deadline` | Decide by {time} |
 | `inbox.item.overdue` | Decision overdue since {time} |
 | `inbox.item.justification` | Reason given by {requester} |
+| `inbox.item.justificationHidden` | Reason given |
 | `inbox.item.noReason` | No reason given |
 | `inbox.item.cantApprove` | You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you. |
 | `inbox.item.risk` | Risk: {level} |
@@ -3278,6 +3291,7 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `inbox.item.step` | Step {number} of {count} |
 | `inbox.item.currentRoles` | {requestee} has {count, plural, one {# role} other {# roles}} in effect now, including ones that come with other roles |
 | `inbox.item.currentRolesHidden` | You can't see {requestee}'s current roles. |
+| `inbox.item.currentRolesHiddenPerson` | You can't see this person's current roles. |
 | `inbox.item.currentRolesNone` | {requestee} has no roles now. |
 | `inbox.action.approve` | Approve |
 | `inbox.action.reject` | Reject |
@@ -3512,7 +3526,7 @@ midPoint is searched automatically only when the loaded list was cut off.
 | --- | --- | --- |
 | D28 | Inbox Details hold only what the card doesn't: exact timestamps (requested), the requestee's current access, the approval steps, and one "Open in midPoint" line when links are on. No requested-by / for / role rows, no decide-by, no access dates, no step line, no kind labels. Parallel approvers are one step line ("Step 1: you and Dana Lee, both needed"), never two headings for the same step. Supersedes part of draft.7's "Details keep the metadata". (Narrowed by D37 for V1: the approver's steps name no people, "Step 1, Team leads" with its state only; the example holds for V3.) | 6.15, 7.1, S25 |
 | D29 | Why you're asked: after `manager`, the server checks the approver's own `roleMembershipRef` for the target with relation `approver` or `owner` before falling back to the step name or "midPoint sent this request to you". | 7.1, S23 |
-| D30 | A missing reason says "No reason given", but only when the deployment has a reason field (`server.requestReason`); without one, nothing (D5's point stands). The unreadable person is named once ("a person you can't see in midPoint"); the extra note is gone. | 4.3, 7.1, S25 |
+| D30 | A missing reason says "No reason given", but only when the deployment has a reason field (`server.requestReason`); without one, nothing (D5's point stands). The unreadable person is named once ("a person you can't see in midPoint"); the extra note is gone. Draft.9 (owner): the reason's label, the reject sentence and the current-roles line have wordings without the name (`inbox.item.justificationHidden`, `confirm.reject.bodyHidden`, `inbox.item.currentRolesHiddenPerson`). | 4.3, 7.1, S25 |
 | D31 | Neutral icons: one icon per kind of thing (person, role, team, service, account, request), drawn in neutral colours; no archetype colours or icons; red only for danger. Views no longer use archetype data, so 4.7 and S3 (archetype lookups) and the `archetype` fields are withdrawn. Supersedes owner decision 3's "its archetype icons and colours". | 4.5, 4.7, 6.4, S3, S12 |
 | D32 | My team's access: role descriptions (2 lines), "Turned off, not in effect" for disabled and "Archived, not in effect" for archived assignments, "Comes with {source}" for included access (from midPoint's assignment path), "Account in {name}" for resource assignments. The inbox's role count says what it counts: roles in effect now, including those that come with other roles. | 4.5, 7.1, 7.4, S9, S25 |
 | D33 | Card title leads with the person: "Carol Diaz → Release manager" (spoken "Carol Diaz, access to Release manager"); removals "Carol Diaz: remove Prod read-only". Times today and tomorrow read "today, 17:30" / "tomorrow, 11:00" (dates: "today", "tomorrow"). Clamped text ends with one "…" at a word boundary, never "….". | 6.11, 6.12, 7.1 |

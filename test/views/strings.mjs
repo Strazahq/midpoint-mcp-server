@@ -97,6 +97,8 @@ export const S = {
           ? `Reject removing ${role} from ${requestee}?`
           : `Reject this request about ${role}?`,
     rejectBody: (requester) => `${requester} can see your reason.`,
+    // D30: a requester you can't see is named once, in the title.
+    rejectBodyHidden: 'The requester can see your reason.',
     rejectSubmit: 'Reject',
     // Draft.8 dialog rows, which approve and reject must not show (D21).
     rows: ['Role', 'For', 'From', 'Request', 'How long'],
@@ -159,6 +161,7 @@ export const S = {
     deadline: (time) => `Decide by ${time}`,
     overduePrefix: 'Decision overdue since ',
     justification: (requester) => `Reason given by ${requester}`,
+    justificationHidden: 'Reason given',
     noReason: 'No reason given',
     cantApprove:
       "You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you.",
@@ -173,6 +176,7 @@ export const S = {
     currentRoles: (requestee, n) =>
       `${requestee} has ${n} ${plural(n, 'role', 'roles')} in effect now, including ones that come with other roles`,
     currentRolesHidden: (requestee) => `You can't see ${requestee}'s current roles.`,
+    currentRolesHiddenPerson: "You can't see this person's current roles.",
     currentRolesNone: (requestee) => `${requestee} has no roles now.`,
     approve: 'Approve',
     reject: 'Reject',
