@@ -108,7 +108,10 @@ type AuditResult struct {
 func (c *Client) SearchAudit(ctx context.Context, q AuditQuery) (AuditResult, error) {
 	out, err := c.ExecuteScript(ctx, auditScriptBody(buildAuditGroovy(q)))
 	if err != nil {
-		return AuditResult{}, err
+		// The script is the only way to the audit trail, so whatever failed
+		// on it, the audit trail is out of reach. The code overrides the
+		// cause's (a 403 here is the missing script authorization).
+		return AuditResult{}, &CodedError{Code: CodeAuditUnavailable, Err: err}
 	}
 	records := refineAudit(parseAuditItems(out.Items), q)
 	return AuditResult{Records: records, Status: out.Status}, nil

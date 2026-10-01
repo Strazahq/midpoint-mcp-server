@@ -341,8 +341,8 @@ func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string)
 	s := cj.summary()
 	label := caseLabel(s)
 	if cj.State != "open" {
-		return DecidableWorkItem{}, fmt.Errorf("refused: case %s is %s, not open, so work item %s has nothing left to decide",
-			label, orUnknown(cj.State), workItemID)
+		return DecidableWorkItem{}, &CodedError{Code: CodeRequestClosed, Err: fmt.Errorf("refused: case %s is %s, not open, so work item %s has nothing left to decide",
+			label, orUnknown(cj.State), workItemID)}
 	}
 
 	for _, wi := range cj.items() {
@@ -354,8 +354,8 @@ func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string)
 			if wi.Output != nil && wi.Output.Outcome != "" {
 				how = "closed with outcome " + shortURI(wi.Output.Outcome)
 			}
-			return DecidableWorkItem{}, fmt.Errorf("refused: work item %s in case %s is already %s; there is nothing left to decide",
-				workItemID, label, how)
+			return DecidableWorkItem{}, &CodedError{Code: CodeAlreadyDecided, Err: fmt.Errorf("refused: work item %s in case %s is already %s; there is nothing left to decide",
+				workItemID, label, how)}
 		}
 		mine := wi.assignedTo(subj.OID)
 		if mine == nil {
@@ -363,9 +363,9 @@ func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string)
 			if n := wi.assigneeNames(); n != "" {
 				assigned = n
 			}
-			return DecidableWorkItem{}, fmt.Errorf("refused: work item %s in case %s is assigned to %s, not to %s "+
+			return DecidableWorkItem{}, &CodedError{Code: CodeNotInInbox, Err: fmt.Errorf("refused: work item %s in case %s is assigned to %s, not to %s "+
 				"(the identity this server acts as, %s mode); only work items in that identity's approval inbox "+
-				"(list_work_items) can be decided", workItemID, label, assigned, subj.Name, subj.Mode)
+				"(list_work_items) can be decided", workItemID, label, assigned, subj.Name, subj.Mode)}
 		}
 		return DecidableWorkItem{
 			Subject: subj,
@@ -382,8 +382,8 @@ func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string)
 			},
 		}, nil
 	}
-	return DecidableWorkItem{}, fmt.Errorf("refused: case %s has no work item %s; list_work_items shows the work items %s can decide",
-		label, workItemID, subj.Name)
+	return DecidableWorkItem{}, &CodedError{Code: CodeNotInInbox, Err: fmt.Errorf("refused: case %s has no work item %s; list_work_items shows the work items %s can decide",
+		label, workItemID, subj.Name)}
 }
 
 // caseLabel names a case as `"<name>" (<oid>)`, or just the oid when unnamed.

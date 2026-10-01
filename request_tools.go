@@ -242,7 +242,8 @@ func parseDecision(s string) (bool, error) {
 	case "reject":
 		return false, nil
 	}
-	return false, fmt.Errorf("decision must be %q or %q, got %q", "approve", "reject", s)
+	return false, &midpoint.CodedError{Code: midpoint.CodeInvalidInput,
+		Err: fmt.Errorf("decision must be %q or %q, got %q", "approve", "reject", s)}
 }
 
 func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {

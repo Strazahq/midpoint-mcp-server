@@ -130,18 +130,20 @@ func (c *Client) doFull(ctx context.Context, method, path string, query url.Valu
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return rawResponse{}, fmt.Errorf("calling midPoint %s %s: %w", method, path, withoutURL(err))
+		return rawResponse{}, &CodedError{Code: CodeMidpointUnavailable,
+			Err: fmt.Errorf("calling midPoint %s %s: %w", method, path, withoutURL(err))}
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
 	if err != nil {
-		return rawResponse{}, fmt.Errorf("reading %s response: %w", path, err)
+		return rawResponse{}, &CodedError{Code: CodeMidpointUnavailable,
+			Err: fmt.Errorf("reading %s response: %w", path, err)}
 	}
 
 	out := rawResponse{StatusCode: resp.StatusCode, Header: resp.Header, Body: respBody}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return out, fmt.Errorf("midPoint %s: unexpected status %s", path, resp.Status)
+		return out, &StatusError{Path: path, StatusCode: resp.StatusCode, Status: resp.Status}
 	}
 	return out, nil
 }

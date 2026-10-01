@@ -155,7 +155,8 @@ func (c *Client) PlanUnassignRole(ctx context.Context, userOID, roleOID string) 
 		return Plan{}, err
 	}
 	if len(ids) == 0 {
-		return Plan{}, fmt.Errorf("user %s has no direct assignment to %s", userOID, roleOID)
+		return Plan{}, &CodedError{Code: CodeNotAssigned,
+			Err: fmt.Errorf("user %s has no direct assignment to %s", userOID, roleOID)}
 	}
 
 	deltas := make([]itemDelta, 0, len(ids))

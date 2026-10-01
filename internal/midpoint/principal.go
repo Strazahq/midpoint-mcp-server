@@ -81,11 +81,11 @@ type Principal struct {
 // has declared its credentials shared (identity.credentialIsShared) and the
 // request carries no mapped end user. Answering would describe the service
 // account, which is never what "my team" or "my inbox" meant.
-var ErrNoCallerIdentity = errors.New(
+var ErrNoCallerIdentity error = &CodedError{Code: CodeSharedCredential, Err: errors.New(
 	"this server authenticates to midPoint with a shared/technical account and this request carries no caller identity, " +
 		"so a self-scoped answer would describe that account rather than you; " +
 		"use resource-server mode to pass the end user's identity, or set identity.credentialIsShared=false in " +
-		EnvConfigFile + " if the configured credentials really are one person's")
+		EnvConfigFile + " if the configured credentials really are one person's")}
 
 // requireCallerIdentity refuses a self-scoped call that could only answer for a
 // shared service account.

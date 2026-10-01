@@ -176,11 +176,11 @@ func (c *Client) EnsureRequestable(ctx context.Context, roleOID string) error {
 	if name == "" {
 		name = roleOID
 	}
-	return fmt.Errorf("role %q (%s) is not flagged requestable in midPoint's catalog, so it cannot be requested: "+
+	return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %q (%s) is not flagged requestable in midPoint's catalog, so it cannot be requested: "+
 		"a request for it would not become an approval case, it would grant the role outright. "+
 		"Use list_requestable_roles to see what may be requested; to grant this role deliberately use assign_role, "+
 		"which does not claim to be a request; to lift this guardrail set requests.requireRequestable=false in %s",
-		name, roleOID, EnvConfigFile)
+		name, roleOID, EnvConfigFile)}
 }
 
 // heldRoleOIDs returns the set of role OIDs a user effectively holds, from the

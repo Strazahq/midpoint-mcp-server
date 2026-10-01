@@ -61,12 +61,14 @@ func newMCPServer(client *midpoint.Client, cfg midpoint.Config) *mcp.Server {
 	return newMCPServerWithViews(client, cfg, embeddedViews())
 }
 
-// newMCPServerWithViews builds a server with every tool and the given views.
+// newMCPServerWithViews builds a server with every tool, the given views and
+// stable codes on tool errors.
 func newMCPServerWithViews(client *midpoint.Client, cfg midpoint.Config, v views) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: version},
 		&mcp.ServerOptions{Instructions: serverInstructions})
 	registerTools(server, client, cfg)
 	v.install(server)
+	server.AddReceivingMiddleware(errorCodes)
 	return server
 }
 
