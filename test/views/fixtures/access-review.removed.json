@@ -1,0 +1,80 @@
+{
+  "about": "Server UI session, recorded-style access review REST answers; scenario removed. See view_fixtures_access_review_test.go for provenance.",
+  "call": {
+    "arguments": {
+      "roleOid": "20000000-0000-0000-0000-0000000000f1",
+      "userOid": "10000000-0000-0000-0000-0000000000b1"
+    },
+    "name": "unassign_role"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Applied: Unassign role 20000000-0000-0000-0000-0000000000f1 from user 10000000-0000-0000-0000-0000000000b1 (status=204)."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "applied": true,
+      "body": {
+        "objectModification": {
+          "itemDelta": [
+            {
+              "modificationType": "delete",
+              "path": "assignment",
+              "value": {
+                "@id": 9
+              }
+            }
+          ]
+        }
+      },
+      "dryRun": false,
+      "endpoint": "/ws/rest/users/10000000-0000-0000-0000-0000000000b1",
+      "method": "PATCH",
+      "result": "status=204",
+      "revocation": {
+        "outcome": "removed",
+        "role": {
+          "displayName": "Database admin",
+          "name": "db-admin",
+          "oid": "20000000-0000-0000-0000-0000000000f1",
+          "type": "Role"
+        },
+        "user": {
+          "displayName": "Bob Stone",
+          "name": "bstone",
+          "oid": "10000000-0000-0000-0000-0000000000b1",
+          "type": "User"
+        }
+      },
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "summary": "Unassign role 20000000-0000-0000-0000-0000000000f1 from user 10000000-0000-0000-0000-0000000000b1",
+      "tool": "unassign_role"
+    }
+  }
+}

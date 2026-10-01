@@ -1,0 +1,62 @@
+{
+  "object": {
+    "object": [
+      {
+        "@type": "c:RoleType",
+        "oid": "20000000-0000-0000-0000-0000000000f1",
+        "name": "db-admin",
+        "displayName": "Database admin",
+        "description": "Administers development databases."
+      },
+      {
+        "@type": "c:RoleType",
+        "oid": "00000000-0000-0000-0000-000000000008",
+        "name": "End user",
+        "displayName": "End user",
+        "description": "Basic self-service access."
+      },
+      {
+        "@type": "c:RoleType",
+        "oid": "20000000-0000-0000-0000-0000000000f3",
+        "name": "build-runner",
+        "displayName": "Build runner",
+        "description": "Runs and maintains build jobs."
+      },
+      {
+        "@type": "c:RoleType",
+        "oid": "20000000-0000-0000-0000-0000000000f4",
+        "name": "artifact-read",
+        "displayName": "Artifact reader",
+        "description": "Reads build artifacts."
+      },
+      {
+        "@type": "c:RoleType",
+        "oid": "20000000-0000-0000-0000-0000000000f5",
+        "name": "legacy-vpn",
+        "displayName": "Legacy VPN",
+        "description": "Connects to the retired network."
+      },
+      {
+        "@type": "c:RoleType",
+        "oid": "20000000-0000-0000-0000-0000000000f6",
+        "name": "prod-read",
+        "displayName": "Production reader",
+        "description": "Reads production dashboards."
+      },
+      {
+        "@type": "c:OrgType",
+        "oid": "30000000-0000-0000-0000-000000000001",
+        "name": "dev-ops",
+        "displayName": "Development operations",
+        "description": ""
+      },
+      {
+        "@type": "c:ServiceType",
+        "oid": "60000000-0000-0000-0000-000000000001",
+        "name": "Build service",
+        "displayName": "Build service",
+        "description": ""
+      }
+    ]
+  }
+}
