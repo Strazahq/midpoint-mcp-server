@@ -1,0 +1,26 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "decision": "approve",
+      "workItemId": "7"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "a work item the case doesn't show the approver (another approver's)",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-in-inbox",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "refused: case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) has no work item 7; list_work_items shows the work items dlee can decide"
+      }
+    ],
+    "isError": true
+  }
+}

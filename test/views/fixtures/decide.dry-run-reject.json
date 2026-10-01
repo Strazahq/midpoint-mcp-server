@@ -1,0 +1,65 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "comment": "Not needed for this project.",
+      "decision": "reject",
+      "workItemId": "6"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "writes disabled: the rejection previewed, with its reason",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "DRY RUN — writes disabled. Would reject work item 6 in case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) — db-admin for bstone, requested by bstone as dlee (resource-server mode) via POST /ws/rest/cases/40000000-0000-0000-0000-000000000001/workItems/6/complete.\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Dana Lee",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "applied": false,
+      "body": {
+        "output": {
+          "@type": "c:AbstractWorkItemOutputType",
+          "comment": "Not needed for this project.",
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#reject"
+        }
+      },
+      "case": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "comment": "Not needed for this project.",
+      "decision": "reject",
+      "dryRun": true,
+      "endpoint": "/ws/rest/cases/40000000-0000-0000-0000-000000000001/workItems/6/complete",
+      "method": "POST",
+      "nextApprovers": [],
+      "object": "bstone",
+      "requestor": "bstone",
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": false
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1"
+      },
+      "summary": "Reject work item 6 in case 40000000-0000-0000-0000-000000000001",
+      "target": "db-admin",
+      "tool": "decide_work_item",
+      "workItemId": "6"
+    }
+  }
+}

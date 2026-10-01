@@ -1,0 +1,24 @@
+{
+  "call": {
+    "arguments": {
+      "oid": "40000000-0000-0000-0000-000000000001"
+    },
+    "name": "get_case"
+  },
+  "about": "midPoint refused reading the case (403)",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-authorized",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "midPoint /cases/40000000-0000-0000-0000-000000000001: unexpected status 403 Forbidden"
+      }
+    ],
+    "isError": true
+  }
+}

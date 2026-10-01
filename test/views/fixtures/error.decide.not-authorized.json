@@ -1,0 +1,26 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "decision": "approve",
+      "workItemId": "6"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "midPoint refused the completion (403)",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-authorized",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "midPoint /cases/40000000-0000-0000-0000-000000000001/workItems/6/complete: unexpected status 403 Forbidden"
+      }
+    ],
+    "isError": true
+  }
+}

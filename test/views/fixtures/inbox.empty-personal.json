@@ -1,0 +1,41 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_work_items"
+  },
+  "about": "nothing waiting, personal mode",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "0 work item(s) in the approval inbox of dlee. Note: this server authenticates to midPoint as \"dlee\" and has no per-caller identity, so this answers for that account — not necessarily for you. Call whoami for details."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Dana Lee",
+        "impersonated": false,
+        "mode": "personal",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "count": 0,
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "personal",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1"
+      },
+      "tool": "list_work_items",
+      "workItems": []
+    }
+  }
+}

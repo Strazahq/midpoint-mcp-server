@@ -1,0 +1,74 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000002",
+      "decision": "approve",
+      "workItemId": "5"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "approved the managers' step; read back: case open, no next approver known (recording modified: item closed approved)",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Approved work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000002) — Finance reports for bstone, requested by bstone as jdoe (resource-server mode): midPoint recorded outcome approve; the case is now open."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "applied": true,
+      "body": {
+        "output": {
+          "@type": "c:AbstractWorkItemOutputType",
+          "outcome": "http://midpoint.evolveum.com/xml/ns/public/model/approval/outcome#approve"
+        }
+      },
+      "case": "Assigning role \"Finance reports\" to user \"Bob Stone (bstone)\"",
+      "caseOid": "40000000-0000-0000-0000-000000000002",
+      "caseState": "open",
+      "decision": "approve",
+      "dryRun": false,
+      "endpoint": "/ws/rest/cases/40000000-0000-0000-0000-000000000002/workItems/5/complete",
+      "method": "POST",
+      "nextApprovers": [],
+      "object": "bstone",
+      "recordedOutcome": "approve",
+      "requestor": "bstone",
+      "result": "status=204",
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.8",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1"
+      },
+      "summary": "Approve work item 5 in case 40000000-0000-0000-0000-000000000002",
+      "target": "Finance reports",
+      "tool": "decide_work_item",
+      "workItemId": "5"
+    }
+  }
+}

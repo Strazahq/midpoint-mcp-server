@@ -1,0 +1,26 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "decision": "approve",
+      "workItemId": "6"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "the case closed meanwhile",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "request-closed",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "refused: case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) is closed, not open, so work item 6 has nothing left to decide"
+      }
+    ],
+    "isError": true
+  }
+}
