@@ -8,7 +8,7 @@
     "content": [
       {
         "type": "text",
-        "text": "jdoe manages 1 direct report(s), via org(s): dev-ops."
+        "text": "jdoe manages 1 direct report(s), via org(s): dev-ops.\n- bstone oid=10000000-0000-0000-0000-0000000000b1 fullName=\"Bob Stone\""
       }
     ],
     "structuredContent": {

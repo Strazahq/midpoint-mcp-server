@@ -239,8 +239,11 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
     `list_work_items` and `decide_work_item`. AC: an approver opens the inbox in
     a host that supports MCP Apps, approves and rejects, and the view follows
     contract 7.1.
-  - Later slices: Get access, My requests (with `cancel_request`, S16), My
-    team's access.
+  - **Later slices, built together (2026-10-01)**: Get access (S6, S7,
+    S20, S21, S22), My requests (`cancel_request`, S16; S5) and My team's
+    access (S9, S10, S25), each with its own browser suite in
+    `test/views/`. Open: firing each on a live midPoint 4.10 and in a real
+    MCP Apps host; S15 (Open in midPoint links).
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

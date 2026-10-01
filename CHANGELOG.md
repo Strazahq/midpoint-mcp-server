@@ -8,6 +8,35 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **The other three MCP Apps views (PLAN.md M10 later slices; contract
+  7.2 to 7.4, `1.0-draft.9`).** Each is one self-contained document in
+  `views/` (79 to 89 KB), built from the reviewed mockup on the inbox's
+  shared parts, with its own browser suite in `test/views/<suite>/` and real
+  fixtures from this server's code (`node test/views/run.mjs --suite
+  request-access | my-requests | access-review`; 83, 77 and 74 checks, all
+  pass; the inbox's 125 still pass). Not yet fired on a live midPoint.
+  - **Get access, `ui://midpoint/request-access`.** `list_requestable_roles`
+    gains `forUserRef`, `limitReached`, `roles[].riskLevel` (S6) and an
+    optional `query` (S20, at most 100 characters; the view searches midPoint
+    only when the loaded list was cut off, D34). `request_role` writes one
+    plain assignment-add PATCH with its pre-checks (S7), takes `validFrom` /
+    `validTo` (S22, code `invalid-validity`) and request form `fields` (S21,
+    code `invalid-field` with the field named). New setting
+    `requests.formItems`: the assignment extension items the form offers,
+    read from midPoint's schema at startup; a bad value or an unreadable
+    schema stops startup. README settings table and example config updated.
+  - **My requests, `ui://midpoint/my-requests`.** New write tool
+    `cancel_request` `{caseOid}` (S16): the requester withdraws an open
+    request with midPoint's plain case cancel, checked before any write and
+    with the write gate closed too, previewed when writes are off, then read
+    back. `list_my_requests` carries the case enrichment of `get_case` (S5)
+    and complete, marked text.
+  - **My team's access, `ui://midpoint/access-review`.**
+    `get_user_assignments` names its targets with display names and
+    descriptions, the assignment dates, `subjectRelation` and where included
+    access comes from (`effectiveMembership[].via`, S9, S25). `unassign_role`
+    keeps its plain PATCH by container id and adds a `revocation` block read
+    back afterwards (S10). `list_my_team` text names each report.
 - **Approval inbox view, `ui://midpoint/approval-inbox` (PLAN.md M10.3;
   contract 7.1, `1.0-draft.9`).** One self-contained document
   (`views/approval-inbox.html`, about 88 KB, no network, no storage), built
@@ -294,6 +323,10 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- **Role lists show display names.** The requestee's current roles in
+  `list_work_items` (and the other enriched role lists) use a role's display
+  name where the caller can read it, through the same per-call cache, so the
+  inbox says "Build runner" rather than "build-runner".
 - **Docs: `docs/ui-contract.md` `1.0-draft.9`.** The owner's D37 ("you
   approve your own part"): an inbox card shows "Step 1 of 2" instead of who
   else decides; the approve dialog's sentence follows the steps only; the
