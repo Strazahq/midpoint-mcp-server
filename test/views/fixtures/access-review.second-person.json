@@ -1,0 +1,54 @@
+{
+  "about": "Server UI session, recorded-style access review REST answers; scenario second-person. See view_fixtures_access_review_test.go for provenance.",
+  "call": {
+    "arguments": {
+      "oid": "10000000-0000-0000-0000-0000000000a2"
+    },
+    "name": "get_user_assignments"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "mkovac has 0 direct assignment(s), 0 effective membership(s).\nDirect assignments:\nEffective membership:"
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "assignments": [],
+      "effectiveMembership": [],
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subjectRelation": "direct-report",
+      "tool": "get_user_assignments",
+      "user": {
+        "fullName": "Mia Kovac",
+        "name": "mkovac",
+        "oid": "10000000-0000-0000-0000-0000000000a2",
+        "status": "disabled"
+      }
+    }
+  }
+}

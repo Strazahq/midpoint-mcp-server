@@ -1,0 +1,42 @@
+{
+  "about": "Server UI session, recorded-style access review REST answers; scenario no-orgs. See view_fixtures_access_review_test.go for provenance.",
+  "call": {
+    "arguments": {},
+    "name": "list_my_team"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "jdoe manages no orgs, so has no direct reports."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "count": 0,
+      "orgs": [],
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1"
+      },
+      "tool": "list_my_team",
+      "users": []
+    }
+  }
+}

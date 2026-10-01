@@ -88,8 +88,8 @@ func registerGetUserAssignments(server *mcp.Server, client *midpoint.Client, inf
 		if err != nil {
 			return nil, getUserAssignmentsOutput{}, err
 		}
-		return text(fmt.Sprintf("%s has %d direct assignment(s), %d effective membership(s).",
-			res.User.Name, len(res.Assignments), len(res.Effective))), getUserAssignmentsOutput{UserAssignments: res}, nil
+		return text(accessReviewText(fmt.Sprintf("%s has %d direct assignment(s), %d effective membership(s).",
+			res.User.Name, len(res.Assignments), len(res.Effective)), res)), getUserAssignmentsOutput{UserAssignments: res}, nil
 	}))
 }
 

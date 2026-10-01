@@ -1,0 +1,566 @@
+{
+  "user": {
+    "@metadata": {
+      "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+      "@id": 7,
+      "storage": {
+        "createTimestamp": "2026-10-01T10:53:14.069Z",
+        "creatorRef": {
+          "oid": "00000000-0000-0000-0000-000000000002",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "administrator"
+        },
+        "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+      },
+      "process": {
+        "requestTimestamp": "2026-10-01T10:53:13.921Z",
+        "requestorRef": {
+          "oid": "00000000-0000-0000-0000-000000000002",
+          "relation": "org:default",
+          "type": "c:UserType",
+          "targetName": "administrator"
+        }
+      }
+    },
+    "oid": "10000000-0000-0000-0000-0000000000b1",
+    "version": "2",
+    "name": "bstone",
+    "parentOrgRef": {
+      "oid": "30000000-0000-0000-0000-000000000001",
+      "relation": "org:default",
+      "type": "c:OrgType",
+      "targetName": "dev-ops"
+    },
+    "assignment": [
+      {
+        "@id": 9,
+        "targetRef": {
+          "oid": "20000000-0000-0000-0000-0000000000f1",
+          "type": "c:RoleType",
+          "targetName": "db-admin"
+        },
+        "activation": {
+          "effectiveStatus": "enabled",
+          "validTo": "2027-12-31T23:59:59Z"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@metadata": {
+          "@id": 10,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:14.069Z",
+            "creatorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            },
+            "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+          },
+          "process": {
+            "requestTimestamp": "2026-10-01T10:53:13.921Z",
+            "requestorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            }
+          },
+          "provenance": {
+            "acquisition": {
+              "@id": 11,
+              "actorRef": {
+                "oid": "00000000-0000-0000-0000-000000000002",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "administrator"
+              },
+              "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+              "timestamp": "2026-10-01T10:53:13.921Z"
+            }
+          }
+        },
+        "@id": 1,
+        "targetRef": {
+          "oid": "00000000-0000-0000-0000-000000000008",
+          "relation": "org:default",
+          "type": "c:RoleType",
+          "targetName": "End user"
+        },
+        "activation": {
+          "effectiveStatus": "enabled"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@metadata": {
+          "@id": 8,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:14.069Z",
+            "creatorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            },
+            "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+          },
+          "process": {
+            "requestTimestamp": "2026-10-01T10:53:13.921Z",
+            "requestorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            }
+          },
+          "provenance": {
+            "acquisition": {
+              "@id": 9,
+              "actorRef": {
+                "oid": "00000000-0000-0000-0000-000000000002",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "administrator"
+              },
+              "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+              "timestamp": "2026-10-01T10:53:13.920Z"
+            }
+          }
+        },
+        "@id": 2,
+        "targetRef": {
+          "oid": "30000000-0000-0000-0000-000000000020",
+          "relation": "org:default",
+          "type": "c:ArchetypeType",
+          "targetName": "employee"
+        },
+        "activation": {
+          "effectiveStatus": "enabled"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@metadata": {
+          "@id": 14,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:14.069Z",
+            "creatorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            },
+            "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+          },
+          "process": {
+            "requestTimestamp": "2026-10-01T10:53:13.921Z",
+            "requestorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            }
+          },
+          "provenance": {
+            "acquisition": {
+              "@id": 15,
+              "actorRef": {
+                "oid": "00000000-0000-0000-0000-000000000002",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "administrator"
+              },
+              "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+              "timestamp": "2026-10-01T10:53:13.921Z"
+            }
+          }
+        },
+        "@id": 3,
+        "targetRef": {
+          "oid": "20000000-0000-0000-0000-0000000000f3",
+          "relation": "org:default",
+          "type": "c:RoleType",
+          "targetName": "build-runner"
+        },
+        "activation": {
+          "effectiveStatus": "enabled"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@metadata": {
+          "@id": 16,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:14.069Z",
+            "creatorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            },
+            "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+          },
+          "process": {
+            "requestTimestamp": "2026-10-01T10:53:13.921Z",
+            "requestorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            }
+          },
+          "provenance": {
+            "acquisition": {
+              "@id": 17,
+              "actorRef": {
+                "oid": "00000000-0000-0000-0000-000000000002",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "administrator"
+              },
+              "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+              "timestamp": "2026-10-01T10:53:13.921Z"
+            }
+          }
+        },
+        "@id": 4,
+        "targetRef": {
+          "oid": "20000000-0000-0000-0000-0000000000f5",
+          "relation": "org:default",
+          "type": "c:RoleType",
+          "targetName": "legacy-vpn"
+        },
+        "activation": {
+          "administrativeStatus": "disabled",
+          "effectiveStatus": "disabled"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@metadata": {
+          "@id": 18,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:14.069Z",
+            "creatorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            },
+            "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+          },
+          "process": {
+            "requestTimestamp": "2026-10-01T10:53:13.921Z",
+            "requestorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            }
+          },
+          "provenance": {
+            "acquisition": {
+              "@id": 19,
+              "actorRef": {
+                "oid": "00000000-0000-0000-0000-000000000002",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "administrator"
+              },
+              "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+              "timestamp": "2026-10-01T10:53:13.921Z"
+            }
+          }
+        },
+        "@id": 5,
+        "targetRef": {
+          "oid": "20000000-0000-0000-0000-0000000000f6",
+          "relation": "org:default",
+          "type": "c:RoleType",
+          "targetName": "prod-read"
+        },
+        "activation": {
+          "effectiveStatus": "disabled",
+          "validFrom": "2027-01-01T00:00:00Z"
+        }
+      },
+      {
+        "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+        "@metadata": {
+          "@id": 12,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:14.069Z",
+            "creatorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            },
+            "createChannel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+          },
+          "process": {
+            "requestTimestamp": "2026-10-01T10:53:13.921Z",
+            "requestorRef": {
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "relation": "org:default",
+              "type": "c:UserType",
+              "targetName": "administrator"
+            }
+          },
+          "provenance": {
+            "acquisition": {
+              "@id": 13,
+              "actorRef": {
+                "oid": "00000000-0000-0000-0000-000000000002",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "administrator"
+              },
+              "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest",
+              "timestamp": "2026-10-01T10:53:13.921Z"
+            }
+          }
+        },
+        "@id": 6,
+        "targetRef": {
+          "oid": "30000000-0000-0000-0000-000000000001",
+          "relation": "org:default",
+          "type": "c:OrgType",
+          "targetName": "dev-ops"
+        },
+        "activation": {
+          "effectiveStatus": "enabled"
+        }
+      },
+      {
+        "@id": 10,
+        "construction": {
+          "resourceRef": {
+            "oid": "50000000-0000-0000-0000-000000000001",
+            "type": "c:ResourceType",
+            "targetName": "Corporate LDAP"
+          }
+        },
+        "subtype": "account"
+      },
+      {
+        "@id": 11,
+        "targetRef": {
+          "oid": "60000000-0000-0000-0000-000000000001",
+          "type": "c:ServiceType",
+          "targetName": "Build service"
+        }
+      }
+    ],
+    "archetypeRef": {
+      "oid": "30000000-0000-0000-0000-000000000020",
+      "relation": "org:default",
+      "type": "c:ArchetypeType",
+      "targetName": "employee"
+    },
+    "roleMembershipRef": [
+      {
+        "oid": "20000000-0000-0000-0000-0000000000f1",
+        "type": "c:RoleType",
+        "targetName": "db-admin"
+      },
+      {
+        "@metadata": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "@id": 27,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:13.999Z"
+          },
+          "provenance": {
+            "assignmentPath": {
+              "sourceRef": {
+                "oid": "10000000-0000-0000-0000-0000000000b1",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "bstone"
+              },
+              "segment": {
+                "@id": 28,
+                "segmentOrder": 1,
+                "assignmentId": 1,
+                "targetRef": {
+                  "oid": "00000000-0000-0000-0000-000000000008",
+                  "relation": "org:default",
+                  "type": "c:RoleType",
+                  "targetName": "End user"
+                },
+                "matchingOrder": true
+              }
+            }
+          }
+        },
+        "oid": "00000000-0000-0000-0000-000000000008",
+        "relation": "org:default",
+        "type": "c:RoleType",
+        "targetName": "End user"
+      },
+      {
+        "@metadata": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "@id": 20,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:13.999Z"
+          },
+          "provenance": {
+            "assignmentPath": {
+              "sourceRef": {
+                "oid": "10000000-0000-0000-0000-0000000000b1",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "bstone"
+              },
+              "segment": {
+                "@id": 21,
+                "segmentOrder": 1,
+                "assignmentId": 2,
+                "targetRef": {
+                  "oid": "30000000-0000-0000-0000-000000000020",
+                  "relation": "org:default",
+                  "type": "c:ArchetypeType",
+                  "targetName": "employee"
+                },
+                "matchingOrder": true
+              }
+            }
+          }
+        },
+        "oid": "30000000-0000-0000-0000-000000000020",
+        "relation": "org:default",
+        "type": "c:ArchetypeType",
+        "targetName": "employee"
+      },
+      {
+        "@metadata": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "@id": 29,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:13.999Z"
+          },
+          "provenance": {
+            "assignmentPath": {
+              "sourceRef": {
+                "oid": "10000000-0000-0000-0000-0000000000b1",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "bstone"
+              },
+              "segment": {
+                "@id": 30,
+                "segmentOrder": 1,
+                "assignmentId": 6,
+                "targetRef": {
+                  "oid": "30000000-0000-0000-0000-000000000001",
+                  "relation": "org:default",
+                  "type": "c:OrgType",
+                  "targetName": "dev-ops"
+                },
+                "matchingOrder": true
+              }
+            }
+          }
+        },
+        "oid": "30000000-0000-0000-0000-000000000001",
+        "relation": "org:default",
+        "type": "c:OrgType",
+        "targetName": "dev-ops"
+      },
+      {
+        "@metadata": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "@id": 22,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:13.999Z"
+          },
+          "provenance": {
+            "assignmentPath": {
+              "sourceRef": {
+                "oid": "10000000-0000-0000-0000-0000000000b1",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "bstone"
+              },
+              "segment": {
+                "@id": 23,
+                "segmentOrder": 1,
+                "assignmentId": 3,
+                "targetRef": {
+                  "oid": "20000000-0000-0000-0000-0000000000f3",
+                  "relation": "org:default",
+                  "type": "c:RoleType",
+                  "targetName": "build-runner"
+                },
+                "matchingOrder": true
+              }
+            }
+          }
+        },
+        "oid": "20000000-0000-0000-0000-0000000000f3",
+        "relation": "org:default",
+        "type": "c:RoleType",
+        "targetName": "build-runner"
+      },
+      {
+        "@metadata": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "@id": 24,
+          "storage": {
+            "createTimestamp": "2026-10-01T10:53:13.999Z"
+          },
+          "provenance": {
+            "assignmentPath": {
+              "sourceRef": {
+                "oid": "10000000-0000-0000-0000-0000000000b1",
+                "relation": "org:default",
+                "type": "c:UserType",
+                "targetName": "bstone"
+              },
+              "segment": [
+                {
+                  "@id": 25,
+                  "segmentOrder": 1,
+                  "assignmentId": 3,
+                  "targetRef": {
+                    "oid": "20000000-0000-0000-0000-0000000000f3",
+                    "relation": "org:default",
+                    "type": "c:RoleType",
+                    "targetName": "build-runner"
+                  },
+                  "matchingOrder": true
+                },
+                {
+                  "@id": 26,
+                  "segmentOrder": 2,
+                  "inducementId": 2,
+                  "targetRef": {
+                    "oid": "20000000-0000-0000-0000-0000000000f4",
+                    "relation": "org:default",
+                    "type": "c:RoleType",
+                    "targetName": "artifact-read"
+                  },
+                  "matchingOrder": true
+                }
+              ]
+            }
+          }
+        },
+        "oid": "20000000-0000-0000-0000-0000000000f4",
+        "relation": "org:default",
+        "type": "c:RoleType",
+        "targetName": "artifact-read"
+      }
+    ],
+    "activation": {
+      "effectiveStatus": "enabled",
+      "enableTimestamp": "2026-10-01T10:53:13.924Z"
+    },
+    "fullName": "Bob Stone"
+  }
+}

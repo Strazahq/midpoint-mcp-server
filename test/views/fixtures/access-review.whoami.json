@@ -1,0 +1,58 @@
+{
+  "about": "Server UI session, recorded-style access review REST answers; scenario whoami. See view_fixtures_access_review_test.go for provenance.",
+  "call": {
+    "arguments": {},
+    "name": "whoami"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Acting as \"jdoe\" (oid 10000000-0000-0000-0000-0000000000c1), resource-server mode. Org links: dev-ops (manager)."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "fullName": "Jane Doe",
+      "impersonated": true,
+      "mode": "resource-server",
+      "name": "jdoe",
+      "oid": "10000000-0000-0000-0000-0000000000c1",
+      "orgs": [
+        {
+          "manager": true,
+          "name": "dev-ops",
+          "oid": "30000000-0000-0000-0000-000000000001",
+          "relation": "manager",
+          "selected": true,
+          "source": "parentOrgRef"
+        }
+      ],
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "tool": "whoami"
+    }
+  }
+}

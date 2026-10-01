@@ -283,11 +283,11 @@ func TestListWorkItemsFailedReads(t *testing.T) {
 // (midPoint dropped the items the reader may not see) is not visible access.
 func TestRequesteeAccessHiddenItems(t *testing.T) {
 	r := newRefReader(nil)
-	if acc := r.requesteeAccess(userJSON{OID: "u"}, readOK); acc.Visible || acc.Roles == nil {
+	if acc := r.requesteeAccess(context.Background(), userJSON{OID: "u"}, readOK); acc.Visible || acc.Roles == nil {
 		t.Errorf("access = %+v, want not visible", acc)
 	}
 	u := userJSON{OID: "u", Assignment: flexSlice{json.RawMessage(`{"targetRef":{"oid":"r","type":"c:RoleType"}}`)}}
-	if acc := r.requesteeAccess(u, readOK); !acc.Visible || len(acc.Roles) != 0 {
+	if acc := r.requesteeAccess(context.Background(), u, readOK); !acc.Visible || len(acc.Roles) != 0 {
 		t.Errorf("access = %+v, want visible with no roles in effect", acc)
 	}
 }

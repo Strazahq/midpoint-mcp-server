@@ -1,0 +1,25 @@
+{
+  "about": "Server UI session, recorded-style access review REST answers; scenario not-assigned. See view_fixtures_access_review_test.go for provenance.",
+  "call": {
+    "arguments": {
+      "roleOid": "20000000-0000-0000-0000-0000000000f1",
+      "userOid": "10000000-0000-0000-0000-0000000000b1"
+    },
+    "name": "unassign_role"
+  },
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-assigned",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "user 10000000-0000-0000-0000-0000000000b1 has no direct assignment to 20000000-0000-0000-0000-0000000000f1"
+      }
+    ],
+    "isError": true
+  }
+}

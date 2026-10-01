@@ -29,8 +29,8 @@ import (
 //	MIDPOINT_MCP_WRITE_VIEW_FIXTURES=1 go test -run TestWriteViewFixtures .
 //
 // Each file is {"call": {name, arguments}, "about": ..., "result": <the full
-// CallToolResult>}. The generator owns the inbox fixtures: a fixture it no longer
-// produces is removed; other suites retain their own fixtures.
+// CallToolResult>}. The generator owns its filename prefixes: a fixture it no
+// longer produces is removed; other view suites keep their own fixtures.
 
 const (
 	envWriteViewFixtures = "MIDPOINT_MCP_WRITE_VIEW_FIXTURES"
@@ -543,16 +543,18 @@ func TestWriteViewFixtures(t *testing.T) {
 			written[fx.name+".json"] = true
 		})
 	}
-	// The generator owns the inbox fixtures.
+	// Only remove stale fixtures in this generator's namespaces.
+	owned := map[string]bool{}
+	for name := range written {
+		owned[strings.SplitN(name, ".", 2)[0]] = true
+	}
 	entries, err := os.ReadDir(viewFixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var stale []string
 	for _, e := range entries {
-		// Each other view suite owns its prefix and its own generator.
-		if filepath.Ext(e.Name()) == ".json" && !written[e.Name()] &&
-			!strings.HasPrefix(e.Name(), "my-requests.") && !strings.HasPrefix(e.Name(), "request-access.") && !strings.HasPrefix(e.Name(), "access-review.") {
+		if filepath.Ext(e.Name()) == ".json" && owned[strings.SplitN(e.Name(), ".", 2)[0]] && !written[e.Name()] {
 			stale = append(stale, e.Name())
 			_ = os.Remove(filepath.Join(viewFixtureDir, e.Name()))
 		}

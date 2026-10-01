@@ -1,0 +1,216 @@
+{
+  "about": "Server UI session, recorded-style access review REST answers; scenario person. See view_fixtures_access_review_test.go for provenance.",
+  "call": {
+    "arguments": {
+      "oid": "10000000-0000-0000-0000-0000000000b1"
+    },
+    "name": "get_user_assignments"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "bstone has 9 direct assignment(s), 6 effective membership(s).\nDirect assignments:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 type=Role status=enabled validTo=2027-12-31T23:59:59Z\n- \"End user\" oid=00000000-0000-0000-0000-000000000008 type=Role relation=org:default status=enabled\n- employee oid=30000000-0000-0000-0000-000000000020 type=Archetype relation=org:default status=enabled\n- build-runner oid=20000000-0000-0000-0000-0000000000f3 type=Role relation=org:default status=enabled\n- legacy-vpn oid=20000000-0000-0000-0000-0000000000f5 type=Role relation=org:default status=disabled\n- prod-read oid=20000000-0000-0000-0000-0000000000f6 type=Role relation=org:default status=disabled validFrom=2027-01-01T00:00:00Z\n- dev-ops oid=30000000-0000-0000-0000-000000000001 type=Org relation=org:default status=enabled\n- \"Corporate LDAP\" oid=50000000-0000-0000-0000-000000000001 type=Resource\n- \"Build service\" oid=60000000-0000-0000-0000-000000000001 type=Service\nEffective membership:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 type=Role source=direct\n- \"End user\" oid=00000000-0000-0000-0000-000000000008 type=Role source=direct\n- employee oid=30000000-0000-0000-0000-000000000020 type=Archetype source=direct\n- dev-ops oid=30000000-0000-0000-0000-000000000001 type=Org source=direct\n- build-runner oid=20000000-0000-0000-0000-0000000000f3 type=Role source=direct\n- artifact-read oid=20000000-0000-0000-0000-0000000000f4 type=Role source=inherited"
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "assignments": [
+        {
+          "status": "enabled",
+          "target": {
+            "description": "Administers development databases.",
+            "displayName": "Database admin",
+            "name": "db-admin",
+            "oid": "20000000-0000-0000-0000-0000000000f1",
+            "type": "Role"
+          },
+          "targetName": "db-admin",
+          "targetOid": "20000000-0000-0000-0000-0000000000f1",
+          "targetType": "Role",
+          "validTo": "2027-12-31T23:59:59Z"
+        },
+        {
+          "relation": "org:default",
+          "status": "enabled",
+          "target": {
+            "description": "Basic self-service access.",
+            "displayName": "End user",
+            "name": "End user",
+            "oid": "00000000-0000-0000-0000-000000000008",
+            "type": "Role"
+          },
+          "targetName": "End user",
+          "targetOid": "00000000-0000-0000-0000-000000000008",
+          "targetType": "Role"
+        },
+        {
+          "relation": "org:default",
+          "status": "enabled",
+          "targetName": "employee",
+          "targetOid": "30000000-0000-0000-0000-000000000020",
+          "targetType": "Archetype"
+        },
+        {
+          "relation": "org:default",
+          "status": "enabled",
+          "target": {
+            "description": "Runs and maintains build jobs.",
+            "displayName": "Build runner",
+            "name": "build-runner",
+            "oid": "20000000-0000-0000-0000-0000000000f3",
+            "type": "Role"
+          },
+          "targetName": "build-runner",
+          "targetOid": "20000000-0000-0000-0000-0000000000f3",
+          "targetType": "Role"
+        },
+        {
+          "relation": "org:default",
+          "status": "disabled",
+          "target": {
+            "description": "Connects to the retired network.",
+            "displayName": "Legacy VPN",
+            "name": "legacy-vpn",
+            "oid": "20000000-0000-0000-0000-0000000000f5",
+            "type": "Role"
+          },
+          "targetName": "legacy-vpn",
+          "targetOid": "20000000-0000-0000-0000-0000000000f5",
+          "targetType": "Role"
+        },
+        {
+          "relation": "org:default",
+          "status": "disabled",
+          "target": {
+            "description": "Reads production dashboards.",
+            "displayName": "Production reader",
+            "name": "prod-read",
+            "oid": "20000000-0000-0000-0000-0000000000f6",
+            "type": "Role"
+          },
+          "targetName": "prod-read",
+          "targetOid": "20000000-0000-0000-0000-0000000000f6",
+          "targetType": "Role",
+          "validFrom": "2027-01-01T00:00:00Z"
+        },
+        {
+          "relation": "org:default",
+          "status": "enabled",
+          "target": {
+            "displayName": "Development operations",
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "type": "Org"
+          },
+          "targetName": "dev-ops",
+          "targetOid": "30000000-0000-0000-0000-000000000001",
+          "targetType": "Org"
+        },
+        {
+          "subtype": "account",
+          "target": {
+            "name": "Corporate LDAP",
+            "oid": "50000000-0000-0000-0000-000000000001",
+            "type": "Resource"
+          },
+          "targetName": "Corporate LDAP",
+          "targetOid": "50000000-0000-0000-0000-000000000001",
+          "targetType": "Resource"
+        },
+        {
+          "target": {
+            "displayName": "Build service",
+            "name": "Build service",
+            "oid": "60000000-0000-0000-0000-000000000001",
+            "type": "Service"
+          },
+          "targetName": "Build service",
+          "targetOid": "60000000-0000-0000-0000-000000000001",
+          "targetType": "Service"
+        }
+      ],
+      "effectiveMembership": [
+        {
+          "direct": true,
+          "displayName": "Database admin",
+          "name": "db-admin",
+          "oid": "20000000-0000-0000-0000-0000000000f1",
+          "type": "Role"
+        },
+        {
+          "direct": true,
+          "displayName": "End user",
+          "name": "End user",
+          "oid": "00000000-0000-0000-0000-000000000008",
+          "type": "Role"
+        },
+        {
+          "direct": true,
+          "name": "employee",
+          "oid": "30000000-0000-0000-0000-000000000020",
+          "type": "Archetype"
+        },
+        {
+          "direct": true,
+          "displayName": "Development operations",
+          "name": "dev-ops",
+          "oid": "30000000-0000-0000-0000-000000000001",
+          "type": "Org"
+        },
+        {
+          "direct": true,
+          "displayName": "Build runner",
+          "name": "build-runner",
+          "oid": "20000000-0000-0000-0000-0000000000f3",
+          "type": "Role"
+        },
+        {
+          "direct": false,
+          "displayName": "Artifact reader",
+          "name": "artifact-read",
+          "oid": "20000000-0000-0000-0000-0000000000f4",
+          "type": "Role",
+          "via": {
+            "displayName": "Build runner",
+            "name": "build-runner",
+            "oid": "20000000-0000-0000-0000-0000000000f3",
+            "type": "Role"
+          }
+        }
+      ],
+      "server": {
+        "requestReason": false,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subjectRelation": "direct-report",
+      "tool": "get_user_assignments",
+      "user": {
+        "fullName": "Bob Stone",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "status": "enabled"
+      }
+    }
+  }
+}

@@ -80,6 +80,8 @@ func (c *Client) GetUserAssignments(ctx context.Context, oid string) (UserAssign
 		Assignments: []Assignment{},
 		Effective:   []Membership{},
 	}
+	result.SubjectRelation = c.assignmentSubjectRelation(ctx, u)
+	r := newRefReader(c)
 	direct := make(map[string]bool)
 
 	for _, raw := range u.Assignment {
@@ -88,11 +90,18 @@ func (c *Client) GetUserAssignments(ctx context.Context, oid string) (UserAssign
 			return UserAssignments{}, fmt.Errorf("decoding assignment: %w", err)
 		}
 		entry := Assignment{Status: a.Activation.status(), Subtype: a.Subtype}
+		if a.Activation != nil {
+			entry.ValidFrom, entry.ValidTo = a.Activation.ValidFrom, a.Activation.ValidTo
+		}
 		if t := a.target(); t != nil {
 			entry.TargetOID = t.OID
 			entry.TargetName = t.TargetName.value()
 			entry.TargetType = cleanType(t.Type)
 			entry.Relation = t.Relation
+			if entry.TargetType != "Archetype" {
+				target := r.target(ctx, t)
+				entry.Target = &target
+			}
 			if t.OID != "" {
 				direct[t.OID] = true
 			}
@@ -105,12 +114,27 @@ func (c *Client) GetUserAssignments(ctx context.Context, oid string) (UserAssign
 		if err := json.Unmarshal(raw, &m); err != nil {
 			return UserAssignments{}, fmt.Errorf("decoding membership: %w", err)
 		}
-		result.Effective = append(result.Effective, Membership{
+		member := Membership{
 			OID:    m.OID,
 			Name:   m.TargetName.value(),
 			Type:   cleanType(m.Type),
 			Direct: direct[m.OID],
-		})
+		}
+		if member.Type != "Archetype" {
+			member.DisplayName = r.objectRef(ctx, m, false).DisplayName
+			if !member.Direct {
+				for _, path := range assignmentPaths(raw) {
+					if len(path) >= 2 {
+						via := r.objectRef(ctx, path[0], false)
+						if via.Readable == nil || *via.Readable {
+							member.Via = &via
+						}
+						break
+					}
+				}
+			}
+		}
+		result.Effective = append(result.Effective, member)
 	}
 	return result, nil
 }

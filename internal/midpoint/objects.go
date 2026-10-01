@@ -142,6 +142,8 @@ func refKey(m map[string]json.RawMessage, local string) (json.RawMessage, bool) 
 type activation struct {
 	AdministrativeStatus string `json:"administrativeStatus"`
 	EffectiveStatus      string `json:"effectiveStatus"`
+	ValidFrom            string `json:"validFrom"`
+	ValidTo              string `json:"validTo"`
 }
 
 func (a *activation) status() string {
@@ -276,29 +278,35 @@ func (u userJSON) detail() UserDetail {
 
 // Assignment is a single directly-assigned entitlement on a user.
 type Assignment struct {
-	TargetOID  string `json:"targetOid,omitempty"`
-	TargetName string `json:"targetName,omitempty"`
-	TargetType string `json:"targetType,omitempty"`
-	Relation   string `json:"relation,omitempty"`
-	Status     string `json:"status,omitempty"`
-	Subtype    string `json:"subtype,omitempty"`
+	Target     *TargetRef `json:"target,omitempty"`
+	ValidFrom  string     `json:"validFrom,omitempty"`
+	ValidTo    string     `json:"validTo,omitempty"`
+	TargetOID  string     `json:"targetOid,omitempty"`
+	TargetName string     `json:"targetName,omitempty"`
+	TargetType string     `json:"targetType,omitempty"`
+	Relation   string     `json:"relation,omitempty"`
+	Status     string     `json:"status,omitempty"`
+	Subtype    string     `json:"subtype,omitempty"`
 }
 
 // Membership is one effective role membership (direct or inherited).
 type Membership struct {
-	OID    string `json:"oid"`
-	Name   string `json:"name,omitempty"`
-	Type   string `json:"type,omitempty"`
-	Direct bool   `json:"direct"`
+	DisplayName string     `json:"displayName,omitempty"`
+	Via         *ObjectRef `json:"via,omitempty"`
+	OID         string     `json:"oid"`
+	Name        string     `json:"name,omitempty"`
+	Type        string     `json:"type,omitempty"`
+	Direct      bool       `json:"direct"`
 }
 
 // UserAssignments is what get_user_assignments returns: a user's direct
 // assignments plus the computed effective membership, with each membership
 // flagged as direct (present as an assignment) or inherited.
 type UserAssignments struct {
-	User        UserSummary  `json:"user"`
-	Assignments []Assignment `json:"assignments"`
-	Effective   []Membership `json:"effectiveMembership"`
+	SubjectRelation string       `json:"subjectRelation" jsonschema:"self, direct-report or other; derived from the selected manager links and the subject parentOrgRef"`
+	User            UserSummary  `json:"user"`
+	Assignments     []Assignment `json:"assignments"`
+	Effective       []Membership `json:"effectiveMembership"`
 }
 
 type assignmentJSON struct {

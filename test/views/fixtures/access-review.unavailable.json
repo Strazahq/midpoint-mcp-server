@@ -1,0 +1,24 @@
+{
+  "about": "Server UI session, recorded-style access review REST answers; scenario unavailable. See view_fixtures_access_review_test.go for provenance.",
+  "call": {
+    "arguments": {
+      "oid": "10000000-0000-0000-0000-0000000000b1"
+    },
+    "name": "get_user_assignments"
+  },
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "midpoint-unavailable",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "midPoint /users/10000000-0000-0000-0000-0000000000b1: unexpected status 503 Service Unavailable"
+      }
+    ],
+    "isError": true
+  }
+}
