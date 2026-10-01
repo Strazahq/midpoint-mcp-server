@@ -307,6 +307,9 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Fixed
 
+- **The `integration`-tagged tests compile again.** The team test still
+  ranged over a team answer as a list after it became a `TeamResult`, so
+  `go test -tags=integration` did not build the package.
 - **Tool errors no longer carry midPoint's base URL (contract S14).** A
   transport failure was wrapped with Go's `*url.Error`, whose message repeats
   the full request URL, and that text reached tool results. Errors now name the
