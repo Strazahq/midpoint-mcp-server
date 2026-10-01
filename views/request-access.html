@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title></title>
+<style>
+/* Get access (docs/ui-contract.md 7.2).
+   Tokens are contract 6.9: midPoint's GUI palette, light and dark. */
+:root{
+  --mp-font-sans:var(--font-sans, "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  --mp-font-mono:var(--font-mono, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  --mp-canvas:#ffffff; --mp-canvas-subtle:#f4f6f9; --mp-stripe:#f9f9f9;
+  --mp-text:#495057; --mp-text-strong:#30353a; --mp-text-muted:#595959; --mp-label:#357da7; --mp-link:#206f9d;
+  --mp-border:#dee2e6; --mp-divider:#dddddd; --mp-control-border:#6c757d;
+  --mp-primary:#206f9d; --mp-on-primary:#ffffff; --mp-secondary:#627383;
+  --mp-success-fill:#198754; --mp-danger-fill:#dc3545; --mp-warning-fill:#ffc107; --mp-info-fill:#008099;
+  --mp-success-text:#198754; --mp-danger-text:#dc3545; --mp-warning-text:#856404;
+  --mp-success-panel:#d1e7dd; --mp-danger-panel:#f8d7da; --mp-warning-panel:#fff3cd; --mp-info-panel:#cce6eb;
+  --mp-focus:#ffa836; --mp-focus-inner:#30353a; --mp-on-dark-badge:#1f2d3d;
+  --mp-focus-shadow:0 0 0 2px var(--mp-canvas), 0 0 0 3px var(--mp-focus-inner);
+  --mp-scrim:rgb(22 28 34 / .5);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
+    --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
+    --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
+    --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+    --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+    --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
+  --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
+  --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
+  --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+  --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+  --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--mp-canvas);container-type:inline-size;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+.mp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+
+.mp{position:relative;display:grid;gap:12px;align-content:start;min-height:96px;padding:12px;
+  background:var(--mp-canvas);color:var(--mp-text);font-family:var(--mp-font-sans);font-size:14px;line-height:1.5;font-weight:400;min-width:0}
+.mp *{font-weight:inherit}
+.mp b,.mp strong{font-weight:700}
+.mp p{margin:0}
+.mp :focus{outline:none}
+.mp :focus-visible{outline:2px solid var(--mp-focus);outline-offset:3px;box-shadow:var(--mp-focus-shadow)}
+
+.mp-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 12px;padding-bottom:10px;border-bottom:1px solid var(--mp-divider)}
+.mp.is-full .mp-head{position:sticky;top:0;z-index:5;background:var(--mp-canvas);padding-top:12px;margin-top:-12px}
+.mp-head-main{display:grid;gap:4px;min-width:0;flex:1 1 260px}
+.mp-title{margin:0;font-size:16px;font-weight:700;line-height:1.3;color:var(--mp-text-strong)}
+.mp-ident{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;color:var(--mp-text)}
+.mp-ident-who{display:flex;align-items:flex-start;gap:6px;min-width:0}
+.mp-ident-who > svg{flex:none;margin-top:4px;color:var(--mp-text-muted)}
+.mp-head-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mp-help{flex-basis:100%;font-size:12px;color:var(--mp-text-muted);max-width:64ch}
+.mp-note{font-size:12px;color:var(--mp-text-muted)}
+.mp-note-row{display:flex;align-items:center;gap:6px}
+.mp-muted{color:var(--mp-text-muted);font-size:12px}
+.mp-label{font-size:12px;color:var(--mp-label)}
+.mp-section-title{margin:0;font-size:14px;font-weight:700;color:var(--mp-text-strong)}
+.mp-content{display:grid;gap:12px;min-width:0;transition:opacity .1s}
+.mp-content.is-busy{opacity:.45}
+.mp-foot{display:grid;gap:2px;padding-top:8px;border-top:1px solid var(--mp-divider);font-size:12px;color:var(--mp-text-muted)}
+
+.mp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:4px;border:1px solid transparent;
+  font-family:inherit;font-size:14px;line-height:1.2;white-space:nowrap;cursor:pointer;transition:background-color .1s,color .1s}
+.mp-btn--primary{background:var(--mp-primary);color:var(--mp-on-primary)}
+.mp-btn--secondary{background:var(--mp-secondary);color:var(--mp-on-primary)}
+.mp-btn--danger{background:var(--mp-danger-fill);color:var(--mp-on-primary)}
+.mp-btn--tool{min-height:28px;padding:0 10px;background:var(--mp-canvas);color:var(--mp-text-strong);border-color:var(--mp-control-border)}
+.mp-btn--link{min-height:24px;padding:0 2px;background:none;border:0;color:var(--mp-link);text-decoration:underline;text-underline-offset:2px;white-space:normal;text-align:left}
+.mp-open{gap:3px;font-size:12px;font-weight:400}
+.mp-btn--link > svg{transition:transform .1s}
+.mp-btn--link[aria-expanded="true"] > svg:first-child{transform:rotate(90deg)}
+.mp-btn--primary:hover:not(:disabled),.mp-btn--secondary:hover:not(:disabled),.mp-btn--danger:hover:not(:disabled){filter:brightness(.92)}
+.mp-btn--tool:hover:not(:disabled){background:var(--mp-canvas-subtle)}
+.mp-btn:disabled{opacity:.6;cursor:not-allowed}
+.mp-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+
+.mp-chip{display:inline-flex;align-items:center;gap:4px;min-height:20px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;
+  background:var(--mp-secondary);color:var(--mp-on-primary)}
+.mp-chip--success{background:var(--mp-success-fill)}
+.mp-chip--danger{background:var(--mp-danger-fill)}
+.mp-chip--warning{background:var(--mp-warning-fill);color:var(--mp-on-dark-badge)}
+.mp-chip--outline{background:transparent;color:var(--mp-text-strong);border:1px solid var(--mp-control-border);font-weight:400;white-space:normal}
+.mp-chip--meta{background:var(--mp-canvas-subtle);color:var(--mp-text-strong);border:1px solid var(--mp-border);font-weight:400}
+
+/* 6.4, D31: one neutral icon per kind; no archetype colours */
+.mp-disc{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;flex:none;background:var(--mp-canvas-subtle);color:var(--mp-text-muted);box-shadow:inset 0 0 0 1px var(--mp-border)}
+.mp-disc--sm{width:20px;height:20px}
+.mp-badge{display:inline-flex;align-items:center;gap:8px;min-width:0;vertical-align:middle}
+.mp-badge-text{display:grid;min-width:0;line-height:1.3}
+.mp-badge-name{color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-inline{display:inline-flex;align-items:center;gap:5px;vertical-align:middle;color:var(--mp-text-strong);flex-wrap:wrap}
+.mp-inline .mp-disc{width:20px;height:20px}
+.mp-status-note{font-size:12px;color:var(--mp-text-muted)}
+
+.mp-panel{display:grid;gap:4px;padding:10px 12px;border-radius:4px;color:var(--mp-text);min-width:0}
+.mp-panel--success{background:var(--mp-success-panel)}
+.mp-panel--danger{background:var(--mp-danger-panel)}
+.mp-panel--warning{background:var(--mp-warning-panel)}
+.mp-panel--info{background:var(--mp-info-panel)}
+.mp-panel-title{display:flex;align-items:flex-start;gap:6px;font-weight:700;color:var(--mp-text-strong)}
+.mp-panel-title svg{flex:none;margin-top:3px}
+.mp-panel--success .mp-panel-title svg{color:var(--mp-success-text)}
+.mp-panel--danger .mp-panel-title svg{color:var(--mp-danger-text)}
+.mp-panel--warning .mp-panel-title svg{color:var(--mp-warning-text)}
+.mp-panel--info .mp-panel-title svg{color:var(--mp-link)}
+.mp-panel .mp-muted{color:var(--mp-text)}
+.mp-banner{display:flex;align-items:flex-start;gap:8px;margin:0;padding:10px 12px;border-radius:4px;color:var(--mp-text-strong)}
+.mp-banner svg{flex:none;margin-top:3px}
+.mp-banner--info{background:var(--mp-info-panel)}
+.mp-banner--info svg{color:var(--mp-link)}
+.mp-banner--warning{background:var(--mp-warning-panel)}
+.mp-banner--warning svg{color:var(--mp-warning-text)}
+/* 6.9: on tinted surfaces the label and link blues fall under 4.5:1, so labels take --mp-text, links --mp-text-strong, underlined */
+.mp-panel .mp-label,.mp-card-head .mp-label,.mp-card-foot .mp-label{color:var(--mp-text)}
+.mp-panel .mp-btn--link,.mp-banner .mp-btn--link,.mp-quote .mp-btn--link,.mp-card-head .mp-btn--link,.mp-card-foot .mp-btn--link{color:var(--mp-text-strong);text-decoration:underline}
+.mp-details{display:grid;gap:4px;padding:8px 10px;border-radius:4px;background:var(--mp-canvas-subtle);font:12px/1.5 var(--mp-font-mono);color:var(--mp-text);white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.mp-details-lab{font-family:var(--mp-font-sans);font-weight:700;color:var(--mp-text-strong)}
+.mp-textblock{margin:0;padding:10px 12px;border:1px solid var(--mp-border);border-radius:4px;background:var(--mp-canvas-subtle);font:13px/1.5 var(--mp-font-mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--mp-text)}
+
+/* skeleton: no animation (6.10 allows only 100 ms opacity or colour transitions) */
+.mp-skel{display:block;height:12px;border-radius:4px;background:var(--mp-canvas-subtle)}
+.mp-skel-head{display:grid;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--mp-divider)}
+.mp-skel-row{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--mp-divider)}
+.mp-skel-row .mp-skel-disc{width:24px;height:24px;border-radius:50%}
+.mp-skel-lines{display:grid;gap:6px}
+
+.mp-field{display:grid;gap:4px;min-width:0}
+.mp-field label{font-size:14px;font-weight:700;color:var(--mp-text-strong);padding:0}
+.mp-textarea{width:100%;min-height:76px;padding:5px 8px;border:1px solid var(--mp-control-border);border-radius:4px;background:var(--mp-canvas);color:var(--mp-text-strong);font-family:inherit;font-size:14px;resize:vertical;line-height:1.45}
+.mp-textarea[aria-invalid="true"]{border-color:var(--mp-danger-text)}
+.mp-field-error{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--mp-danger-text)}
+.mp-field-foot{display:flex;justify-content:flex-end;gap:10px;align-items:flex-start;min-height:18px}
+.mp-counter{font-size:12px;color:var(--mp-text-muted)}
+
+.mp-rows{list-style:none;margin:0;padding:0;display:grid}
+.mp-rows>li{display:grid;gap:6px;padding:8px 0;border-bottom:1px solid var(--mp-divider);min-height:40px;min-width:0;align-content:center}
+.mp-rows>li:last-child{border-bottom:0}
+.mp-row-main{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;min-width:0}
+/* D33: clamped text is cut in script at a word boundary and ends with one "…" */
+.mp-clamp{overflow-wrap:anywhere}
+.mp-more{justify-self:start}
+
+.mp-summary{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--mp-text-strong)}
+.mp-summary svg{color:var(--mp-link)}
+.mp-cards{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.mp-card{display:grid;border:1px solid var(--mp-border);border-radius:8px;background:var(--mp-canvas);overflow:hidden;min-width:0}
+.mp-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 12px;background:var(--mp-canvas-subtle);border-bottom:1px solid var(--mp-border)}
+.mp-card-title{display:grid;gap:2px;min-width:0;flex:1 1 220px}
+.mp-card-title h2{margin:0;min-width:0}
+.mp-card-title .mp-badge-name{font-weight:700}
+.mp-card-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mp-card-body{display:grid;gap:10px;padding:12px;min-width:0}
+.mp-card-more{display:grid;gap:14px;padding:12px;border-top:1px solid var(--mp-border);min-width:0}
+.mp-card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;background:var(--mp-canvas-subtle);border-top:1px solid var(--mp-border)}
+.mp-card-foot .mp-actions{margin-left:auto}
+.mp-sub{display:grid;gap:6px;min-width:0}
+.mp-sub-title{margin:0;font-size:13px;font-weight:700;color:var(--mp-text-strong)}
+.mp-line{display:flex;align-items:flex-start;gap:8px;margin:0;color:var(--mp-text-strong)}
+.mp-line > svg{flex:none;margin-top:4px;color:var(--mp-text-muted)}
+.mp-lines{display:grid;gap:4px}
+.mp-about-text{color:var(--mp-text)}
+.mp-noreason{margin:0;color:var(--mp-text-muted);font-style:italic}
+.mp-quote{display:grid;gap:4px;margin:0;padding:8px 12px;border-left:3px solid var(--mp-border);background:var(--mp-canvas-subtle);border-radius:0 4px 4px 0}
+.mp-quote-lab{font-size:12px;color:var(--mp-text)}
+.mp-quote blockquote{margin:0;display:grid;gap:2px}
+.mp-quote-text{color:var(--mp-text-strong);white-space:pre-wrap;overflow-wrap:anywhere}
+.mp-outcome{display:grid;gap:8px}
+.mp-openline{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin:0;font-size:12px}
+.mp-openline .mp-label{color:var(--mp-text-muted)}
+.mp-timeline{list-style:none;margin:0;padding:0 0 0 12px;display:grid;gap:10px;border-left:2px solid var(--mp-border)}
+.mp-timeline li{display:grid;gap:4px}
+.mp-tl-head{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;color:var(--mp-text-strong)}
+.mp-tl-step{font-weight:700;color:var(--mp-text-strong)}
+@container (min-width:560px){
+  .mp{padding:16px}
+  .mp.is-full .mp-head{padding-top:16px;margin-top:-16px}
+  .mp-card-head,.mp-card-body,.mp-card-more,.mp-card-foot{padding-inline:16px}
+}
+
+/* dialog (6.5) */
+.mp-overlay{position:absolute;inset:0;z-index:10;padding:12px;background:var(--mp-scrim)}
+.mp-dialog{position:sticky;top:12px;display:grid;gap:12px;max-width:500px;margin-inline:auto;padding:16px;border-radius:8px;background:var(--mp-canvas);border:1px solid var(--mp-border);box-shadow:0 12px 32px rgb(0 0 0 / .28)}
+.mp-dialog h2{margin:0;font-size:16px;font-weight:700;color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-dialog-body{display:grid;gap:6px}
+.mp-dialog .mp-actions{justify-content:flex-end}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.mp-input,.mp-select{width:100%;min-width:0;min-height:32px;padding:5px 8px;border:1px solid var(--mp-control-border);border-radius:4px;background:var(--mp-canvas);color:var(--mp-text-strong);font:inherit}
+.mp-input[aria-invalid="true"],.mp-textarea[aria-invalid="true"],input[aria-invalid="true"]{border-color:var(--mp-danger-text);outline:1px solid var(--mp-danger-text)}
+.mp-choices,.mp-dialog-sec{display:grid;gap:8px;margin:0;padding:0;border:0;min-width:0}
+.mp-legend{font-weight:700;color:var(--mp-text-strong);padding:0;margin-bottom:8px}
+.mp-radio,.mp-checkbox{display:flex;align-items:center;gap:8px;min-height:24px;cursor:pointer}
+.mp-radio input,.mp-checkbox input{appearance:auto;width:18px;height:18px;margin:3px;accent-color:var(--mp-primary)}
+.mp-picks{display:flex;flex-wrap:wrap;gap:8px}
+.mp-subchoice{display:grid;gap:8px;margin-left:28px}
+.mp-dates{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.mp-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;margin:0}
+.mp-kv dt{color:var(--mp-label)}.mp-kv dd{margin:0;overflow-wrap:anywhere}
+.mp-dialog{max-width:520px}.mp-dialog .mp-kv{padding:10px 0;border-top:1px solid var(--mp-divider)}
+.mp-panel .mp-kv dt{color:var(--mp-text)}
+.mp-search{max-width:100%}.mp-filtered.is-busy{opacity:.45}.mp-filtered{min-width:0}
+.mp-controls{display:grid;gap:10px}.mp-controls .mp-select{max-width:360px}
+.mp-description{margin:0;padding:0;font-style:normal;min-width:0}
+.mp-target-pick{display:flex;align-items:center;gap:8px;padding:6px 10px;min-height:32px;max-width:100%;border:1px solid var(--mp-control-border);border-radius:4px;cursor:pointer}.mp-target-pick.is-on{background:var(--mp-canvas-subtle);box-shadow:inset 0 0 0 1px var(--mp-control-border)}.mp-target-pick input{width:18px;height:18px;flex:none;accent-color:var(--mp-primary)}
+</style>
+</head>
+<body>
+<div class="mp" id="mp-root"></div>
+<div class="mp-sr" id="mp-polite" aria-live="polite"></div>
+<div class="mp-sr" id="mp-assertive" aria-live="assertive"></div>
+<script>
+(() => {
+'use strict';
+const CAT = {
+  "app.title.requestAccess": "Get access",
+  "header.mode.personal": "midPoint sees everything here as {name}, this server's own account.",
+  "header.mode.personal.help": "This server signs in to midPoint with its configured account, so midPoint sees that account on every request, whoever is using the assistant.",
+  "header.sharedCredential": "This server signs in to midPoint with a shared account, {name}, so it can't show what's yours.",
+  "common.refresh": "Refresh",
+  "common.refreshing": "Refreshing…",
+  "common.asOf": "As of {time}",
+  "common.askAssistantToRefresh": "To update this view, ask the assistant to run it again.",
+  "common.readOnlyHost": "This app can show this view but not act from it. To make changes, ask the assistant.",
+  "common.expand": "Expand",
+  "common.collapse": "Exit full screen",
+  "common.cancel": "Cancel",
+  "common.showDetails": "Show technical details",
+  "common.hideDetails": "Hide technical details",
+  "common.showMore": "Show more",
+  "common.showLess": "Show less",
+  "common.andMore": "{count, plural, one {# more} other {# more}}",
+  "common.whatsThis": "What's this?",
+  "common.you": "you",
+  "common.personHidden": "a person you can't see in midPoint",
+  "common.personHiddenStart": "A person you can't see in midPoint",
+  "common.itemHidden": "an item you can't see in midPoint",
+  "common.request": "the request",
+  "common.inherited": "Comes with other access",
+  "common.inheritedVia": "Comes with {source}",
+  "common.detailsTool": "Tool: {tool}",
+  "common.redacted": "[address removed]",
+  "common.openInMidpoint": "Open in midPoint",
+  "common.openInMidpointLabel": "Open in midPoint: {name}",
+  "common.openInMidpointNote": "\"Open in midPoint\" opens midPoint's own pages. You may need to sign in there, and some pages need midPoint permissions you might not have.",
+  "state.slow": "Still waiting for midPoint…",
+  "state.cancelled": "This request was cancelled.",
+  "state.cancelledReason": "This request was cancelled: {reason}",
+  "state.versionMismatch": "This view doesn't match the server's version. The server's answer is shown as text below.",
+  "state.textOnly": "This answer can't be shown as a view. Here is the server's text.",
+  "dryrun.banner.title": "Preview only",
+  "dryrun.banner.body": "Changes are turned off on this server. Buttons show what would be sent to midPoint; nothing is changed.",
+  "dryrun.submit": "Show preview",
+  "dryrun.result.title": "Preview: nothing was changed",
+  "dryrun.details.request": "Request that would be sent",
+  "dryrun.details.summary": "Server summary: {summary}",
+  "strip.source": "Reported by {source}",
+  "strip.sourceUnnamed": "Reported by the connection between the assistant and midPoint",
+  "strip.held.title": "Waiting for approval",
+  "strip.held.body": "This action is waiting for approval by {approver}. It hasn't reached midPoint yet.",
+  "strip.held.bodyNoApprover": "This action is waiting for approval. It hasn't reached midPoint yet.",
+  "strip.denied.title": "Blocked",
+  "strip.denied.body": "This action was blocked before it reached midPoint.",
+  "strip.reason": "Reason: {reason}",
+  "strip.expires": "Expires {time}",
+  "strip.ref": "Reference: {ref}",
+  "confirm.row.role": "Role",
+  "confirm.row.for": "For",
+  "confirm.row.from": "From",
+  "confirm.row.request": "Request",
+  "confirm.row.validity": "How long",
+  "confirm.working": "Working…",
+  "confirm.request.title": "Request {role}?",
+  "confirm.request.bodySelf": "You're requesting {role} for yourself.",
+  "confirm.request.bodyReport": "You're requesting {role} for {user}.",
+  "confirm.request.policy": "Nothing changes until it's approved.",
+  "confirm.request.submit": "Send request",
+  "error.generic": "midPoint couldn't complete this.",
+  "error.sharedCredential": "This server signs in to midPoint with a shared account, so it can't answer for you personally. Ask your midPoint administrator to set up per-person sign-in.",
+  "error.notRequestable": "This role can't be requested: midPoint's catalog doesn't offer it for request.",
+  "error.invalidField": "Some request details are missing or not valid. Check the marked field.",
+  "error.invalidValidity": "The chosen dates aren't valid. Check how long the role should be valid and try again.",
+  "error.notInInbox": "This request is no longer waiting for your decision.",
+  "error.alreadyDecided": "This step of the request has already been decided.",
+  "error.requestClosed": "This request is already closed: it was decided or withdrawn.",
+  "error.notYourRequest": "Only the person who made a request can withdraw it.",
+  "error.notAssigned": "This role is no longer directly assigned to this person.",
+  "error.invalidInput": "The server rejected the request as incomplete or invalid.",
+  "error.notAuthorized": "midPoint says you aren't allowed to do this.",
+  "error.notFound": "midPoint couldn't find this item. It may have been deleted.",
+  "error.midpointUnavailable": "midPoint didn't answer. Try again in a moment.",
+  "error.hostRefused": "The assistant app didn't allow this action.",
+  "status.personDisabled": "Account turned off",
+  "time.justNow": "just now",
+  "time.minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
+  "time.hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
+  "time.daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+  "time.soon": "in less than a minute",
+  "time.inMinutes": "{count, plural, one {in # minute} other {in # minutes}}",
+  "time.inHours": "{count, plural, one {in # hour} other {in # hours}}",
+  "time.inDays": "{count, plural, one {in # day} other {in # days}}",
+  "time.todayAt": "today, {time}",
+  "time.tomorrowAt": "tomorrow, {time}",
+  "time.today": "today",
+  "time.tomorrow": "tomorrow",
+  "requestAccess.loading": "Loading roles you can request…",
+  "requestAccess.target.label": "Request for",
+  "requestAccess.target.self": "Myself",
+  "requestAccess.target.selfOnly": "Roles you can request for yourself",
+  "requestAccess.hint.self": "Requests are usually approved by your manager ({names}).",
+  "requestAccess.hint.selfNoManager": "midPoint decides who approves your requests.",
+  "requestAccess.hint.report": "Requests for {user} usually go to their manager. That may be you.",
+  "requestAccess.filter.label": "Search roles",
+  "requestAccess.filter.noMatch": "No role matches \"{text}\".",
+  "requestAccess.role.risk": "Risk: {level}",
+  "requestAccess.role.requested": "Requested",
+  "requestAccess.action.request": "Request",
+  "requestAccess.action.requestLabel": "{target, select, self {Request {role} for yourself} other {Request {role} for {user}}}",
+  "requestAccess.action.preview": "Preview request",
+  "requestAccess.action.previewLabel": "{target, select, self {Preview request for {role} for yourself} other {Preview request for {role} for {user}}}",
+  "requestAccess.action.showMyRequests": "Track this request",
+  "requestAccess.handoff.showMyRequests": "Show me my access requests.",
+  "requestAccess.validity.legend": "How long",
+  "requestAccess.validity.forDays": "For a number of days",
+  "requestAccess.validity.days": "{count, plural, one {# day} other {# days}}",
+  "requestAccess.validity.otherDays": "Other",
+  "requestAccess.validity.daysLabel": "Number of days",
+  "requestAccess.validity.custom": "Custom dates",
+  "requestAccess.validity.from": "Valid from",
+  "requestAccess.validity.to": "Valid until",
+  "requestAccess.validity.errorOrder": "The end date must be after the start date.",
+  "requestAccess.validity.errorPast": "The end date must be in the future.",
+  "requestAccess.validity.errorFromPast": "The start date can't be in the past.",
+  "requestAccess.validity.errorDays": "Enter a whole number of days from 1 to {max}.",
+  "requestAccess.validity.errorTo": "Choose an end date.",
+  "requestAccess.form.title": "Request details",
+  "requestAccess.form.justificationLabel": "Justification",
+  "requestAccess.form.required": "(required)",
+  "requestAccess.form.errorRequired": "Fill in {label}.",
+  "requestAccess.form.errorInt": "Enter a whole number.",
+  "requestAccess.form.errorDate": "Enter a valid date.",
+  "requestAccess.limitReached": "Showing the first {count} roles. Type to search all of them.",
+  "requestAccess.search.resultsFor": "Roles in midPoint matching \"{text}\"",
+  "requestAccess.search.searching": "Searching midPoint for \"{text}\"…",
+  "requestAccess.empty.self": "There are no roles you can request.",
+  "requestAccess.empty.report": "There are no roles you can request for {user}.",
+  "requestAccess.empty.why": "You only see roles you're allowed to ask for, and not the ones this person already has.",
+  "requestAccess.outcome.pending": "Request sent. It's waiting for approval.",
+  "requestAccess.outcome.pendingWith": "Request sent. It's waiting for approval by {names}.",
+  "requestAccess.outcome.granted": "{role} was granted to {user} right away: no approval was required.",
+  "validity.permanent": "No end date",
+  "validity.until": "Until {date}",
+  "validity.from": "From {date}",
+  "validity.fromUntil": "From {from} until {to}",
+  "validity.request.days": "Access for {count, plural, one {# day} other {# days}} (ends {date})",
+  "validity.request.fromDays": "Access from {from} for {count, plural, one {# day} other {# days}} (ends {to})",
+  "validity.request.fromNoEnd": "Access from {date}, no end date",
+  "validity.request.ended": "The requested end date has passed ({date})"
+};
+const VIEW_CONTRACT='1.0-draft.9';
+const APP_INFO={name:'midpoint-request-access',version:VIEW_CONTRACT};
+const PROTOCOL='2026-01-26', SLOW_MS=8000, PAGE=10, MAX_DAYS=3650;
+const ERR_KEY='midpoint-mcp-server/error', SLOT_KEY='intermediary/decision';
+/* ================= ICU-lite formatter ================= */
+const PARSED = new Map();
+function matchBrace(s, i){ let d = 0; for (let j = i; j < s.length; j++){ if (s[j] === '{') d++; else if (s[j] === '}' && --d === 0) return j; } return s.length - 1; }
+function parseMsg(src){
+  if (PARSED.has(src)) return PARSED.get(src);
+  const out = []; let i = 0, buf = '';
+  while (i < src.length){
+    if (src[i] === '{'){ if (buf){ out.push(buf); buf = ''; } const j = matchBrace(src, i); out.push(parseArg(src.slice(i + 1, j))); i = j + 1; }
+    else buf += src[i++];
+  }
+  if (buf) out.push(buf);
+  PARSED.set(src, out); return out;
+}
+function parseArg(inner){
+  const m = /^\s*(\w+)\s*,\s*(plural|select)\s*,([\s\S]*)$/.exec(inner);
+  if (!m) return {arg:inner.trim()};
+  const br = {}, s = m[3]; let i = 0;
+  while (i < s.length){
+    while (i < s.length && /\s/.test(s[i])) i++;
+    let k = ''; while (i < s.length && s[i] !== '{' && !/\s/.test(s[i])) k += s[i++];
+    while (i < s.length && s[i] !== '{') i++;
+    if (i >= s.length) break;
+    const j = matchBrace(s, i); br[k] = parseMsg(s.slice(i + 1, j)); i = j + 1;
+  }
+  return m[2] === 'plural' ? {plural:m[1], br} : {select:m[1], br};
+}
+function fill(tokens, p, n){
+  const out = [];
+  for (const tk of tokens){
+    if (typeof tk === 'string'){ out.push(n == null ? tk : tk.replace(/#/g, String(n))); continue; }
+    if (tk.arg){ const v = p[tk.arg]; out.push(v == null ? '' : v); continue; }
+    if (tk.select){ out.push(...fill(tk.br[String(p[tk.select])] || tk.br.other || [], p, n)); continue; }
+    const c = Number(p[tk.plural]);
+    out.push(...fill(tk.br['=' + c] || (c === 1 ? tk.br.one : null) || tk.br.other || [], p, c));
+  }
+  return out;
+}
+const msg = key => (key in CAT ? CAT[key] : key);
+/* t: catalog text as nodes (params may be nodes, e.g. a <time> or a name with its icon); ts: plain string */
+function t(key, p){
+  const f = document.createDocumentFragment();
+  for (const x of fill(parseMsg(msg(key)), p || {})) f.append(x instanceof Node ? x.cloneNode(true) : document.createTextNode(String(x)));
+  return f;
+}
+function ts(key, p){ return fill(parseMsg(msg(key)), p || {}).map(x => x instanceof Node ? x.textContent : String(x)).join(''); }
+
+/* ================= DOM: text-only insertion (contract 9) ================= */
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  if (attrs) for (const k in attrs){
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : String(v));
+  }
+  add(el, kids); return el;
+}
+function add(el, kids){ for (const k of kids.flat(Infinity)){ if (k == null || k === false || k === '') continue; el.append(k instanceof Node ? k : document.createTextNode(String(k))); } }
+
+/* ================= icons: own 16x16 glyphs and strokes (6.4) ================= */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const GLYPHS = {
+  user:'M8 1.8a3.1 3.1 0 1 1 0 6.2 3.1 3.1 0 0 1 0-6.2zM2.6 14.2c0-3 2.4-4.9 5.4-4.9s5.4 1.9 5.4 4.9z',
+  users:'M5.6 2.6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM11.2 3.6a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM1 13.6c0-2.6 2.1-4.3 4.6-4.3s4.6 1.7 4.6 4.3zM11.2 13.6c0-1.6-.6-3-1.6-3.9.5-.2 1-.3 1.6-.3 2.1 0 3.8 1.4 3.8 3.5v.7z',
+  role:'M4.6 2.2h6.8l-.2 6.8H4.8zM4.72 6.4h6.56v1.1H4.72zM1.6 9.8h12.8v2.4H1.6z',
+  cloud:'M4.4 13.2a3.3 3.3 0 0 1-.5-6.6 4.4 4.4 0 0 1 8.5 1 2.8 2.8 0 0 1-.2 5.6z',
+  database:'M8 1.5c3 0 5.5.8 5.5 2s-2.5 2-5.5 2-5.5-.8-5.5-2 2.5-2 5.5-2zM2.5 5.2c1 .9 3.2 1.4 5.5 1.4s4.5-.5 5.5-1.4v3c0 1.1-2.5 2-5.5 2s-5.5-.9-5.5-2zM2.5 9.7c1 .9 3.2 1.4 5.5 1.4s4.5-.5 5.5-1.4v2.6c0 1.2-2.5 2.2-5.5 2.2s-5.5-1-5.5-2.2z',
+  inbox:'M3.6 2.5h8.8l2.1 6.6v4.4h-13V9.1zM4.7 3.9 3.3 8.4h3.3l.8 1.5h1.2l.8-1.5h3.3l-1.4-4.5z',
+  dot:'M8 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'
+};
+const STROKES = {
+  refresh:'M13.2 8A5.2 5.2 0 1 1 11.6 4.3M13.2 2.6v3.1h-3.1',
+  expand:'M9.6 2.5h3.9v3.9M13.5 2.5 9.2 6.8M6.4 13.5H2.5V9.6M2.5 13.5l4.3-4.3',
+  collapse:'M13.5 2.5 9.4 6.6M9.4 3.2v3.4h3.4M2.5 13.5l4.1-4.1M6.6 12.8V9.4H3.2',
+  check:'M3.2 8.4l3 3 6.6-6.8',
+  x:'M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6',
+  clock:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM8 4.8V8l2.3 1.4',
+  ban:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM3.9 3.9l8.2 8.2',
+  alert:'M8 2.3l6.1 10.9H1.9zM8 6.6v3M8 11.3v.2',
+  info:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM8 7.3v4M8 5v.2',
+  chevron:'M6 3.8l4.2 4.2L6 12.2',
+  lock:'M4.2 7.2h7.6v6.3H4.2zM5.7 7.2V5.3a2.3 2.3 0 0 1 4.6 0v1.9',
+  layers:'M8 2.4l5.8 3-5.8 3-5.8-3zM2.2 8.2 8 11.2l5.8-3M2.2 10.9 8 13.9l5.8-3',
+  external:'M9.2 2.6h4.2v4.2M13.4 2.6 7.6 8.4M11.6 9.6v3.8H2.6V4.4h3.8',
+  hourglass:'M4 2.2h8M4 13.8h8M5.3 2.2v2.2L8 8l2.7-3.6V2.2M5.3 13.8v-2.2L8 8l2.7 3.6v2.2'
+};
+function svgEl(size){ const s = document.createElementNS(SVG_NS, 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.setAttribute('width', size); s.setAttribute('height', size); s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false'); return s; }
+function glyph(name, size){ const s = svgEl(size || 14), p = document.createElementNS(SVG_NS, 'path'); p.setAttribute('d', GLYPHS[name] || GLYPHS.dot); p.setAttribute('fill', 'currentColor'); p.setAttribute('fill-rule', 'evenodd'); s.append(p); return s; }
+function icon(name, size){ const s = svgEl(size || 14), p = document.createElementNS(SVG_NS, 'path'); p.setAttribute('d', STROKES[name]); p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'currentColor'); p.setAttribute('stroke-width', '1.7'); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round'); s.append(p); return s; }
+/* one neutral glyph per kind (D31); anything else a dot */
+const KIND_GLYPH = {User:'user', Role:'role', Org:'users', Service:'cloud', Resource:'database', Case:'inbox'};
+
+/* ================= shape checks: every message is untrusted (3.6) ================= */
+const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+const str = v => typeof v === 'string' ? v : '';
+const int = v => typeof v === 'number' && Number.isFinite(v) ? Math.trunc(v) : 0;
+const arr = v => Array.isArray(v) ? v : [];
+const pick = (v, allowed, dflt) => allowed.indexOf(v) >= 0 ? v : dflt;
+
+/* ObjectRef (4.5), with the extra members a person or a role may carry */
+function ref(v){
+  if (!isObj(v)) return {oid:'', type:'', name:'', displayName:'', readable:true, status:'', description:'', riskLevel:''};
+  return {oid:str(v.oid), type:str(v.type), name:str(v.name), displayName:str(v.displayName), readable:v.readable !== false,
+    status:str(v.status), description:str(v.description), riskLevel:str(v.riskLevel)};
+}
+/* D16: never an OID or a login next to a full name; a person the caller can't read is said in words */
+const isPerson = r => !r || !r.type || r.type === 'User';
+/* 4.5: an unreadable person is hidden; any other object keeps the name its reference carries */
+const hiddenRef = r => !r || (isPerson(r) && !r.readable) || (!r.displayName && !r.name);
+const dispName = r => hiddenRef(r) ? ts(isPerson(r) ? 'common.personHidden' : 'common.itemHidden') : (r.displayName || r.name);
+/* at the start of a sentence or a title (D33) */
+const dispNameStart = r => hiddenRef(r) && isPerson(r) ? ts('common.personHiddenStart') : dispName(r);
+
+function normActing(a){
+  if (!isObj(a)) return null;
+  return {oid:str(a.oid), name:str(a.name), fullName:str(a.fullName), mode:str(a.mode), sharedCredential:a.sharedCredential === true, orgs:arr(a.orgs).filter(isObj)};
+}
+function normServer(s){
+  if (!isObj(s)) return null;
+  return {writesEnabled:s.writesEnabled !== false, requestReason:s.requestReason === true, uiContract:str(s.uiContract), gui:isObj(s.gui) ? s.gui : null};
+}
+function normValidity(v){
+  if (!isObj(v)) return null;
+  const from = str(v.validFrom), to = str(v.validTo);
+  return from || to ? {validFrom:from, validTo:to} : null;
+}
+function slotOf(res){
+  const s = isObj(res) && isObj(res._meta) ? res._meta[SLOT_KEY] : null;
+  if (!isObj(s) || s.v !== 1 || ['allowed', 'held', 'denied'].indexOf(s.decision) < 0 || typeof s.audited !== 'boolean') return null;
+  const clean = (x, n) => { if (typeof x !== 'string') return ''; x = x.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ''); return x.length > n ? x.slice(0, n - 1) + '…' : x; };
+  const out = {decision:s.decision};
+  const r = clean(s.reason, 500); if (r) out.reason = r;
+  if (isObj(s.approver)){ const n = clean(s.approver.name, 120); if (n) out.approver = n; }
+  const so = clean(s.source, 80); if (so) out.source = so;
+  const rf = clean(s.ref, 120); if (rf) out.ref = rf;
+  if (typeof s.expiresAt === 'string' && !isNaN(Date.parse(s.expiresAt))) out.expiresAt = s.expiresAt;
+  return out;
+}
+const blocked = slot => !!slot && slot.decision !== 'allowed';
+function textOf(res){ return arr(isObj(res) ? res.content : null).filter(c => isObj(c) && c.type === 'text' && typeof c.text === 'string').map(c => c.text).join('\n'); }
+const errOf = (res, tool) => ({tool, text:textOf(res), meta:isObj(res) && isObj(res._meta) ? res._meta : {}});
+const rpcErr = (tool, e) => ({tool, rpc:true, text:'JSON-RPC error' + (isObj(e) && typeof e.message === 'string' ? ': ' + e.message : '')});
+const major = v => String(v || '').split('.')[0];
+
+const S={init:false,caps:{},ctx:{},entryTool:null,entryArgs:null,inputAt:0,phase:'wait',cancelReason:'',entryError:null,entrySlot:null,entryText:'',
+ acting:null,server:null,items:null,form:[],target:'',targetRef:null,team:[],managers:[],teamAsked:false,managersAsked:false,whoamiAsked:false,
+ filter:'',query:'',baseLimit:false,limitReached:false,listSig:'',asOf:0,shown:PAGE,open:{},more:{},rows:Object.create(null),drafts:Object.create(null),notice:null,
+ busy:false,busyAt:0,searching:'',readKind:'',loadedTarget:'',readEpoch:0,inflight:0,ignored:new Set(),called:new Set(),refreshNote:null,listSlot:null,dialog:null,latestArgs:null,aux:{}};
+const $root=document.getElementById('mp-root'),$polite=document.getElementById('mp-polite'),$assertive=document.getElementById('mp-assertive');
+/* ================= bridge: JSON-RPC 2.0 over postMessage (3.4) ================= */
+let rpcId = 0;
+const pending = new Map();
+function post(m){ window.parent.postMessage(m, '*'); }
+function request(method, params){ const id = ++rpcId; return new Promise(res => { pending.set(id, res); post({jsonrpc:'2.0', id, method, params}); }); }
+function notify(method, params){ post({jsonrpc:'2.0', method, params}); }
+const canCall = () => S.init && isObj(S.caps.serverTools);
+function callTool(name, args){
+  if (!canCall() || !Object.hasOwn(TOOLS,name) || Object.keys(args).some(k=>!TOOLS[name].includes(k))) return Promise.resolve({error:{}});
+  S.called.add(name);
+  return request('tools/call', {name, arguments:args}).then(r => r.error !== undefined ? {error:r.error} : isObj(r.result) ? {result:r.result} : {error:{message:'no result'}});
+}
+window.addEventListener('message', e => {
+  if (e.source !== window.parent) return;
+  const m = e.data;
+  if (!isObj(m) || m.jsonrpc !== '2.0') return;
+  if (typeof m.method !== 'string'){
+    if ((typeof m.id !== 'number' && typeof m.id !== 'string') || !pending.has(m.id)) return;
+    const done = pending.get(m.id); pending.delete(m.id);
+    done({result:m.result, error:isObj(m.error) ? m.error : undefined});
+    return;
+  }
+  if (!S.init) return;
+  const params = isObj(m.params) ? m.params : {};
+  if (m.id !== undefined && m.id !== null){
+    if (m.method === 'ui/resource-teardown' || m.method === 'ping') post({jsonrpc:'2.0', id:m.id, result:{}});
+    else post({jsonrpc:'2.0', id:m.id, error:{code:-32601, message:'Method not found'}});
+    return;
+  }
+  switch (m.method){
+    case 'ui/notifications/tool-input': onToolInput(params); break;
+    case 'ui/notifications/tool-result': onToolResult(params); break;
+    case 'ui/notifications/tool-cancelled': onCancelled(params); break;
+    case 'ui/notifications/host-context-changed': mergeCtx(params); applyCtx(); render(); break;
+    default: break; /* tool-input-partial and anything else: ignored */
+  }
+});
+
+/* ================= host context (3.5, 6.9, 6.11, 6.13) ================= */
+const FONT_VALUE = /^[\w\s,"'.\-]{1,300}$/;
+function mergeCtx(c){
+  if (!isObj(c)) return;
+  const x = S.ctx;
+  if (c.theme === 'light' || c.theme === 'dark') x.theme = c.theme;
+  if (isObj(c.styles) && isObj(c.styles.variables)){
+    for (const k of ['--font-sans', '--font-mono']){ const v = c.styles.variables[k]; if (typeof v === 'string' && FONT_VALUE.test(v)) (x.fonts = x.fonts || {})[k] = v; }
+  }
+  if (typeof c.displayMode === 'string') x.displayMode = c.displayMode;
+  if (Array.isArray(c.availableDisplayModes)) x.modes = c.availableDisplayModes.filter(m => typeof m === 'string');
+  if (isObj(c.containerDimensions)) x.dimensions={...x.dimensions,...c.containerDimensions};
+  if (typeof c.locale === 'string') x.locale = c.locale;
+  if (typeof c.timeZone === 'string') x.timeZone = c.timeZone;
+  if (isObj(c.toolInfo) && isObj(c.toolInfo.tool) && typeof c.toolInfo.tool.name === 'string') x.toolName = c.toolInfo.tool.name;
+}
+function applyCtx(){
+  const de = document.documentElement;
+  document.title=ts('app.title.requestAccess');
+  if (S.ctx.theme) de.setAttribute('data-theme', S.ctx.theme); else de.removeAttribute('data-theme');
+  for (const k in S.ctx.fonts || {}) de.style.setProperty(k, S.ctx.fonts[k]);
+}
+const isFull = () => S.ctx.displayMode === 'fullscreen';
+
+/* ================= time (6.11) ================= */
+let FMT = null;
+function fmt(){
+  const loc = typeof S.ctx.locale === 'string' && /^en(-|$)/i.test(S.ctx.locale) ? S.ctx.locale : 'en-GB';
+  const tz = typeof S.ctx.timeZone === 'string' && S.ctx.timeZone ? S.ctx.timeZone : undefined;
+  const key = loc + '|' + (tz || '');
+  if (FMT && FMT.key === key) return FMT;
+  const build = (l, z) => ({key,
+    dt:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
+    date:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', timeZone:z}),
+    hm:new Intl.DateTimeFormat(l, {hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
+    zp:new Intl.DateTimeFormat('en-US', {timeZone:z, hourCycle:'h23', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'})});
+  try { FMT = build(loc, tz); } catch (e) { FMT = build('en-GB', undefined); }
+  return FMT;
+}
+const pad2 = n => String(n).padStart(2, '0');
+function ymdOf(ms){ const p = {}; fmt().zp.formatToParts(ms).forEach(x => { p[x.type] = x.value; }); return p.year + '-' + p.month + '-' + p.day; }
+function addDays(ymd, n){ const p = ymd.split('-').map(Number), d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)); return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()); }
+const dayNo = ymd => { const p = ymd.split('-').map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 86400000); };
+const absTime = iso => { const d = Date.parse(iso); return isNaN(d) ? String(iso) : fmt().dt.format(d); };
+function dayWord(ms){ const d = ymdOf(ms), today = ymdOf(Date.now()); return d === today ? 'today' : d === addDays(today, 1) ? 'tomorrow' : null; }
+/* D33: today and tomorrow in words; any other day absolute */
+function smartTime(iso){ const d = Date.parse(iso); if (isNaN(d)) return String(iso); const w = dayWord(d); return w ? ts(w === 'today' ? 'time.todayAt' : 'time.tomorrowAt', {time:fmt().hm.format(d)}) : fmt().dt.format(d); }
+function smartDate(iso){ const d = Date.parse(iso); if (isNaN(d)) return String(iso); const w = dayWord(d); return w ? ts(w === 'today' ? 'time.today' : 'time.tomorrow') : fmt().date.format(d); }
+function relTime(iso){
+  const d = Date.parse(iso); if (isNaN(d)) return String(iso);
+  const diff = Date.now() - d, m = 60000, hr = 60 * m, day = 24 * hr;
+  if (diff >= 0){
+    if (diff < m) return ts('time.justNow');
+    if (diff < hr) return ts('time.minutesAgo', {count:Math.floor(diff / m)});
+    if (diff < day) return ts('time.hoursAgo', {count:Math.floor(diff / hr)});
+    if (diff <= 7 * day) return ts('time.daysAgo', {count:Math.floor(diff / day)});
+    return absTime(iso);
+  }
+  const ahead = -diff;
+  if (ahead < m) return ts('time.soon');
+  if (ahead < hr) return ts('time.inMinutes', {count:Math.floor(ahead / m)});
+  if (ahead < day) return ts('time.inHours', {count:Math.floor(ahead / hr)});
+  if (ahead <= 7 * day) return ts('time.inDays', {count:Math.floor(ahead / day)});
+  return absTime(iso);
+}
+/* every time is a <time>; the relative form shows the absolute one next to it, not only in a tooltip */
+function timeEl(iso, o){
+  o = o || {};
+  const ok = !isNaN(Date.parse(iso));
+  const el = h('time', {datetime:ok ? iso : null, title:ok ? absTime(iso) : null}, o.smart ? smartTime(iso) : relTime(iso));
+  if (o.withAbs && ok && relTime(iso) !== absTime(iso)) return h('span', null, el, ' (' + absTime(iso) + ')');
+  return el;
+}
+const dateEl = iso => { const ok = !isNaN(Date.parse(iso)); return h('time', {datetime:ok ? iso : null, title:ok ? fmt().date.format(Date.parse(iso)) : null}, smartDate(iso)); };
+
+/* requested access (4.5): always says something; N counts calendar days in the host zone */
+function requestValidity(v){
+  v = v || {};
+  const now = Date.now();
+  const to = v.validTo && !isNaN(Date.parse(v.validTo)) ? v.validTo : null;
+  const from = v.validFrom && Date.parse(v.validFrom) > now ? v.validFrom : null;
+  if (to && Date.parse(to) <= now) return t('validity.request.ended', {date:dateEl(to)});
+  if (!to) return from ? t('validity.request.fromNoEnd', {date:dateEl(from)}) : t('validity.permanent');
+  const end = dayNo(ymdOf(Date.parse(to)));
+  if (from) return t('validity.request.fromDays', {from:dateEl(from), to:dateEl(to), count:end - dayNo(ymdOf(Date.parse(from))) + 1});
+  return t('validity.request.days', {date:dateEl(to), count:Math.max(1, end - dayNo(ymdOf(now)))});
+}
+
+/* ================= small parts ================= */
+function disc(r, size){ const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : ''), 'aria-hidden':'true'}); el.append(glyph(r && Object.hasOwn(KIND_GLYPH,r.type) ? KIND_GLYPH[r.type] : 'dot', 14)); return el; }
+function badge(r, o){
+  o = o || {};
+  return h('span', {class:'mp-badge'}, disc(r, o.size), h('span', {class:'mp-badge-text'}, h('span', {class:'mp-badge-name'}, o.nameNode || dispName(r))));
+}
+const personStatus = r => r && r.status === 'disabled' ? h('span', {class:'mp-status-note'}, t('status.personDisabled')) : null;
+/* a person inside a sentence: icon and name, no kind and no login (D15, D16) */
+const inlBadge = r => h('span', {class:'mp-inline'}, disc(r, 'sm'), h('span', null, dispName(r)), personStatus(r));
+const chip = (kind, ic, text) => h('span', {class:'mp-chip mp-chip--' + kind}, ic ? icon(ic, 12) : null, text);
+/* 6.4: risk chip only when riskLevel is set; danger fill for high and critical, the word carries the meaning */
+function riskChip(level){ const v = level.toLowerCase(); return chip(v === 'critical' || v === 'high' ? 'danger' : 'secondary', 'alert', t('requestAccess.role.risk', {level})); }
+const line = (ic, node) => h('p', {class:'mp-line'}, ic, h('span', null, node));
+function slowNote(at){ return at && Date.now() - at >= SLOW_MS ? h('p', {class:'mp-note mp-note-row', role:'status'}, icon('clock', 12), t('state.slow')) : null; }
+function announce(text, assertive){
+  const r = assertive ? $assertive : $polite;
+  r.textContent = '';
+  requestAnimationFrame(() => { r.textContent = text; });
+}
+/* card keys: caseOid and work item id; element ids come from a counter, never from data */
+const IDS = new Map();
+const idOf = k => { if (!IDS.has(k)) IDS.set(k, 'k' + (IDS.size + 1)); return IDS.get(k); };
+
+/* ================= Open in midPoint (4.9): only with server.gui and hostCapabilities.openLinks ================= */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BASE_URL = /^https?:\/\/[^\s"'<>\\]+$/i;
+const PATH_TPL = /^\/[A-Za-z0-9\/_.~-]*\{oid\}[A-Za-z0-9\/_.~-]*$/;
+let LINKED = false;
+function gui(){
+  const g = S.server && S.server.gui;
+  if (!S.init || !isObj(S.caps.openLinks) || !g || typeof g.baseUrl !== 'string' || !BASE_URL.test(g.baseUrl) || !isObj(g.paths)) return null;
+  return g;
+}
+function openLink(oid, type, text){
+  const g = gui(), tpl = g && g.paths[type];
+  if (!g || typeof tpl !== 'string' || !PATH_TPL.test(tpl) || !UUID.test(oid)) return null;
+  LINKED = true;
+  const url = g.baseUrl.replace(/\/+$/, '') + tpl.replace('{oid}', oid); /* never shown as text; the host opens it */
+  return h('button', {type:'button', class:'mp-btn mp-btn--link mp-open', 'aria-label':ts('common.openInMidpointLabel', {name:text}),
+    onclick:() => { request('ui/open-link', {url}); }}, text, icon('external', 11));
+}
+
+/* ================= errors (6.8): by code first, then by text ================= */
+const ERR_CODES = {'shared-credential':'error.sharedCredential', 'not-requestable':'error.notRequestable', 'not-your-request':'error.notYourRequest',
+  'request-closed':'error.requestClosed', 'already-decided':'error.alreadyDecided', 'not-in-inbox':'error.notInInbox', 'not-assigned':'error.notAssigned',
+  'invalid-input':'error.invalidInput', 'invalid-field':'error.invalidField', 'invalid-validity':'error.invalidValidity',
+  'not-authorized':'error.notAuthorized', 'not-found':'error.notFound', 'midpoint-unavailable':'error.midpointUnavailable', internal:'error.generic'};
+const ERR_TEXT = [
+  [['shared/technical account'], 'error.sharedCredential'],
+  [['is not flagged requestable'], 'error.notRequestable'],
+  [['only the requester can withdraw'], 'error.notYourRequest'],
+  [[', not open,'], 'error.requestClosed'],
+  [['is already closed'], 'error.alreadyDecided'],
+  [['has no work item', 'is assigned to'], 'error.notInInbox'],
+  [['has no direct assignment to'], 'error.notAssigned'],
+  [['validating "arguments"', 'decision must be'], 'error.invalidInput'],
+  [['invalid request field'], 'error.invalidField'],
+  [['invalid validity'], 'error.invalidValidity'],
+  [['unexpected status 401', 'unexpected status 403'], 'error.notAuthorized'],
+  [['unexpected status 404'], 'error.notFound'],
+  [['unexpected status 5', 'calling midPoint'], 'error.midpointUnavailable']
+];
+function classify(err){
+  if (err.rpc) return 'error.hostRefused';
+  const m = err.meta[ERR_KEY];
+  if (isObj(m) && m.v === 1 && typeof m.code === 'string' && Object.hasOwn(ERR_CODES,m.code)) return ERR_CODES[m.code];
+  for (const x of ERR_TEXT) if (x[0].some(s => err.text.indexOf(s) >= 0)) return x[1];
+  return 'error.generic';
+}
+/* defence in depth for S14: any address left in raw text is replaced */
+const redact = text => String(text).replace(/https?:\/\/[^\s"']*/g, ts('common.redacted'));
+function disclosure(k, detailNodes){
+  const open = !!S.open[k], id = 'd-' + idOf(k);
+  const det = h('div', {class:'mp-details', id}, detailNodes); det.hidden = !open;
+  const btn = h('button', {type:'button', class:'mp-btn mp-btn--link', 'aria-expanded':String(open), 'aria-controls':id, 'data-k':k,
+    onclick:() => { S.open[k] = !S.open[k]; det.hidden = !S.open[k]; btn.setAttribute('aria-expanded', String(S.open[k])); btn.textContent = ts(S.open[k] ? 'common.hideDetails' : 'common.showDetails'); }},
+    t(open ? 'common.hideDetails' : 'common.showDetails'));
+  return [btn, det];
+}
+function errorBlock(err, k, refresh){
+  const [btn, det] = disclosure('err:' + k, [h('span', {class:'mp-details-lab'}, t('common.detailsTool', {tool:err.tool})), '\n', redact(err.text)]);
+  return h('div', {class:'mp-panel mp-panel--danger'},
+    h('p', {class:'mp-panel-title'}, icon('alert'), t(classify(err))),
+    h('div', {class:'mp-actions'}, btn, refresh && canCall() ? refreshButton('refresh2') : null), det);
+}
+
+/* ================= intermediary slot (5.5): held and denied only ================= */
+function slotPanel(slot){
+  const held = slot.decision === 'held';
+  return h('div', {class:'mp-panel mp-panel--' + (held ? 'warning' : 'danger'), role:'status'},
+    h('p', {class:'mp-panel-title'}, icon(held ? 'clock' : 'ban'), t(held ? 'strip.held.title' : 'strip.denied.title')),
+    h('p', null, held ? (slot.approver ? t('strip.held.body', {approver:slot.approver}) : t('strip.held.bodyNoApprover')) : t('strip.denied.body')),
+    slot.reason ? h('p', null, t('strip.reason', {reason:slot.reason})) : null,
+    held && slot.expiresAt ? h('p', null, t('strip.expires', {time:timeEl(slot.expiresAt, {withAbs:true})})) : null,
+    slot.ref ? h('p', {class:'mp-muted'}, t('strip.ref', {ref:slot.ref})) : null,
+    h('p', {class:'mp-muted'}, slot.source ? t('strip.source', {source:slot.source}) : t('strip.sourceUnnamed')));
+}
+
+/* ================= clamps (6.12, D33): cut at a word boundary with one "…", Show more / Show less ================= */
+function clampText(k, text, lines, cls){
+  const open = !!S.more[k];
+  const p = h('p', {class:'mp-clamp' + (cls ? ' ' + cls : ''), 'data-clamp':k, 'data-lines':String(lines)}, text);
+  p._full = String(text);
+  const b = h('button', {type:'button', class:'mp-btn mp-btn--link mp-more', 'data-k':'more:' + k, 'aria-expanded':String(open), hidden:true,
+    onclick:() => { S.more[k] = !S.more[k]; b.textContent = ts(S.more[k] ? 'common.showLess' : 'common.showMore'); b.setAttribute('aria-expanded', String(S.more[k])); fitClamp(p, S.more[k]); }},
+    t(open ? 'common.showLess' : 'common.showMore'));
+  b.dataset.for = k;
+  return [p, b];
+}
+function fitClamp(p, open){
+  const full = p._full, lines = +p.dataset.lines || 2;
+  p.textContent = full;
+  if (open || !p.clientWidth) return false;
+  const cs = getComputedStyle(p), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+  const max = lh * lines + 2;
+  if (p.scrollHeight <= max) return false;
+  const words = full.split(/\s+/);
+  const cut = n => words.slice(0, n).join(' ').replace(/[\s.,;:!?…–—-]+$/, '') + '…';
+  let lo = 1, hi = words.length - 1, best = 1;
+  while (lo <= hi){ const mid = (lo + hi) >> 1; p.textContent = cut(mid); if (p.scrollHeight <= max){ best = mid; lo = mid + 1; } else hi = mid - 1; }
+  p.textContent = cut(best);
+  if(p.scrollHeight>max)p.textContent='…';
+  return true;
+}
+function clampPass(){
+  $root.querySelectorAll('[data-clamp]').forEach(p => {
+    const k = p.getAttribute('data-clamp'), b = $root.querySelector('button[data-for="' + CSS.escape(k) + '"]');
+    const cut = fitClamp(p, !!S.more[k]);
+    if (b) b.hidden = !(cut || S.more[k]);
+  });
+}
+/* untrusted free text, quoted and attributed (4.1 rule 7, 9) */
+function quote(labelNode, text, k, lines){
+  return h('figure', {class:'mp-quote'}, h('figcaption', {class:'mp-quote-lab'}, labelNode), h('blockquote', null, clampText(k, text, lines, 'mp-quote-text')));
+}
+
+/* ================= header, banners, footer (6.1, 6.2, 6.6, 6.7) ================= */
+function refreshButton(k){
+  return h('button', {type:'button', class:'mp-btn mp-btn--tool', 'data-k':k || 'refresh', disabled:S.busy || null, onclick:doRefresh},
+    icon('refresh'), t(S.busy ? 'common.refreshing' : 'common.refresh'));
+}
+function headerEl(){
+  const a = S.acting;
+  let ident = null;
+  if (a && a.mode === 'personal'){
+    const open = !!S.open.modeHelp;
+    const help = h('p', {class:'mp-help', id:'mode-help'}, t('header.mode.personal.help')); help.hidden = !open;
+    const b = h('button', {type:'button', class:'mp-btn mp-btn--link', 'aria-expanded':String(open), 'aria-controls':'mode-help', 'data-k':'whats',
+      onclick:() => { S.open.modeHelp = !S.open.modeHelp; help.hidden = !S.open.modeHelp; b.setAttribute('aria-expanded', String(S.open.modeHelp)); }}, t('common.whatsThis'));
+    ident = h('div', {class:'mp-ident'}, h('span', {class:'mp-ident-who'}, icon('lock', 13), h('span', null, t('header.mode.personal', {name:a.fullName || a.name}))), b, help);
+  }
+  const actions = h('div', {class:'mp-head-actions'});
+  if (canCall()) actions.append(refreshButton());
+
+  return h('header', {class:'mp-head'}, h('div', {class:'mp-head-main'}, h('h1', {class:'mp-title'}, t('app.title.requestAccess')), ident), actions);
+}
+function bannersEl(){
+  const out = [];
+  if (S.acting && S.acting.sharedCredential) out.push(h('p', {class:'mp-banner mp-banner--warning', role:'note'}, icon('alert'), h('span', null, t('header.sharedCredential', {name:S.acting.fullName || S.acting.name}))));
+  /* at most one informational banner; read-only wins (6.1) */
+  if (!canCall()) out.push(h('p', {class:'mp-banner mp-banner--info', role:'note'}, icon('lock'), h('span', null, t('common.readOnlyHost'))));
+  else if (S.phase === 'loaded' && S.server && !S.server.writesEnabled) out.push(h('div', {class:'mp-panel mp-panel--info', role:'note'},
+    h('p', {class:'mp-panel-title'}, icon('info'), t('dryrun.banner.title')), h('p', null, t('dryrun.banner.body'))));
+  return out;
+}
+function footerEl(){
+  const at = S.asOf ? new Date(S.asOf).toISOString() : '';
+  return h('footer', {class:'mp-foot'},
+    at ? h('p', null, t('common.asOf', {time:h('time', {datetime:at}, absTime(at))})) : null,
+    LINKED ? h('p', null, t('common.openInMidpointNote')) : null,
+    canCall() ? null : h('p', null, t('common.askAssistantToRefresh')));
+}
+function skeletonEl(){
+  return [h('div', {class:'mp-skel-head', 'aria-hidden':'true'}, h('span', {class:'mp-skel', style:'width:34%;height:16px'}), h('span', {class:'mp-skel', style:'width:58%'})),
+    S.inputAt ? h('p', {class:'mp-note', role:'status'}, t('requestAccess.loading')) : null,
+    slowNote(S.inputAt),
+    skeletonRows()];
+}
+const skeletonRows = () => h('div', {'aria-hidden':'true'}, [0, 1, 2].map(i => h('div', {class:'mp-skel-row'}, h('span', {class:'mp-skel mp-skel-disc'}),
+  h('span', {class:'mp-skel-lines'}, h('span', {class:'mp-skel', style:'width:' + (72 - i * 14) + '%'}), h('span', {class:'mp-skel', style:'width:' + (40 + i * 9) + '%;height:10px'})))));
+
+const outcomeText = row => t(row.key, row.p);
+function previewPanel(k, d){
+  const req = [h('span', {class:'mp-details-lab'}, t('dryrun.details.request')), '\n' + (d.method + ' ' + d.endpoint).trim() + (d.body !== undefined && d.body !== null ? '\n' + JSON.stringify(d.body, null, 2) : ''),
+    '\n\n', h('span', {class:'mp-details-lab'}, t('dryrun.details.summary', {summary:d.summary}))];
+  const [btn, det] = disclosure('pv:' + k, req);
+  return h('div', {class:'mp-panel mp-panel--info', role:'status', tabindex:'-1', 'data-k':'out:' + k},
+    h('p', {class:'mp-panel-title'}, icon('info'), t('dryrun.result.title')), h('div', {class:'mp-actions'}, btn), det);
+}
+function rowOutcome(k, row){
+  if (row.slot) return h('div', {tabindex:'-1', 'data-k':'out:' + k}, slotPanel(row.slot));
+  if (row.preview) return previewPanel(k, row.preview);
+  if (row.error) return h('div', {tabindex:'-1', 'data-k':'out:' + k}, errorBlock(row.error, k, row.refresh));
+  return h('div', {class:'mp-panel mp-panel--' + (row.tone || 'success'), role:'status', tabindex:'-1', 'data-k':'out:' + k},
+    h('p', {class:'mp-panel-title'}, icon(row.tone === 'warning' ? 'alert' : 'check'), outcomeText(row)));
+}
+const rowSay = row => row.slot ? ts(row.slot.decision === 'held' ? 'strip.held.title' : 'strip.denied.title')
+  : row.preview ? ts('dryrun.result.title') : row.error ? ts(classify(row.error)) : outcomeText(row).textContent;
+/* 6.14: after a write started in the view, the assistant gets the write tool's own text, nothing else */
+function modelContext(res){
+  if (!S.init || !isObj(S.caps.updateModelContext)) return;
+  const content = arr(res.content).filter(c => isObj(c) && c.type === 'text' && typeof c.text === 'string').map(c => ({type:'text', text:c.text}));
+  if (content.length) request('ui/update-model-context', {content});
+}
+
+/* Get access: own tools, snapshots and request form (7.2). */
+const TOOLS={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','userOid','validFrom','validTo','fields'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
+const sig=v=>JSON.stringify(v);
+const LIST=new Intl.ListFormat('en',{style:'long',type:'conjunction'});
+const names=refs=>{const n=refs.map(dispName);return LIST.format(n.length>3?n.slice(0,3).concat(ts('common.andMore',{count:n.length-3})):n)};
+const userRef=u=>ref({...u,type:'User',displayName:str(u.fullName)||str(u.displayName)});
+const ownRef=()=>userRef(S.acting||{});
+const targetRef=()=>S.target?(S.team.find(u=>u.oid===S.target)||S.targetRef||ref({oid:S.target,type:'User'})):ownRef();
+const isManager=()=>!!S.acting&&S.acting.orgs.some(o=>o.manager===true&&o.selected===true);
+function normList(sc){
+ if(!isObj(sc)||sc.tool!=='list_requestable_roles'||!Array.isArray(sc.roles))return null;
+ return {items:sc.roles.filter(r=>isObj(r)&&str(r.oid)).map(r=>ref({...r,type:'Role'})),acting:normActing(sc.acting),server:normServer(sc.server),
+ target:str(sc.forUser),targetRef:isObj(sc.forUserRef)?ref(sc.forUserRef):null,query:str(sc.query),limitReached:sc.limitReached===true,
+ form:isObj(sc.form)?arr(sc.form.items).filter(i=>isObj(i)&&str(i.name)&&['string','boolean','int','date','dateTime'].includes(i.type)).map(i=>({name:i.name,displayName:str(i.displayName),help:str(i.help),type:i.type,required:i.required===true,multiline:i.multiline===true,justification:i.justification===true})):[]};
+}
+function normRequest(sc){
+ const r=isObj(sc)?sc.request:null;
+ if(!isObj(r)||sc.tool!=='request_role'||!['pending-approval','granted','preview'].includes(r.outcome)||!isObj(r.role)||!isObj(r.user))return null;
+ return {role:ref(r.role),user:ref(r.user),outcome:r.outcome,caseOid:str(r.caseOid),approvers:arr(r.approvers).filter(isObj).map(ref),validity:normValidity(r.validity),
+ dryRun:sc.dryRun===true,summary:str(sc.summary),method:str(sc.method),endpoint:str(sc.endpoint),body:sc.body,acting:normActing(sc.acting),server:normServer(sc.server)};
+}
+function outcomeOf(d){
+ if(d.outcome==='preview'||d.dryRun)return {preview:d};
+ if(d.outcome==='granted')return {requested:true,tone:'warning',key:'requestAccess.outcome.granted',p:{role:dispName(d.role),user:dispName(d.user)},data:d};
+ return {requested:true,key:d.approvers.length?'requestAccess.outcome.pendingWith':'requestAccess.outcome.pending',p:{names:names(d.approvers)},track:true,data:d};
+}
+function summaryRows(role,user,validity){return h('dl',{class:'mp-kv'},h('dt',null,t('confirm.row.role')),h('dd',null,badge(role)),h('dt',null,t('confirm.row.for')),h('dd',null,badge(user)),h('dt',null,t('confirm.row.validity')),h('dd',{'data-validity-summary':''},validity));}
+function requestNotice(row,k){
+ const node=rowOutcome(k,row);
+ if(row.preview)node.append(summaryRows(row.preview.role,row.preview.user,requestValidity(row.preview.validity)));
+ if(row.data)node.append(line(icon('hourglass'),requestValidity(row.data.validity)));
+ if(row.track&&isObj(S.caps.message))node.append(h('button',{type:'button',class:'mp-btn mp-btn--link','data-k':'track',onclick:()=>request('ui/message',{role:'user',content:[{type:'text',text:ts('requestAccess.handoff.showMyRequests')}]})},t('requestAccess.action.showMyRequests')));
+ if(row.followup)node.append(row.followup.slot?slotPanel(row.followup.slot):errorBlock(row.followup.error,'case',false));
+ return node;
+}
+function requestResult(r){
+ if(r.error!==undefined)return {error:rpcErr('request_role',r.error)};
+ const res=r.result,slot=slotOf(res);
+ if(blocked(slot))return {slot};
+ if(res.isError)return {error:errOf(res,'request_role')};
+ const d=normRequest(res.structuredContent);
+ return d?outcomeOf(d):{error:{tool:'request_role',text:textOf(res),meta:{}}};
+}
+function fillApprovers(row){
+ if(!row.track||!row.data.caseOid||row.data.approvers.length||!canCall())return;
+ const d=row.data;
+ readAux('case', 'get_case',{oid:d.caseOid},res=>{
+  if(res.structuredContent?.tool!=='get_case')return;
+  d.approvers=arr(res.structuredContent.nextApprovers).filter(isObj).map(ref);
+  if(d.approvers.length){row.key='requestAccess.outcome.pendingWith';row.p={names:names(d.approvers)};announce(rowSay(row));}
+ },failure=>{row.followup=failure});
+}
+function readAux(key,tool,args,apply,fail){
+ S.aux[key]={at:Date.now()};
+ callTool(tool,args).then(r=>{
+  delete S.aux[key];
+  let failure;
+  if(r.error!==undefined)failure={error:rpcErr(tool,r.error)};
+  else if(blocked(slotOf(r.result)))failure={slot:slotOf(r.result)};
+  else if(r.result.isError)failure={error:errOf(r.result,tool)};
+  else apply(r.result);
+  if(failure){if(fail)fail(failure);else S.aux[key]=failure;}
+  render();
+ });
+}
+function loadHints(){
+ if(!canCall())return;
+ if(!S.acting){askWhoami();return;}
+ if(isManager()&&!S.teamAsked){S.teamAsked=true;readAux('team','list_my_team',{limit:100},res=>{if(res.structuredContent?.tool==='list_my_team')S.team=arr(res.structuredContent.users).filter(isObj).map(userRef)});}
+ if(!S.target&&!S.managersAsked){S.managersAsked=true;readAux('managers','list_my_managers',{limit:10},res=>{if(res.structuredContent?.tool==='list_my_managers')S.managers=arr(res.structuredContent.users).filter(isObj).map(userRef)});}
+}
+function askWhoami(){
+ if(S.whoamiAsked||!canCall())return;
+ S.whoamiAsked=true;
+ readAux('whoami','whoami',{},res=>{const sc=res.structuredContent;if(sc?.tool!=='whoami')return;S.acting=normActing(sc.acting);if(!S.server)S.server=normServer(sc.server);if(S.phase==='loaded')loadHints()});
+}
+function hintEl(){
+ if(S.target)return h('p',{class:'mp-note'},t('requestAccess.hint.report',{user:dispName(targetRef())}));
+ return h('p',{class:'mp-note'},S.managers.length?t('requestAccess.hint.self',{names:names(S.managers)}):t('requestAccess.hint.selfNoManager'));
+}
+function controlsEl(){
+ let target;
+ if(isManager()&&canCall()){
+  const users=[...S.team];
+  if(S.target&&!users.some(u=>u.oid===S.target))users.push(targetRef());
+  const pick=(oid,label)=>h('label',{class:'mp-target-pick'+(oid===S.target?' is-on':'')},h('input',{type:'radio',name:'request-target',value:oid,checked:oid===S.target||null,'data-k':'target:'+oid,onchange:()=>switchTarget(oid)}),label);
+  target=h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.target.label')),h('div',{class:'mp-picks'},pick('',t('requestAccess.target.self')),users.map(u=>pick(u.oid,badge(u)))));
+ }else target=h('p',null,S.target?t('requestAccess.target.label') :t('requestAccess.target.selfOnly'),S.target?[' ',badge(targetRef())]:null);
+ const input=h('input',{class:'mp-input',id:'filter',type:'search',maxlength:'100','data-k':'filter',oninput:e=>filterChanged(e.target.value),onkeydown:e=>{if(e.key==='Enter')e.preventDefault()}});input.value=S.filter;
+ return h('div',{class:'mp-controls'},target,hintEl(),h('div',{class:'mp-field mp-search'},h('label',{for:'filter'},t('requestAccess.filter.label')),input));
+}
+const matches=(items,q)=>{q=q.trim().toLocaleLowerCase('en');return !q?items:items.filter(r=>[r.name,r.displayName,r.description].some(v=>v.toLocaleLowerCase('en').includes(q)))};
+function roleEl(r){
+ const row=S.rows[r.oid],dry=S.server&&!S.server.writesEnabled;
+ const p={target:S.target?'other':'self',role:dispName(r),user:dispName(targetRef())};
+ const action=row?.requested?chip('success','check',t('requestAccess.role.requested')):canCall()?h('button',{type:'button',class:'mp-btn mp-btn--primary',disabled:S.busy||S.loadedTarget!==S.target||null,'data-k':'req:'+r.oid,'aria-label':ts(dry?'requestAccess.action.previewLabel':'requestAccess.action.requestLabel',p),onclick:()=>openRequest(r)},t(dry?'requestAccess.action.preview':'requestAccess.action.request')):null;
+ return h('li',null,h('div',{class:'mp-row-main'},badge(r),action),r.description?h('blockquote',{class:'mp-description'},clampText('description:'+r.oid,r.description,2)):null,
+ h('div',{class:'mp-actions'},r.riskLevel?riskChip(r.riskLevel):null,openLink(r.oid,'Role',ts('common.openInMidpoint'))),
+ row&&!row.requested?requestNotice(row,r.oid):null);
+}
+function catalogEl(){
+ const items=S.items||[],shown=matches(items,S.filter),body=[];
+ if(S.query)body.push(h('h2',{class:'mp-section-title'},t('requestAccess.search.resultsFor',{text:S.query})));
+ if(S.searching)body.push(h('p',{role:'status',class:'mp-note'},t('requestAccess.search.searching',{text:S.searching})));
+ if(!items.length&&!S.query&&!S.filter&&!S.busy)body.push(h('div',{class:'mp-panel mp-panel--info',role:'status'},h('p',{class:'mp-panel-title'},icon('info'),S.target?t('requestAccess.empty.report',{user:dispName(targetRef())}):t('requestAccess.empty.self')),h('p',null,t('requestAccess.empty.why'))));
+ else if(shown.length){body.push(h('ul',{class:'mp-rows'},shown.slice(0,S.shown).map(roleEl)));if(shown.length>S.shown)body.push(h('button',{type:'button',class:'mp-btn mp-btn--tool','data-k':'more',onclick:()=>{S.shown+=PAGE;render({focus:'more'})}},t('common.showMore')));}
+ else if(!S.searching)body.push(h('p',{class:'mp-note',role:'status'},t('requestAccess.filter.noMatch',{text:S.filter.trim()||S.query})));
+ if(S.limitReached)body.push(h('p',{class:'mp-note'},t('requestAccess.limitReached',{count:items.length})));
+ return h('div',{class:'mp-filtered'+(S.busy?' is-busy':''),'aria-busy':S.busy?'true':null},body);
+}
+function contentEl(){
+ if(S.phase==='slot')return slotPanel(S.entrySlot);
+ if(S.phase==='error')return errorBlock(S.entryError,'entry',false);
+ if(S.phase==='cancelled')return h('p',{class:'mp-panel mp-panel--info',role:'status'},S.cancelReason?t('state.cancelledReason',{reason:S.cancelReason}):t('state.cancelled'));
+ if(S.phase==='text')return [h('p',{class:'mp-note'},t('state.textOnly')),h('pre',{class:'mp-textblock'},S.entryText)];
+ return [S.listSlot?slotPanel(S.listSlot):null,S.refreshNote?errorBlock(S.refreshNote,'read',false):null,
+ controlsEl(),Object.entries(S.aux).map(([key,v])=>v.slot?slotPanel(v.slot):v.error?errorBlock(v.error,key,false):slowNote(v.at)),
+ S.notice?requestNotice(S.notice,'notice'):null,S.busy?slowNote(S.busyAt):null,S.items?catalogEl():S.busy?skeletonRows():null];
+}
+/* A new target or input invalidates old reads, including echoed notifications. */
+let searchTimer=0;
+function listArgs(query){const args={limit:100};if(S.target)args.forUser=S.target;if(query)args.query=query;return args;}
+function filterChanged(value){
+ clearTimeout(searchTimer);S.filter=value;S.shown=PAGE;
+ if(S.readKind==='search'){S.readEpoch++;S.searching='';S.busy=false;S.busyAt=0;S.readKind='';S.latestArgs=listArgs(S.query);}
+ const q=value.trim();
+ if(!q&&S.query&&canCall()){readList(listArgs(),false);return;}
+ render();
+ if(!S.busy&&S.loadedTarget===S.target&&q.length>=2&&S.baseLimit&&!matches(S.items||[],q).length&&q!==S.query&&canCall()){
+  const epoch=S.readEpoch;searchTimer=setTimeout(()=>{if(epoch===S.readEpoch)readList(listArgs(q),false,'search')},600);
+ }
+}
+function switchTarget(oid){
+ if(oid===S.target)return;
+ clearTimeout(searchTimer);S.target=oid;S.targetRef=S.team.find(u=>u.oid===oid)||null;S.notice=null;S.drafts=Object.create(null);S.rows=Object.create(null);S.more={};
+ readList(listArgs(S.query),true,'target');loadHints();
+}
+function doRefresh(){if(S.busy||!canCall()||S.dialog)return;clearTimeout(searchTimer);readList(S.latestArgs||listArgs(S.query),true);}
+function readList(args,reset,kind){
+ if(!canCall())return;
+ const epoch=++S.readEpoch;
+ S.latestArgs={...args};S.readKind=kind||'refresh';S.inflight++;S.busy=true;S.busyAt=Date.now();S.searching=kind==='search'?args.query:'';
+ render();
+ callTool('list_requestable_roles',args).then(r=>{
+  S.inflight--;
+  if(r.result)S.ignored.add(sig(r.result));
+  if(epoch!==S.readEpoch)return;
+  S.busy=false;S.busyAt=0;S.searching='';S.readKind='';
+  onListAnswer(r,reset,args);render();
+ });
+}
+function onListAnswer(r,reset,args){
+ const fresh=!S.items&& !S.notice;
+ const fail=e=>{if(fresh){S.phase='error';S.entryError=e}else S.refreshNote=e;announce(ts(classify(e)),true)};
+ if(r.error!==undefined)return fail(rpcErr('list_requestable_roles',r.error));
+ const res=r.result,slot=slotOf(res);
+ if(blocked(slot)){if(fresh){S.phase='slot';S.entrySlot=slot}else S.listSlot=slot;return;}
+ if(res.isError)return fail(errOf(res,'list_requestable_roles'));
+ if(mismatch(res))return;
+ const l=normList(res.structuredContent);
+ if(!l)return fail({tool:'list_requestable_roles',text:textOf(res),meta:{}});
+ if(l.target!==(args.forUser||''))return;
+ applySnapshot(l,sig(res.structuredContent),reset);
+}
+function applySnapshot(l,signature,reset){
+ S.phase='loaded';S.items=l.items;S.form=l.form;S.acting=l.acting||S.acting;S.server=l.server||S.server;
+ S.loadedTarget=l.target;S.target=l.target;S.targetRef=l.targetRef||S.targetRef;S.query=l.query;S.limitReached=l.limitReached;if(!l.query)S.baseLimit=l.limitReached;
+ S.listSig=signature;S.asOf=Date.now();S.shown=PAGE;S.refreshNote=null;S.listSlot=null;S.more={};
+ if(reset){S.rows=Object.create(null);S.notice=null;}
+ if(S.dialog&&!S.dialog.working&&!S.items.some(r=>r.oid===S.dialog.role.oid))S.dialog=null;
+ loadHints();
+}
+function mismatch(res){const s=res.structuredContent?.server;if(isObj(s)&&str(s.uiContract)&&major(s.uiContract)!==major(VIEW_CONTRACT)){S.phase='mismatch';S.entryText=textOf(res);return true}return false;}
+function onToolInput(p){if(S.entryArgs||S.called.size)return;S.entryArgs=isObj(p.arguments)?p.arguments:{};if(S.phase==='wait'){S.inputAt=Date.now();render()}}
+function onCancelled(p){if(S.phase!=='wait')return;S.phase='cancelled';S.cancelReason=str(p.reason).replace(/[\u0000-\u001f\u007f-\u009f]/g,' ').slice(0,300);S.asOf=Date.now();render()}
+function onToolResult(res){
+ if(!isObj(res))return;
+ const sc=isObj(res.structuredContent)?res.structuredContent:null,tool=sc&&str(sc.tool);
+ if(S.phase==='wait')return applyEntry(res,sc,tool);
+ if(S.inflight||S.dialog?.working||S.ignored.has(sig(res))||!sc||res.isError||blocked(slotOf(res)))return;
+ if(tool==='list_requestable_roles'&&(S.entryTool===tool||S.called.has(tool))&&sig(sc)!==S.listSig){
+  const l=normList(sc);if(!l||l.target!==S.target||l.query!==S.query||mismatch(res))return;
+  applySnapshot(l,sig(sc),true);render();
+ }
+ // Auxiliary answers and write echoes are consumed by their request promise.
+}
+function applyEntry(res,sc,tool){
+ S.entryTool=S.ctx.toolName||tool||(S.entryArgs?.roleOid?'request_role':'list_requestable_roles');
+ S.asOf=Date.now();S.target=str(S.entryArgs?.forUser)||str(S.entryArgs?.userOid);
+ const slot=slotOf(res);
+ if(blocked(slot)){S.phase='slot';S.entrySlot=slot;askWhoami();render();return;}
+ if(mismatch(res)){render();return;}
+ if(S.entryTool==='request_role'){
+  const d=normRequest(sc);
+  if(res.isError){S.phase='error';S.entryError=errOf(res,'request_role');askWhoami();render();return;}
+  if(!d){S.phase='text';S.entryText=textOf(res);askWhoami();render();return;}
+  S.acting=d.acting;S.server=d.server;S.target=S.target||(d.user.oid!==S.acting?.oid?d.user.oid:'');S.targetRef=d.user;
+  S.phase='loaded';S.notice=outcomeOf(d);S.rows[d.role.oid]=S.notice;
+  loadHints();fillApprovers(S.notice);render();if(canCall())readList(listArgs(),false);return;
+ }
+ if(res.isError){S.phase='error';S.entryError=errOf(res,S.entryTool);askWhoami();render();return;}
+ const l=normList(sc);
+ if(!l){S.phase='text';S.entryText=textOf(res);S.acting=normActing(sc?.acting);if(!S.acting)askWhoami();render();return;}
+ S.filter=l.query;S.latestArgs={};for(const k of TOOLS.list_requestable_roles)if(S.entryArgs&&S.entryArgs[k]!==undefined)S.latestArgs[k]=S.entryArgs[k];
+ if(!S.entryArgs)S.latestArgs=listArgs(l.query);
+ applySnapshot(l,sig(sc),true);render();
+}
+/* Wall-clock days are converted in the host zone, including offset changes. */
+const YMD=/^\d{4}-\d{2}-\d{2}$/;
+function validDay(s){if(!YMD.test(s))return false;const d=new Date(s+'T12:00:00Z');return !isNaN(d)&&d.toISOString().slice(0,10)===s;}
+function zonedIso(ymd,hms){
+ const p=ymd.split('-').map(Number),q=hms.split(':').map(Number),wall=Date.UTC(p[0],p[1]-1,p[2],q[0],q[1],q[2]);
+ const offAt=ms=>{const z={};fmt().zp.formatToParts(ms).forEach(x=>z[x.type]=+x.value);return Math.round((Date.UTC(z.year,z.month-1,z.day,z.hour,z.minute,z.second)-ms)/60000)};
+ let off=offAt(wall);for(let i=0;i<3;i++)off=offAt(wall-off*60000);
+ const a=Math.abs(off),iso=ymd+'T'+hms+(off<0?'-':'+')+pad2(Math.floor(a/60))+':'+pad2(a%60);
+ // A missing hour at a clock change is not silently moved to another time.
+ const z={};fmt().zp.formatToParts(Date.parse(iso)).forEach(x=>z[x.type]=x.value);
+ if(ymdOf(Date.parse(iso))!==ymd||z.hour+':'+z.minute+':'+z.second!==hms)return '';
+ return iso;
+}
+function initialDraft(){const today=ymdOf(Date.now());return {v:{mode:'permanent',days:'30',other:'',from:today,to:addDays(today,30)},f:Object.create(null),mark:''};}
+function validityOf(v){
+ const today=ymdOf(Date.now());
+ if(v.mode==='permanent')return {};
+ if(v.mode==='days'){
+  const raw=v.days==='other'?v.other.trim():v.days,n=/^\d+$/.test(raw)?Number(raw):NaN;
+  if(!(n>=1&&n<=MAX_DAYS))return {error:'days',key:'requestAccess.validity.errorDays'};
+  return {validTo:zonedIso(addDays(today,n),'23:59:59')};
+ }
+ const from=v.from||today;
+ if(!validDay(from)||from<today)return {error:'from',key:'requestAccess.validity.errorFromPast'};
+ if(!validDay(v.to))return {error:'to',key:'requestAccess.validity.errorTo'};
+ if(v.to<today)return {error:'to',key:'requestAccess.validity.errorPast'};
+ if(v.to<from)return {error:'to',key:'requestAccess.validity.errorOrder'};
+ const out={validTo:zonedIso(v.to,'23:59:59')};
+ if(from!==today)out.validFrom=zonedIso(from,'00:00:00');
+ if(!out.validTo||(from!==today&&!out.validFrom))return {error:'to',key:'requestAccess.form.errorDate'};
+ if(Date.parse(out.validTo)<=Date.now())return {error:'to',key:'requestAccess.validity.errorPast'};
+ return out;
+}
+const formLabel=i=>i.displayName||(i.justification?ts('requestAccess.form.justificationLabel'):i.name);
+function formValues(d){
+ const fields=Object.create(null),errors=Object.create(null);
+ for(const it of S.form){
+  const raw=d.state.f[it.name],x=raw==null?'':String(raw).trim(),k='f:'+it.name;
+  if(it.type==='boolean'){if(it.required||raw!==undefined)fields[it.name]=raw===true;continue;}
+  if(!x){if(it.required)errors[k]=ts('requestAccess.form.errorRequired',{label:formLabel(it)});continue;}
+  if(it.type==='int'&&(!/^-?\d+$/.test(x)||+x< -2147483648||+x>2147483647)){errors[k]=ts('requestAccess.form.errorInt');continue;}
+  if(it.type==='date'&&!validDay(x)){errors[k]=ts('requestAccess.form.errorDate');continue;}
+  if(it.type==='dateTime'){
+   const time=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(x)&&validDay(x.slice(0,10))?zonedIso(x.slice(0,10),x.slice(11).length===5?x.slice(11)+':00':x.slice(11)):'';
+   if(!time){errors[k]=ts('requestAccess.form.errorDate');continue;}fields[it.name]=time;
+  }else fields[it.name]=it.type==='int'?Number(x):x;
+ }
+ return {fields,errors};
+}
+function dialogInputs(d){
+ const v=d.state.v,dis=d.working||null;
+ const fieldErr=(key,id)=>d.errors[key]?h('p',{class:'mp-field-error',id},icon('alert',12),d.errors[key]):null;
+ const clearError=(key,inp)=>{delete d.errors[key];if(d.state.mark===key.slice(2))d.state.mark='';inp.removeAttribute('aria-invalid');const el=document.getElementById('error-'+idOf(key));if(el)el.remove();inp.removeAttribute('aria-describedby')};
+ const refreshSummary=()=>{const x=validityOf(v);$root.querySelectorAll('[data-validity-summary]').forEach(el=>el.replaceChildren(x.error?'–':requestValidity(x)))};
+ const radio=(mode,key)=>h('label',{class:'mp-radio'},h('input',{type:'radio',name:'validity',value:mode,checked:v.mode===mode||null,disabled:dis,'data-k':'valid:'+mode,onchange:()=>{v.mode=mode;d.errors={};render({focus:'valid:'+mode})}}),t(key));
+ const opts=[radio('permanent','validity.permanent'),radio('days','requestAccess.validity.forDays')];
+ if(v.mode==='days'){
+  const picks=['7','30','90','other'].map(n=>h('label',{class:'mp-radio'},h('input',{type:'radio',name:'days',value:n,checked:v.days===n||null,disabled:dis,'data-k':'days:'+n,onchange:()=>{v.days=n;delete d.errors.days;render({focus:'days:'+n})}}),n==='other'?t('requestAccess.validity.otherDays'):t('requestAccess.validity.days',{count:Number(n)})));
+  let other=null;
+  if(v.days==='other'){
+   const input=h('input',{class:'mp-input',id:'days',type:'number',min:'1',max:String(MAX_DAYS),step:'1',inputmode:'numeric',disabled:dis,'data-k':'days','aria-invalid':d.errors.days?'true':null,'aria-describedby':d.errors.days?'error-'+idOf('days'):null});input.value=v.other;
+   input.addEventListener('input',()=>{v.other=input.value;clearError('days',input);refreshSummary()});
+   other=h('div',{class:'mp-field'},h('label',{for:'days'},t('requestAccess.validity.daysLabel')),input,fieldErr('days','error-'+idOf('days')));
+  }
+  opts.push(h('div',{class:'mp-subchoice'},h('div',{class:'mp-picks',role:'radiogroup','aria-label':ts('requestAccess.validity.forDays')},picks),other));
+ }
+ opts.push(radio('custom','requestAccess.validity.custom'));
+ if(v.mode==='custom'){
+  const date=key=>{
+   const input=h('input',{class:'mp-input',id:'date-'+key,type:'date',disabled:dis,'data-k':key,'aria-invalid':d.errors[key]?'true':null,'aria-describedby':d.errors[key]?'error-'+idOf(key):null});input.value=v[key];
+   input.addEventListener('input',()=>{v[key]=input.value;clearError(key,input);refreshSummary()});
+   return h('div',{class:'mp-field'},h('label',{for:'date-'+key},t(key==='from'?'requestAccess.validity.from':'requestAccess.validity.to')),input,fieldErr(key,'error-'+idOf(key)));
+  };
+  opts.push(h('div',{class:'mp-subchoice mp-dates'},date('from'),date('to')));
+ }
+ const out=[h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.validity.legend')),h('div',{class:'mp-choices'},opts))];
+ if(S.form.length){
+  const fields=S.form.map(it=>{
+   const k='f:'+it.name,id='field-'+idOf(k),eid='error-'+idOf(k),hid=id+'-help',bad=d.errors[k]||d.state.mark===it.name;
+   const attrs={id,disabled:dis,'data-k':k,'aria-invalid':bad?'true':null,'aria-required':it.required?'true':null,'aria-describedby':[d.errors[k]?eid:'',it.help?hid:''].filter(Boolean).join(' ')||null};
+   const input=it.type==='boolean'?h('input',{...attrs,type:'checkbox',checked:d.state.f[it.name]===true||null}):it.type==='string'&&it.multiline?h('textarea',{...attrs,class:'mp-textarea',rows:'3'}):h('input',{...attrs,class:'mp-input',type:it.type==='date'?'date':it.type==='dateTime'?'datetime-local':'text',inputmode:it.type==='int'?'numeric':null,autocomplete:'off'});
+   if(it.type!=='boolean')input.value=d.state.f[it.name]??'';
+   input.addEventListener(it.type==='boolean'?'change':'input',()=>{d.state.f[it.name]=it.type==='boolean'?input.checked:input.value;clearError(k,input);if(it.help)input.setAttribute('aria-describedby',hid)});
+   const label=[formLabel(it),it.required?[' ',t('requestAccess.form.required')]:null];
+   return h('div',{class:'mp-field'},it.type==='boolean'?h('label',{class:'mp-checkbox',for:id},input,label):[h('label',{for:id},label),input],it.help?h('p',{class:'mp-note',id:hid},it.help):null,fieldErr(k,eid));
+  });
+  out.push(h('section',{class:'mp-dialog-sec','aria-labelledby':'form-title'},h('h3',{id:'form-title',class:'mp-section-title'},t('requestAccess.form.title')),fields));
+ }
+ return out;
+}
+function dialogEl(){
+ const d=S.dialog,p={role:dispName(d.role),user:dispName(d.user)},v=validityOf(d.state.v),dry=S.server&&!S.server.writesEnabled;
+ const box=h('div',{class:'mp-dialog',role:'dialog','aria-modal':'true','aria-labelledby':'dlg-t','aria-describedby':'dlg-d',tabindex:'-1','data-k':'dlg-box',onkeydown:dialogKeys},
+ h('h2',{id:'dlg-t'},t('confirm.request.title',p)),h('div',{id:'dlg-d',class:'mp-dialog-body'},h('p',null,t(S.target?'confirm.request.bodyReport':'confirm.request.bodySelf',p)),h('p',null,t('confirm.request.policy')),hintEl()),
+ dialogInputs(d),summaryRows(d.role,d.user,v.error?'–':requestValidity(v)),d.working?slowNote(d.at):null,
+ h('div',{class:'mp-actions'},h('button',{type:'button',class:'mp-btn mp-btn--tool','data-k':'dlg-cancel',disabled:d.working||null,onclick:closeDialog},t('common.cancel')),
+ h('button',{type:'button',class:'mp-btn mp-btn--primary','data-k':'dlg-submit',disabled:d.working||null,onclick:submitDialog},t(d.working?'confirm.working':dry?'dryrun.submit':'confirm.request.submit'))));
+ return h('div',{class:'mp-overlay'},box);
+}
+function openRequest(role){
+ if(S.dialog||!canCall()||S.busy||S.loadedTarget!==S.target)return;
+ const state=structuredClone(S.drafts[role.oid]||initialDraft());state.f=Object.assign(Object.create(null),state.f);
+ S.dialog={role,user:targetRef(),state,errors:{},working:false,at:0,opener:'req:'+role.oid};
+ render({focus:state.mark&&S.form.some(i=>i.name===state.mark)?'f:'+state.mark:'valid:'+state.v.mode});
+}
+function closeDialog(){const d=S.dialog;if(!d||d.working)return;S.dialog=null;render({focus:d.opener});}
+function dialogKeys(e){
+ const d=S.dialog;if(!d)return;
+ if(e.key==='Escape'){e.preventDefault();e.stopPropagation();if(!d.working)closeDialog();return;}
+ if(e.key!=='Tab')return;
+ const f=[...e.currentTarget.querySelectorAll('button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled])')].filter(el=>el.getClientRects().length);
+ if(!f.length){e.preventDefault();e.currentTarget.focus();return;}
+ const first=f[0],last=f[f.length-1],act=document.activeElement;
+ if(e.shiftKey&&(act===first||act===e.currentTarget)){e.preventDefault();last.focus()}else if(!e.shiftKey&&act===last){e.preventDefault();first.focus()}
+}
+function submitDialog(){
+ const d=S.dialog;if(!d||d.working)return;
+ const val=validityOf(d.state.v),{fields,errors}=formValues(d);
+ d.errors=val.error?{[val.error]:ts(val.key,{max:MAX_DAYS}),...errors}:errors;
+ const bad=Object.keys(d.errors)[0];
+ if(bad){render({focus:bad==='days'?'days':bad});announce(d.errors[bad],true);return;}
+ const args={roleOid:d.role.oid};if(S.target)args.userOid=S.target;
+ Object.assign(args,val);if(Object.keys(fields).length)args.fields=fields;
+ d.working=true;d.at=Date.now();render({focus:'dlg-box'});
+ callTool('request_role',args).then(r=>{
+  if(r.result)S.ignored.add(sig(r.result));
+  if(r.result&&mismatch(r.result)){S.dialog=null;render();return;}
+  const row=requestResult(r),key=row.error?classify(row.error):'';
+  S.dialog=null;S.rows[d.role.oid]=row;
+  if(key==='error.invalidField'||key==='error.invalidValidity'){
+   const meta=row.error.meta[ERR_KEY];d.state.mark=key==='error.invalidField'&&isObj(meta)&&meta.v===1?str(meta.field):'';
+   S.drafts[d.role.oid]=d.state;
+  }else if(row.requested){delete S.drafts[d.role.oid];S.notice=row;fillApprovers(row);modelContext(r.result);}
+  else if(row.preview)S.notice=null;
+  render({focus:row.requested?'out:notice':'out:'+d.role.oid});announce(rowSay(row),!!row.error);
+ });
+}
+/* Render shared chrome from the same primitives as the inbox. */
+let slowTimer=0;
+function armSlow(){
+ clearTimeout(slowTimer);const now=Date.now(),starts=[];
+ if(S.phase==='wait'&&S.inputAt)starts.push(S.inputAt);
+ if(S.busy)starts.push(S.busyAt);
+ if(S.dialog?.working)starts.push(S.dialog.at);
+ Object.values(S.aux).forEach(v=>{if(v.at)starts.push(v.at)});
+ const next=starts.map(a=>a+SLOW_MS-now).filter(ms=>ms>0);
+ if(next.length)slowTimer=setTimeout(render,Math.min(...next)+20);
+}
+function build(){
+ if(S.phase==='mismatch')return [h('div',{class:'mp-panel mp-panel--info',role:'status'},h('p',{class:'mp-panel-title'},icon('info'),t('state.versionMismatch'))),h('pre',{class:'mp-textblock'},S.entryText)];
+ if(S.phase==='wait')return [h('div',{'aria-busy':'true'},skeletonEl())];
+ const content=h('main',{class:'mp-content'},contentEl());
+ const parts=[headerEl(),bannersEl(),content,footerEl()].flat();
+ if(S.dialog){parts.forEach(el=>el.setAttribute('inert',''));parts.push(dialogEl());}
+ return parts;
+}
+function render(o){
+ o=o||{};const ae=document.activeElement,inside=ae&&ae!==document.body&&$root.contains(ae),keep=o.focus||(inside?ae.getAttribute('data-k'):null);
+ const selection=!o.focus&&inside&&['INPUT','TEXTAREA'].includes(ae.tagName)?[ae.selectionStart,ae.selectionEnd]:null;
+ LINKED=false;$root.classList.toggle('is-full',isFull());$root.style.minHeight='';$root.replaceChildren(...build());
+ if(keep){const el=$root.querySelector('[data-k="'+CSS.escape(keep)+'"]');if(el){el.focus({preventScroll:!o.focus});if(selection&&typeof el.setSelectionRange==='function'){try{el.setSelectionRange(...selection)}catch(e){}}}}
+ const dim=S.ctx.dimensions||{},fixed=Number(dim.height),max=Number(dim.maxHeight);
+ $root.style.height=Number.isFinite(fixed)&&fixed>0?Math.max(96,fixed)+'px':'';
+ $root.style.maxHeight=!S.dialog&&Number.isFinite(max)&&max>0?Math.max(96,max)+'px':'';
+ $root.style.overflowY=(fixed>0||max>0)?'auto':'';
+ if(S.dialog){const box=$root.querySelector('[role="dialog"]');if(box){if(fixed>0||max>0){box.style.maxHeight=Math.max(72,(fixed||max)-24)+'px';box.style.overflowY='auto'}if(!(fixed>0))$root.style.minHeight=Math.min(max>0?max:Infinity,Math.max(360,box.offsetHeight+24))+'px'}}
+ clampPass();armSlow();
+}
+let sizeQueued=false,lastW=-1,lastH=-1,lastRootW=-1;
+function reportSize(){sizeQueued=false;const rw=$root.clientWidth;if(rw!==lastRootW){lastRootW=rw;clampPass()}if(!S.init)return;const w=Math.ceil(document.documentElement.clientWidth),hh=Math.ceil($root.getBoundingClientRect().height);if(w===lastW&&hh===lastH)return;lastW=w;lastH=hh;notify('ui/notifications/size-changed',{width:w,height:hh});}
+new ResizeObserver(()=>{if(!sizeQueued){sizeQueued=true;requestAnimationFrame(reportSize)}}).observe($root);
+render();
+request('ui/initialize',{appInfo:APP_INFO,appCapabilities:{availableDisplayModes:['inline','fullscreen']},protocolVersion:PROTOCOL}).then(r=>{
+ const res=isObj(r.result)?r.result:{};S.caps=isObj(res.hostCapabilities)?res.hostCapabilities:{};mergeCtx(res.hostContext);applyCtx();S.init=true;notify('ui/notifications/initialized',{});render();reportSize();
+});
+})();
+</script>
+</body>
+</html>

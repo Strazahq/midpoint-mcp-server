@@ -1,0 +1,20 @@
+// Expected English from contract 10, independent of the view document.
+export const S={
+ title:'Get access',refresh:'Refresh',refreshing:'Refreshing…',cancel:'Cancel',more:'Show more',less:'Show less',technical:'Show technical details',
+ self:'Myself',selfOnly:'Roles you can request for yourself',target:'Request for',search:'Search roles',loading:'Loading roles you can request…',slow:'Still waiting for midPoint…',
+ selfHint:'midPoint decides who approves your requests.',managerHint:n=>`Requests are usually approved by your manager (${n}).`,reportHint:n=>`Requests for ${n} usually go to their manager. That may be you.`,
+ request:'Request',requestLabel:r=>`Request ${r} for yourself`,reportLabel:(r,u)=>`Request ${r} for ${u}`,previewLabel:r=>`Preview request for ${r} for yourself`,requested:'Requested',
+ titleRequest:r=>`Request ${r}?`,body:r=>`You're requesting ${r} for yourself.`,policy:"Nothing changes until it's approved.",submit:'Send request',working:'Working…',previewSubmit:'Show preview',
+ permanent:'No end date',days:'For a number of days',other:'Other',daysLabel:'Number of days',custom:'Custom dates',from:'Valid from',to:'Valid until',validity:'How long',
+ errorDays:'Enter a whole number of days from 1 to 3650.',errorTo:'Choose an end date.',errorFrom:"The start date can't be in the past.",errorPast:'The end date must be in the future.',errorOrder:'The end date must be after the start date.',
+ form:'Request details',justification:'Justification',project:'Project code (required)',ack:'Policy acknowledged (required)',ticket:'Change ticket',needed:'Needed on',handover:'Handover time',
+ required:'Fill in Project code.',whole:'Enter a whole number.',dateError:'Enter a valid date.',
+ invalidField:'Some request details are missing or not valid. Check the marked field.',invalidValidity:"The chosen dates aren't valid. Check how long the role should be valid and try again.",notRequestable:"This role can't be requested: midPoint's catalog doesn't offer it for request.",
+ denied:"midPoint says you aren't allowed to do this.",hostRefused:"The assistant app didn't allow this action.",unavailable:"midPoint didn't answer. Try again in a moment.",
+ preview:'Preview: nothing was changed',previewBanner:'Preview only',readOnly:'This app can show this view but not act from it. To make changes, ask the assistant.',
+ pending:"Request sent. It's waiting for approval.",pendingWith:n=>`Request sent. It's waiting for approval by ${n}.`,granted:(r,u)=>`${r} was granted to ${u} right away: no approval was required.`,track:'Track this request',handoff:'Show me my access requests.',
+ noMatch:q=>`No role matches "${q}".`,searching:q=>`Searching midPoint for "${q}"…`,results:q=>`Roles in midPoint matching "${q}"`,limit:n=>`Showing the first ${n} roles. Type to search all of them.`,
+ empty:'There are no roles you can request.',emptyReport:u=>`There are no roles you can request for ${u}.`,emptyWhy:"You only see roles you're allowed to ask for, and not the ones this person already has.",
+ held:'Waiting for approval',blocked:'Blocked',textOnly:"This answer can't be shown as a view. Here is the server's text.",mismatch:"This view doesn't match the server's version. The server's answer is shown as text below.",cancelled:'This request was cancelled.',
+ hidden:"an item you can't see in midPoint",personal:n=>`midPoint sees everything here as ${n}, this server's own account.`,
+};

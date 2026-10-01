@@ -100,6 +100,7 @@ unknown key is an error, so a typo can't silently keep the default).
 | `team.memberRelation` | `default` | relation local part marking plain membership, used when searching an org for members |
 | `team.orgOids` / `team.orgNames` | all | which of the caller's orgs count as "my team". Empty means all of them, so a user in several orgs gets everyone from all of them out of `list_my_teammates`. Names match case-insensitively |
 | `requests.requireRequestable` | `true` | refuse `request_role` for roles midPoint's catalog does not flag `requestable` |
+| `requests.formItems` | unset (no form) | ordered qualified names (`{namespace}localName`) of single-valued assignment extension items offered by `request_role`; supports `string`, `boolean`, `int`, `date`, `dateTime`. Definitions are read at startup from database SchemaType objects and file schemas; restart after schema changes. Unsupported or absent items warn and are skipped; duplicate local names and schema read failures stop startup |
 | `requests.justificationItem` | unset | qualified name, `{namespace}localName`, of the assignment extension item that holds a requester's reason. `list_work_items` and `get_case` read it from the assignment a request parks for approval and show it as text written by the requester; views say "No reason given" only when this is set. Unset means requests carry no reason |
 
 **On `credentialIsShared`.** Personal mode assumes the credentials *are* the
@@ -274,8 +275,10 @@ authorization doc.
 Hosts that render [MCP Apps](https://github.com/modelcontextprotocol/ext-apps)
 views get interactive screens for the approval inbox, requesting access, your
 requests, and your team's access. [`docs/ui-contract.md`](docs/ui-contract.md)
-specifies them. **Status: the plumbing is in place, but no view ships yet.** The
-inbox comes first (PLAN.md M10).
+specifies them. The approval inbox and Get access ship as embedded documents.
+
+Get access (`ui://midpoint/request-access`) is implemented, including target selection,
+automatic catalog search, validity, and configured request fields.
 
 What is in place:
 
@@ -289,6 +292,11 @@ What is in place:
   `list_my_managers`, `whoami`) lead with `tool`, `acting` (who midPoint ran the
   call as) and `server` (write gate, contract and server versions) in every
   session.
+
+With `requests.formItems`, the server account needs model read on `SchemaType`,
+plus `rest-3#getExtensionSchema` and `model-3#getExtensionSchema`. Discovery uses
+`GET /ws/rest/schemas` and `GET /ws/schema` as that account, without impersonation.
+Only configured fields are offered; all writes still run as the caller.
 
 ## Tools
 
@@ -322,8 +330,12 @@ and the approval actions respect the write gate):
   `requestable` in the catalog, filtered to what you're authorized to see (runs
   as you, so it works per-user in resource-server mode). Pass `forUser` (a report's
   OID from `list_my_team`) to list what that report can be given but doesn't
-  already hold — then `request_role` for them
-- `request_role` — request a role for yourself or a report. It submits an
+  already hold — then `request_role` for them. `query` searches names and
+  descriptions case-insensitively (trimmed, at most 100 characters); results
+  include `forUserRef`, `limitReached`, risk levels, and configured form items
+- `request_role` — request a role for yourself or a report, optionally with
+  `validFrom` / `validTo` (RFC 3339 with offset) and `fields` from the catalog
+  form. Validity and form values are validated before a preview or write. It submits an
   assignment-add delta, and midPoint's policy decides whether that opens an
   approval case or applies immediately — so by default it **refuses roles the
   catalog does not flag `requestable`**, because for those it would grant rather
