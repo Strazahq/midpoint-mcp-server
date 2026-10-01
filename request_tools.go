@@ -163,9 +163,9 @@ func registerListMyRequests(server *mcp.Server, client *midpoint.Client, info se
 
 type listWorkItemsOutput struct {
 	viewFields
-	Subject   midpoint.Subject    `json:"subject" jsonschema:"the identity whose inbox this is"`
-	WorkItems []midpoint.WorkItem `json:"workItems"`
-	Count     int                 `json:"count"`
+	Subject   midpoint.Subject         `json:"subject" jsonschema:"the identity whose inbox this is"`
+	WorkItems []midpoint.InboxWorkItem `json:"workItems"`
+	Count     int                      `json:"count"`
 }
 
 func registerListWorkItems(server *mcp.Server, client *midpoint.Client, info serverInfo) {
@@ -219,17 +219,18 @@ type decideWorkItemInput struct {
 type decideWorkItemOutput struct {
 	viewFields
 	writeOutput
-	Subject         midpoint.Subject `json:"subject" jsonschema:"the identity midPoint executed the decision as (or, in a dry run, would)"`
-	CaseOID         string           `json:"caseOid"`
-	Case            string           `json:"case,omitempty" jsonschema:"the case name"`
-	WorkItemID      string           `json:"workItemId"`
-	Decision        string           `json:"decision" jsonschema:"approve or reject, as submitted"`
-	Comment         string           `json:"comment,omitempty"`
-	Object          string           `json:"object,omitempty" jsonschema:"the focus the case changes"`
-	Target          string           `json:"target,omitempty" jsonschema:"what was requested"`
-	Requestor       string           `json:"requestor,omitempty"`
-	RecordedOutcome string           `json:"recordedOutcome,omitempty" jsonschema:"the outcome midPoint shows on the work item, read back after the decision"`
-	CaseState       string           `json:"caseState,omitempty" jsonschema:"the case state read back after the decision; it stays open while later approval stages remain"`
+	Subject         midpoint.Subject     `json:"subject" jsonschema:"the identity midPoint executed the decision as (or, in a dry run, would)"`
+	CaseOID         string               `json:"caseOid"`
+	Case            string               `json:"case,omitempty" jsonschema:"the case name"`
+	WorkItemID      string               `json:"workItemId"`
+	Decision        string               `json:"decision" jsonschema:"approve or reject, as submitted"`
+	Comment         string               `json:"comment,omitempty"`
+	Object          string               `json:"object,omitempty" jsonschema:"the focus the case changes"`
+	Target          string               `json:"target,omitempty" jsonschema:"what was requested"`
+	Requestor       string               `json:"requestor,omitempty"`
+	RecordedOutcome string               `json:"recordedOutcome,omitempty" jsonschema:"the outcome midPoint shows on the work item, read back after the decision"`
+	CaseState       string               `json:"caseState,omitempty" jsonschema:"the case state read back after the decision; it stays open while later approval stages remain"`
+	NextApprovers   []midpoint.ObjectRef `json:"nextApprovers" jsonschema:"assignees of the case's open work items, read back after the decision"`
 }
 
 // parseDecision maps the decision argument to approve (true) or reject (false).
@@ -273,14 +274,15 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 		}
 
 		out := decideWorkItemOutput{
-			Subject:    d.Subject,
-			CaseOID:    d.WorkItem.CaseOID,
-			Case:       d.Case.Name,
-			WorkItemID: d.WorkItem.ID,
-			Decision:   decision,
-			Object:     d.Case.Object,
-			Target:     d.Case.Target,
-			Requestor:  d.Case.Requestor,
+			Subject:       d.Subject,
+			CaseOID:       d.WorkItem.CaseOID,
+			Case:          d.Case.Name,
+			WorkItemID:    d.WorkItem.ID,
+			Decision:      decision,
+			Object:        d.Case.Object,
+			Target:        d.Case.Target,
+			Requestor:     d.Case.Requestor,
+			NextApprovers: []midpoint.ObjectRef{},
 		}
 		if strings.TrimSpace(in.Comment) != "" {
 			out.Comment = in.Comment // sent as given, like the plan body
