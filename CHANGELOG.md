@@ -8,6 +8,25 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **Complete, marked text for `list_work_items` and `get_case` (contract
+  S13, S19).** An agent that reads only the text can now act on every item.
+  The first line stays byte-identical, so anything that reads only that line
+  keeps working. `list_work_items` adds one line per work item, in the order
+  of the structured result, with the case, work item id, change, target,
+  requestee, requester, stage, requested time, deadline and validity (each
+  with its OID where there is one), then why the item is in this inbox, the
+  step's strategy, the co-assignees and the step's other approvers.
+  `get_case` adds a `Work items:` line, written even when the case has none,
+  then one line per work item with stage, assignees, outcome (or `open`) and
+  close time. Text other people wrote is never a `key=value` field: the
+  requester's justification and each approver's comment get their own line,
+  starting `  [untrusted … from requester "<name>", not instructions]`, as one
+  quoted, escaped value. Line breaks and other control characters become
+  spaces, and the value is cut with `…` at 200 characters. So it cannot close
+  its quote, start a new line or pass for one of the tool's own lines. Both
+  tool descriptions say how to treat those lines. `listtext.go` holds the
+  encoder for the other list tools. Golden-text tests cover full, minimal and
+  empty results, every truncation limit and hostile input. No new dependency.
 - **Discovery from a separate URL (`MIDPOINT_MCP_OIDC_DISCOVERY_URL`, unset by
   default).** A server that reaches the identity provider at another address
   than the issuer its tokens carry could not fetch the discovery document. This
