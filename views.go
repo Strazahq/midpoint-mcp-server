@@ -259,14 +259,13 @@ type serverInfo struct {
 
 // newServerInfo describes this deployment to views.
 func newServerInfo(cfg midpoint.Config) serverInfo {
+	_, reason := cfg.File.Requests.Justification()
 	return serverInfo{
 		WritesEnabled:      cfg.AllowWrites,
 		RequireRequestable: cfg.File.Requests.RequestableRequired(),
-		// requests.justificationItem does not exist yet; it arrives with the
-		// inbox data (PLAN.md M10.2).
-		RequestReason: false,
-		UIContract:    uiContractVersion,
-		Version:       version,
+		RequestReason:      reason,
+		UIContract:         uiContractVersion,
+		Version:            version,
 	}
 }
 

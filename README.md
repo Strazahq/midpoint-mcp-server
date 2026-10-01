@@ -100,6 +100,7 @@ unknown key is an error, so a typo can't silently keep the default).
 | `team.memberRelation` | `default` | relation local part marking plain membership, used when searching an org for members |
 | `team.orgOids` / `team.orgNames` | all | which of the caller's orgs count as "my team". Empty means all of them, so a user in several orgs gets everyone from all of them out of `list_my_teammates`. Names match case-insensitively |
 | `requests.requireRequestable` | `true` | refuse `request_role` for roles midPoint's catalog does not flag `requestable` |
+| `requests.justificationItem` | unset | qualified name, `{namespace}localName`, of the assignment extension item that holds a requester's reason. `list_work_items` and `get_case` read it from the assignment a request parks for approval and show it as text written by the requester; views say "No reason given" only when this is set. Unset means requests carry no reason |
 
 **On `credentialIsShared`.** Personal mode assumes the credentials *are* the
 person. When they're a shared service account — a gateway spawning the server

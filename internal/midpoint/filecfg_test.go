@@ -42,7 +42,10 @@ func TestLoadFileConfigParses(t *testing.T) {
 			"orgOids": ["o-1"],
 			"orgNames": ["Dev Ops"]
 		},
-		"requests": {"requireRequestable": false}
+		"requests": {
+			"requireRequestable": false,
+			"justificationItem": "{http://example.com/xml/ns/access-request}justification"
+		}
 	}`)
 
 	fc, err := LoadFileConfig()
@@ -59,6 +62,10 @@ func TestLoadFileConfigParses(t *testing.T) {
 	if fc.Requests.RequestableRequired() {
 		t.Error("requests.requireRequestable=false not read")
 	}
+	want := QName{Namespace: "http://example.com/xml/ns/access-request", Local: "justification"}
+	if q, ok := fc.Requests.Justification(); !ok || q != want {
+		t.Errorf("requests.justificationItem = %+v, %v; want %+v", q, ok, want)
+	}
 }
 
 // A named file that cannot be read or understood must fail loudly: silently
@@ -73,6 +80,13 @@ func TestLoadFileConfigRejectsBadInput(t *testing.T) {
 		{"prefixed relation", `{"team":{"managerRelation":"org:manager"}}`, "managerRelation"},
 		{"injected relation", `{"team":{"memberRelation":"default\" or name = \"admin"}}`, "memberRelation"},
 		{"unknown field", `{"team":{"orgSourc":"parentOrgRef"}}`, "MIDPOINT_MCP_CONFIG"},
+		{"justification without namespace", `{"requests":{"justificationItem":"justification"}}`, "requests.justificationItem"},
+		{"justification with empty namespace", `{"requests":{"justificationItem":"{}justification"}}`, "requests.justificationItem"},
+		{"justification without local name", `{"requests":{"justificationItem":"{urn:x}"}}`, "requests.justificationItem"},
+		{"justification unclosed", `{"requests":{"justificationItem":"{urn:x justification"}}`, "requests.justificationItem"},
+		{"justification prefixed", `{"requests":{"justificationItem":"{urn:x}ext:justification"}}`, "requests.justificationItem"},
+		{"justification with spaces", `{"requests":{"justificationItem":" {urn:x}justification"}}`, "requests.justificationItem"},
+		{"justification not a string", `{"requests":{"justificationItem":["{urn:x}a"]}}`, "MIDPOINT_MCP_CONFIG"},
 		{"malformed json", `{"team":`, "MIDPOINT_MCP_CONFIG"},
 	}
 	for _, tt := range tests {
@@ -159,5 +173,25 @@ func TestValidRelationLocal(t *testing.T) {
 		if got := validRelationLocal(s); got != want {
 			t.Errorf("validRelationLocal(%q) = %v, want %v", s, got, want)
 		}
+	}
+}
+
+func TestParseQName(t *testing.T) {
+	for in, want := range map[string]QName{
+		"{http://example.com/xml/ns/ext}reason": {"http://example.com/xml/ns/ext", "reason"},
+		"{urn:x}_why.2-a":                       {"urn:x", "_why.2-a"},
+	} {
+		if got, err := parseQName(in); err != nil || got != want {
+			t.Errorf("parseQName(%q) = %+v, %v; want %+v", in, got, err, want)
+		}
+	}
+	for _, in := range []string{"", "reason", "{}reason", "{urn:x}", "{urn:x}2nd", "{urn x}a", "{urn:{x}}a", "{urn:x}a b", "urn:x}a"} {
+		if _, err := parseQName(in); err == nil {
+			t.Errorf("parseQName(%q) accepted", in)
+		}
+	}
+	// Unset is no justification, not an error.
+	if _, ok := (RequestsConfig{}).Justification(); ok {
+		t.Error("an unset justificationItem reports one")
 	}
 }

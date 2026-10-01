@@ -77,11 +77,69 @@ type RequestsConfig struct {
 	// assignment-add into an approval case only where policy says so, and
 	// executes it immediately everywhere else.
 	RequireRequestable *bool `json:"requireRequestable"`
+	// JustificationItem is the qualified name, written {namespace}localName,
+	// of the assignment extension item that holds a requester's reason
+	// (docs/ui-contract.md 8.1, D5). Unset means requests carry no reason: the
+	// inbox shows none and does not say one is missing.
+	JustificationItem string `json:"justificationItem"`
 }
 
 // RequestableRequired resolves the tri-state pointer against its default.
 func (r RequestsConfig) RequestableRequired() bool {
 	return r.RequireRequestable == nil || *r.RequireRequestable
+}
+
+// Justification returns the configured justification item, and false when
+// none is set. The name was validated when the file was loaded.
+func (r RequestsConfig) Justification() (QName, bool) {
+	if r.JustificationItem == "" {
+		return QName{}, false
+	}
+	q, err := parseQName(r.JustificationItem)
+	return q, err == nil
+}
+
+// QName is a qualified XML name, such as an extension item's.
+type QName struct {
+	Namespace string
+	Local     string
+}
+
+// parseQName reads a qualified name written {namespace}localName, the
+// notation the settings file uses for extension items.
+func parseQName(s string) (QName, error) {
+	if !strings.HasPrefix(s, "{") {
+		return QName{}, fmt.Errorf("it must start with {namespace}")
+	}
+	end := strings.Index(s, "}")
+	if end < 0 {
+		return QName{}, fmt.Errorf("the namespace has no closing }")
+	}
+	ns, local := s[1:end], s[end+1:]
+	if ns == "" || strings.ContainsAny(ns, "{} \t\r\n") {
+		return QName{}, fmt.Errorf("the namespace must be a URI without spaces or braces")
+	}
+	if !validLocalName(local) {
+		return QName{}, fmt.Errorf("the local name %q must start with a letter or '_' and hold only letters, digits, '-', '_' and '.'", local)
+	}
+	return QName{Namespace: ns, Local: local}, nil
+}
+
+// validLocalName reports whether s is an XML local name in the ASCII range:
+// a letter or '_', then letters, digits, '-', '_' and '.'.
+func validLocalName(s string) bool {
+	if s == "" || !(isAsciiLetter(rune(s[0])) || s[0] == '_') {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		ch := s[i]
+		switch {
+		case isAsciiLetter(rune(ch)), ch >= '0' && ch <= '9', ch == '-', ch == '_', ch == '.':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // managerRelation / memberRelation resolve to their defaults when unset.
@@ -210,6 +268,11 @@ func (f FileConfig) validate() error {
 	} {
 		if rel != "" && !validRelationLocal(rel) {
 			return fmt.Errorf("%s %q is not a valid relation local part (letters, digits, '-' and '_')", field, rel)
+		}
+	}
+	if j := f.Requests.JustificationItem; j != "" {
+		if _, err := parseQName(j); err != nil {
+			return fmt.Errorf("requests.justificationItem %q is not a qualified name {namespace}localName: %w", j, err)
 		}
 	}
 	return nil
