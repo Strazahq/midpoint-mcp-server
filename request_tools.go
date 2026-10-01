@@ -173,15 +173,16 @@ func registerListWorkItems(server *mcp.Server, client *midpoint.Client, info ser
 		Name:  "list_work_items",
 		Title: "List work items",
 		Description: "List the authenticated user's approval inbox: open work items assigned to them. The result " +
-			"names whose inbox it is — in personal mode that is the server's configured account, not necessarily the caller.",
+			"names whose inbox it is — in personal mode that is the server's configured account, not necessarily the caller. " +
+			untrustedTextNote,
 	}, viewTool("list_work_items", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listWorkItemsOutput, error) {
 		res, err := client.ListWorkItems(ctx, in.Limit)
 		if err != nil {
 			return nil, listWorkItemsOutput{}, err
 		}
 		n := len(res.WorkItems)
-		return text(fmt.Sprintf("%d work item(s) in the approval inbox of %s.%s",
-				n, res.Subject.Name, subjectHint(res.Subject, n == 0))),
+		return text(workItemsText(fmt.Sprintf("%d work item(s) in the approval inbox of %s.%s",
+				n, res.Subject.Name, subjectHint(res.Subject, n == 0)), res.WorkItems)),
 			listWorkItemsOutput{Subject: res.Subject, WorkItems: res.WorkItems, Count: n}, nil
 	}))
 }
@@ -197,13 +198,13 @@ func registerGetCase(server *mcp.Server, client *midpoint.Client, info serverInf
 	addTool(server, &mcp.Tool{
 		Name:        "get_case",
 		Title:       "Get case",
-		Description: "Fetch an approval case by OID, including its work items.",
+		Description: "Fetch an approval case by OID, including its work items. " + untrustedTextNote,
 	}, viewTool("get_case", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, getCaseOutput, error) {
 		c, err := client.GetCase(ctx, in.OID)
 		if err != nil {
 			return nil, getCaseOutput{}, err
 		}
-		return text(fmt.Sprintf("Case %s: state=%s, %d work item(s).", c.OID, c.State, len(c.WorkItems))), getCaseOutput{CaseDetail: c}, nil
+		return text(caseText(fmt.Sprintf("Case %s: state=%s, %d work item(s).", c.OID, c.State, len(c.WorkItems)), c)), getCaseOutput{CaseDetail: c}, nil
 	}))
 }
 
