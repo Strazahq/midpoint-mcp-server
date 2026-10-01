@@ -8,6 +8,24 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **Stable error codes on every error result (contract S18).** Every tool
+  error result now carries `_meta["midpoint-mcp-server/error"]` =
+  `{"v": 1, "code": "…"}` with the codes of contract 6.8, so a view can tell
+  failures apart without matching their text. From midPoint:
+  `not-authorized` (401/403), `not-found` (404) and `midpoint-unavailable`
+  (5xx, or midPoint not reached). From this server's own checks:
+  `shared-credential`, `not-requestable`, `request-closed`,
+  `already-decided`, `not-in-inbox`, `not-assigned`, `audit-unavailable`
+  (`search_audit`'s script path only) and `invalid-input` (SDK argument
+  validation, an unknown decision). Anything else is `internal`. The text
+  is unchanged, byte for byte. Each code is read from the error itself,
+  through any wrapping, by a receiving middleware. A handler can't build the
+  error result itself without the SDK adding an empty `structuredContent`.
+  `invalid-field`, `invalid-validity` and `not-your-request` are defined and
+  arrive with their tools. JSON-RPC errors, such as an unknown tool, stay as
+  they were. Unit-tested end to end through an MCP session; a test checks
+  that each code agrees with the contract's text fallback for older views.
+  No new dependency.
 - **Complete, marked text for `list_work_items` and `get_case` (contract
   S13, S19).** An agent that reads only the text can now act on every item.
   The first line stays byte-identical, so anything that reads only that line
