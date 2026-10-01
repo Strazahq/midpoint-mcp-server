@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title></title>
+<style>
+/* My requests (docs/ui-contract.md 7.3).
+   Tokens are contract 6.9: midPoint's GUI palette, light and dark. */
+:root{
+  --mp-font-sans:var(--font-sans, "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  --mp-font-mono:var(--font-mono, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  --mp-canvas:#ffffff; --mp-canvas-subtle:#f4f6f9; --mp-stripe:#f9f9f9;
+  --mp-text:#495057; --mp-text-strong:#30353a; --mp-text-muted:#595959; --mp-label:#357da7; --mp-link:#206f9d;
+  --mp-border:#dee2e6; --mp-divider:#dddddd; --mp-control-border:#6c757d;
+  --mp-primary:#206f9d; --mp-on-primary:#ffffff; --mp-secondary:#627383;
+  --mp-success-fill:#198754; --mp-danger-fill:#dc3545; --mp-warning-fill:#ffc107; --mp-info-fill:#008099;
+  --mp-success-text:#198754; --mp-danger-text:#dc3545; --mp-warning-text:#856404;
+  --mp-success-panel:#d1e7dd; --mp-danger-panel:#f8d7da; --mp-warning-panel:#fff3cd; --mp-info-panel:#cce6eb;
+  --mp-focus:#ffa836; --mp-focus-inner:#30353a; --mp-on-dark-badge:#1f2d3d;
+  --mp-focus-shadow:0 0 0 2px var(--mp-canvas), 0 0 0 3px var(--mp-focus-inner);
+  --mp-scrim:rgb(22 28 34 / .5);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
+    --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
+    --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
+    --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+    --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+    --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
+  --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
+  --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
+  --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+  --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+  --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--mp-canvas);container-type:inline-size;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+.mp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+
+.mp{position:relative;display:grid;gap:12px;align-content:start;min-height:96px;padding:12px;
+  background:var(--mp-canvas);color:var(--mp-text);font-family:var(--mp-font-sans);font-size:14px;line-height:1.5;font-weight:400;min-width:0}
+.mp *{font-weight:inherit}
+.mp b,.mp strong{font-weight:700}
+.mp p{margin:0}
+.mp :focus{outline:none}
+.mp :focus-visible{outline:2px solid var(--mp-focus);outline-offset:3px;box-shadow:var(--mp-focus-shadow)}
+
+.mp-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 12px;padding-bottom:10px;border-bottom:1px solid var(--mp-divider)}
+.mp.is-full .mp-head{position:sticky;top:0;z-index:5;background:var(--mp-canvas);padding-top:12px;margin-top:-12px}
+.mp-head-main{display:grid;gap:4px;min-width:0;flex:1 1 260px}
+.mp-title{margin:0;font-size:16px;font-weight:700;line-height:1.3;color:var(--mp-text-strong)}
+.mp-ident{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;color:var(--mp-text)}
+.mp-ident-who{display:flex;align-items:flex-start;gap:6px;min-width:0}
+.mp-ident-who > svg{flex:none;margin-top:4px;color:var(--mp-text-muted)}
+.mp-head-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mp-help{flex-basis:100%;font-size:12px;color:var(--mp-text-muted);max-width:64ch}
+.mp-note{font-size:12px;color:var(--mp-text-muted)}
+.mp-note-row{display:flex;align-items:center;gap:6px}
+.mp-muted{color:var(--mp-text-muted);font-size:12px}
+.mp-label{font-size:12px;color:var(--mp-label)}
+.mp-section-title{margin:0;font-size:14px;font-weight:700;color:var(--mp-text-strong)}
+.mp-content{display:grid;gap:12px;min-width:0;transition:opacity .1s}
+.mp-content.is-busy{opacity:.45}
+.mp-foot{display:grid;gap:2px;padding-top:8px;border-top:1px solid var(--mp-divider);font-size:12px;color:var(--mp-text-muted)}
+
+.mp-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;padding:0 12px;border-radius:4px;border:1px solid transparent;
+  font-family:inherit;font-size:14px;line-height:1.2;white-space:nowrap;cursor:pointer;transition:background-color .1s,color .1s}
+.mp-btn--primary{background:var(--mp-primary);color:var(--mp-on-primary)}
+.mp-btn--secondary{background:var(--mp-secondary);color:var(--mp-on-primary)}
+.mp-btn--danger{background:var(--mp-danger-fill);color:var(--mp-on-primary)}
+.mp-btn--tool{min-height:28px;padding:0 10px;background:var(--mp-canvas);color:var(--mp-text-strong);border-color:var(--mp-control-border)}
+.mp-btn--link{min-height:24px;padding:0 2px;background:none;border:0;color:var(--mp-link);text-decoration:underline;text-underline-offset:2px;white-space:normal;text-align:left}
+.mp-open{gap:3px;font-size:12px;font-weight:400}
+.mp-btn--link > svg{transition:transform .1s}
+.mp-btn--link[aria-expanded="true"] > svg:first-child{transform:rotate(90deg)}
+.mp-btn--primary:hover:not(:disabled),.mp-btn--secondary:hover:not(:disabled),.mp-btn--danger:hover:not(:disabled){filter:brightness(.92)}
+.mp-btn--tool:hover:not(:disabled){background:var(--mp-canvas-subtle)}
+.mp-btn:disabled{opacity:.6;cursor:not-allowed}
+.mp-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+
+.mp-chip{display:inline-flex;align-items:center;gap:4px;min-height:20px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;
+  background:var(--mp-secondary);color:var(--mp-on-primary)}
+.mp-chip--success{background:var(--mp-success-fill)}
+.mp-chip--danger{background:var(--mp-danger-fill)}
+.mp-chip--warning{background:var(--mp-warning-fill);color:var(--mp-on-dark-badge)}
+.mp-chip--outline{background:transparent;color:var(--mp-text-strong);border:1px solid var(--mp-control-border);font-weight:400;white-space:normal}
+.mp-chip--meta{background:var(--mp-canvas-subtle);color:var(--mp-text-strong);border:1px solid var(--mp-border);font-weight:400}
+
+/* 6.4, D31: one neutral icon per kind; no archetype colours */
+.mp-disc{width:24px;height:24px;border-radius:50%;display:inline-grid;place-items:center;flex:none;background:var(--mp-canvas-subtle);color:var(--mp-text-muted);box-shadow:inset 0 0 0 1px var(--mp-border)}
+.mp-disc--sm{width:20px;height:20px}
+.mp-badge{display:inline-flex;align-items:center;gap:8px;min-width:0;vertical-align:middle}
+.mp-badge-text{display:grid;min-width:0;line-height:1.3}
+.mp-badge-name{color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-inline{display:inline-flex;align-items:center;gap:5px;vertical-align:middle;color:var(--mp-text-strong);flex-wrap:wrap}
+.mp-inline .mp-disc{width:20px;height:20px}
+.mp-status-note{font-size:12px;color:var(--mp-text-muted)}
+
+.mp-panel{display:grid;gap:4px;padding:10px 12px;border-radius:4px;color:var(--mp-text);min-width:0}
+.mp-panel--success{background:var(--mp-success-panel)}
+.mp-panel--danger{background:var(--mp-danger-panel)}
+.mp-panel--warning{background:var(--mp-warning-panel)}
+.mp-panel--info{background:var(--mp-info-panel)}
+.mp-panel-title{display:flex;align-items:flex-start;gap:6px;font-weight:700;color:var(--mp-text-strong)}
+.mp-panel-title svg{flex:none;margin-top:3px}
+.mp-panel--success .mp-panel-title svg{color:var(--mp-success-text)}
+.mp-panel--danger .mp-panel-title svg{color:var(--mp-danger-text)}
+.mp-panel--warning .mp-panel-title svg{color:var(--mp-warning-text)}
+.mp-panel--info .mp-panel-title svg{color:var(--mp-link)}
+.mp-panel .mp-muted{color:var(--mp-text)}
+.mp-banner{display:flex;align-items:flex-start;gap:8px;margin:0;padding:10px 12px;border-radius:4px;color:var(--mp-text-strong)}
+.mp-banner svg{flex:none;margin-top:3px}
+.mp-banner--info{background:var(--mp-info-panel)}
+.mp-banner--info svg{color:var(--mp-link)}
+.mp-banner--warning{background:var(--mp-warning-panel)}
+.mp-banner--warning svg{color:var(--mp-warning-text)}
+/* 6.9: on tinted surfaces the label and link blues fall under 4.5:1, so labels take --mp-text, links --mp-text-strong, underlined */
+.mp-panel .mp-label,.mp-card-head .mp-label,.mp-card-foot .mp-label{color:var(--mp-text)}
+.mp-panel .mp-btn--link,.mp-banner .mp-btn--link,.mp-quote .mp-btn--link,.mp-card-head .mp-btn--link,.mp-card-foot .mp-btn--link{color:var(--mp-text-strong);text-decoration:underline}
+.mp-details{display:grid;gap:4px;padding:8px 10px;border-radius:4px;background:var(--mp-canvas-subtle);font:12px/1.5 var(--mp-font-mono);color:var(--mp-text);white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.mp-details-lab{font-family:var(--mp-font-sans);font-weight:700;color:var(--mp-text-strong)}
+.mp-textblock{margin:0;padding:10px 12px;border:1px solid var(--mp-border);border-radius:4px;background:var(--mp-canvas-subtle);font:13px/1.5 var(--mp-font-mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--mp-text)}
+
+/* skeleton: no animation (6.10 allows only 100 ms opacity or colour transitions) */
+.mp-skel{display:block;height:12px;border-radius:4px;background:var(--mp-canvas-subtle)}
+.mp-skel-head{display:grid;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--mp-divider)}
+.mp-skel-row{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--mp-divider)}
+.mp-skel-row .mp-skel-disc{width:24px;height:24px;border-radius:50%}
+.mp-skel-lines{display:grid;gap:6px}
+
+.mp-field{display:grid;gap:4px;min-width:0}
+.mp-field label{font-size:14px;font-weight:700;color:var(--mp-text-strong);padding:0}
+.mp-textarea{width:100%;min-height:76px;padding:5px 8px;border:1px solid var(--mp-control-border);border-radius:4px;background:var(--mp-canvas);color:var(--mp-text-strong);font-family:inherit;font-size:14px;resize:vertical;line-height:1.45}
+.mp-textarea[aria-invalid="true"]{border-color:var(--mp-danger-text)}
+.mp-field-error{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--mp-danger-text)}
+.mp-field-foot{display:flex;justify-content:flex-end;gap:10px;align-items:flex-start;min-height:18px}
+.mp-counter{font-size:12px;color:var(--mp-text-muted)}
+
+.mp-rows{list-style:none;margin:0;padding:0;display:grid}
+.mp-rows>li{display:grid;gap:6px;padding:8px 0;border-bottom:1px solid var(--mp-divider);min-height:40px;min-width:0;align-content:center}
+.mp-rows>li:last-child{border-bottom:0}
+.mp-row-main{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;min-width:0}
+/* D33: clamped text is cut in script at a word boundary and ends with one "…" */
+.mp-clamp{overflow-wrap:anywhere}
+.mp-more{justify-self:start}
+
+.mp-summary{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--mp-text-strong)}
+.mp-summary svg{color:var(--mp-link)}
+.mp-cards{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.mp-card{display:grid;border:1px solid var(--mp-border);border-radius:8px;background:var(--mp-canvas);overflow:hidden;min-width:0}
+.mp-card-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding:10px 12px;background:var(--mp-canvas-subtle);border-bottom:1px solid var(--mp-border)}
+.mp-card-title{display:grid;gap:2px;min-width:0;flex:1 1 220px}
+.mp-card-title h2{margin:0;min-width:0}
+.mp-card-title .mp-badge-name{font-weight:700}
+.mp-card-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mp-card-body{display:grid;gap:10px;padding:12px;min-width:0}
+.mp-card-more{display:grid;gap:14px;padding:12px;border-top:1px solid var(--mp-border);min-width:0}
+.mp-card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;background:var(--mp-canvas-subtle);border-top:1px solid var(--mp-border)}
+.mp-card-foot .mp-actions{margin-left:auto}
+.mp-sub{display:grid;gap:6px;min-width:0}
+.mp-sub-title{margin:0;font-size:13px;font-weight:700;color:var(--mp-text-strong)}
+.mp-line{display:flex;align-items:flex-start;gap:8px;margin:0;color:var(--mp-text-strong)}
+.mp-line > svg{flex:none;margin-top:4px;color:var(--mp-text-muted)}
+.mp-lines{display:grid;gap:4px}
+.mp-about-text{color:var(--mp-text)}
+.mp-noreason{margin:0;color:var(--mp-text-muted);font-style:italic}
+.mp-quote{display:grid;gap:4px;margin:0;padding:8px 12px;border-left:3px solid var(--mp-border);background:var(--mp-canvas-subtle);border-radius:0 4px 4px 0}
+.mp-quote-lab{font-size:12px;color:var(--mp-text)}
+.mp-quote blockquote{margin:0;display:grid;gap:2px}
+.mp-quote-text{color:var(--mp-text-strong);white-space:pre-wrap;overflow-wrap:anywhere}
+.mp-outcome{display:grid;gap:8px}
+.mp-openline{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin:0;font-size:12px}
+.mp-openline .mp-label{color:var(--mp-text-muted)}
+.mp-timeline{list-style:none;margin:0;padding:0 0 0 12px;display:grid;gap:10px;border-left:2px solid var(--mp-border)}
+.mp-timeline li{display:grid;gap:4px}
+.mp-tl-head{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;color:var(--mp-text-strong)}
+.mp-tl-step{font-weight:700;color:var(--mp-text-strong)}
+@container (min-width:560px){
+  .mp{padding:16px}
+  .mp.is-full .mp-head{padding-top:16px;margin-top:-16px}
+  .mp-card-head,.mp-card-body,.mp-card-more,.mp-card-foot{padding-inline:16px}
+}
+
+/* dialog (6.5) */
+.mp-overlay{position:absolute;inset:0;z-index:10;padding:12px;background:var(--mp-scrim)}
+.mp-dialog{position:sticky;top:12px;display:grid;gap:12px;max-width:500px;margin-inline:auto;padding:16px;border-radius:8px;background:var(--mp-canvas);border:1px solid var(--mp-border);box-shadow:0 12px 32px rgb(0 0 0 / .28)}
+.mp-dialog h2{margin:0;font-size:16px;font-weight:700;color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-dialog-body{display:grid;gap:6px}
+.mp-dialog .mp-actions{justify-content:flex-end}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.mp{overflow:hidden}.mp-content{overflow:auto;min-height:0}.mp-row-meta{font-size:12px;color:var(--mp-text-muted)}.mp-group{display:grid;gap:8px}.mp-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;margin:0}.mp-kv dt{color:var(--mp-label)}.mp-kv dd{margin:0}.mp-panel .mp-kv dt{color:var(--mp-text)}.mp-tl-step{overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="mp" id="mp-root"></div>
+<div class="mp-sr" id="mp-polite" aria-live="polite"></div>
+<div class="mp-sr" id="mp-assertive" aria-live="assertive"></div>
+<script>
+(() => {
+'use strict';
+
+/* ================= string catalog (contract section 10) =================
+   Every English string of this view, keyed by its contract key. ICU-style:
+   {arg}, {n, plural, =2 {…} one {…} other {…}} with #, {v, select, a {…} other {…}}. */
+const CAT = {
+  "app.title.myRequests": "My requests",
+  "header.mode.personal": "midPoint sees everything here as {name}, this server's own account.",
+  "header.mode.personal.help": "This server signs in to midPoint with its configured account, so midPoint sees that account on every request, whoever is using the assistant.",
+  "header.sharedCredential": "This server signs in to midPoint with a shared account, {name}, so it can't show what's yours.",
+  "common.refresh": "Refresh",
+  "common.refreshing": "Refreshing…",
+  "common.asOf": "As of {time}",
+  "common.askAssistantToRefresh": "To update this view, ask the assistant to run it again.",
+  "common.readOnlyHost": "This app can show this view but not act from it. To make changes, ask the assistant.",
+  "common.expand": "Expand",
+  "common.collapse": "Exit full screen",
+  "common.cancel": "Cancel",
+  "common.showDetails": "Show technical details",
+  "common.hideDetails": "Hide technical details",
+  "common.showMore": "Show more",
+  "common.showLess": "Show less",
+  "common.andMore": "{count, plural, one {# more} other {# more}}",
+  "common.whatsThis": "What's this?",
+  "common.you": "you",
+  "common.personHidden": "a person you can't see in midPoint",
+  "common.personHiddenStart": "A person you can't see in midPoint",
+  "common.itemHidden": "an item you can't see in midPoint",
+  "common.request": "the request",
+  "common.inherited": "Comes with other access",
+  "common.inheritedVia": "Comes with {source}",
+  "common.detailsTool": "Tool: {tool}",
+  "common.redacted": "[address removed]",
+  "common.openInMidpoint": "Open in midPoint",
+  "common.openInMidpointLabel": "Open in midPoint: {name}",
+  "common.openInMidpointNote": "\"Open in midPoint\" opens midPoint's own pages. You may need to sign in there, and some pages need midPoint permissions you might not have.",
+  "state.slow": "Still waiting for midPoint…",
+  "state.cancelled": "This request was cancelled.",
+  "state.cancelledReason": "This request was cancelled: {reason}",
+  "state.versionMismatch": "This view doesn't match the server's version. The server's answer is shown as text below.",
+  "state.textOnly": "This answer can't be shown as a view. Here is the server's text.",
+  "dryrun.banner.title": "Preview only",
+  "dryrun.banner.body": "Changes are turned off on this server. Buttons show what would be sent to midPoint; nothing is changed.",
+  "dryrun.submit": "Show preview",
+  "dryrun.result.title": "Preview: nothing was changed",
+  "dryrun.details.request": "Request that would be sent",
+  "dryrun.details.summary": "Server summary: {summary}",
+  "strip.source": "Reported by {source}",
+  "strip.sourceUnnamed": "Reported by the connection between the assistant and midPoint",
+  "strip.held.title": "Waiting for approval",
+  "strip.held.body": "This action is waiting for approval by {approver}. It hasn't reached midPoint yet.",
+  "strip.held.bodyNoApprover": "This action is waiting for approval. It hasn't reached midPoint yet.",
+  "strip.denied.title": "Blocked",
+  "strip.denied.body": "This action was blocked before it reached midPoint.",
+  "strip.reason": "Reason: {reason}",
+  "strip.expires": "Expires {time}",
+  "strip.ref": "Reference: {ref}",
+  "confirm.row.role": "Role",
+  "confirm.row.for": "For",
+  "confirm.row.from": "From",
+  "confirm.row.request": "Request",
+  "confirm.row.validity": "How long",
+  "confirm.working": "Working…",
+  "confirm.withdraw.title": "Withdraw this request?",
+  "confirm.withdraw.body": "Your request for {role} for {user} will be closed in midPoint, and its open approval steps cancelled.",
+  "confirm.withdraw.bodySelf": "Your request for {role} will be closed in midPoint, and its open approval steps cancelled.",
+  "confirm.withdraw.submit": "Withdraw request",
+  "error.generic": "midPoint couldn't complete this.",
+  "error.sharedCredential": "This server signs in to midPoint with a shared account, so it can't answer for you personally. Ask your midPoint administrator to set up per-person sign-in.",
+  "error.notRequestable": "This role can't be requested: midPoint's catalog doesn't offer it for request.",
+  "error.invalidField": "Some request details are missing or not valid. Check the marked field.",
+  "error.invalidValidity": "The chosen dates aren't valid. Check how long the role should be valid and try again.",
+  "error.notInInbox": "This request is no longer waiting for your decision.",
+  "error.alreadyDecided": "This step of the request has already been decided.",
+  "error.requestClosed": "This request is already closed: it was decided or withdrawn.",
+  "error.notYourRequest": "Only the person who made a request can withdraw it.",
+  "error.notAssigned": "This role is no longer directly assigned to this person.",
+  "error.invalidInput": "The server rejected the request as incomplete or invalid.",
+  "error.notAuthorized": "midPoint says you aren't allowed to do this.",
+  "error.notFound": "midPoint couldn't find this item. It may have been deleted.",
+  "error.midpointUnavailable": "midPoint didn't answer. Try again in a moment.",
+  "error.hostRefused": "The assistant app didn't allow this action.",
+  "status.disabled": "Turned off, not in effect",
+  "status.archived": "Archived, not in effect",
+  "status.personDisabled": "Account turned off",
+  "status.case.waiting": "Waiting",
+  "status.case.approved": "Approved",
+  "status.case.rejected": "Rejected",
+  "status.case.closed": "Closed",
+  "status.case.withdrawn": "Withdrawn",
+  "time.justNow": "just now",
+  "time.minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
+  "time.hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
+  "time.daysAgo": "{count, plural, one {# day ago} other {# days ago}}",
+  "time.soon": "in less than a minute",
+  "time.inMinutes": "{count, plural, one {in # minute} other {in # minutes}}",
+  "time.inHours": "{count, plural, one {in # hour} other {in # hours}}",
+  "time.inDays": "{count, plural, one {in # day} other {in # days}}",
+  "time.todayAt": "today, {time}",
+  "time.tomorrowAt": "tomorrow, {time}",
+  "time.today": "today",
+  "time.tomorrow": "tomorrow",
+  "timeline.justification": "Your justification",
+  "timeline.stage": "Step {number}: {who}",
+  "timeline.stageNamed": "Step {number}, {name}: {who}",
+  "timeline.whoAll": "{count, plural, =2 {{names}, both needed} other {{names}, all needed}}",
+  "timeline.whoAny": "{names}, the first decision counts",
+  "timeline.step": "Step {number}",
+  "timeline.stepNamed": "Step {number}, {name}",
+  "timeline.decidedBy": "Decided by {name}",
+  "timeline.closedAt": "Closed {time}",
+  "timeline.comment": "Comment from {name}",
+  "myRequests.loading": "Loading your requests…",
+  "myRequests.group.open": "Waiting",
+  "myRequests.group.closed": "Finished",
+  "myRequests.row.forOther": "for {user}",
+  "myRequests.row.requested": "Requested {time}",
+  "myRequests.row.waitingFor": "Waiting for {names}",
+  "myRequests.row.closed": "Finished {time}",
+  "myRequests.action.details": "Details",
+  "myRequests.action.hideDetails": "Hide details",
+  "myRequests.action.showAll": "Show all my requests",
+  "myRequests.action.withdraw": "Withdraw",
+  "myRequests.action.previewWithdraw": "Preview withdrawal",
+  "myRequests.action.previewWithdrawLabel": "Preview withdrawal of your request for {role}",
+  "myRequests.action.withdrawLabel": "Withdraw your request for {role}",
+  "myRequests.outcome.withdrawn": "Request withdrawn. midPoint closed it.",
+  "myRequests.outcome.unconfirmed": "Sent to midPoint, but the request still shows as open. Refresh to check.",
+  "myRequests.empty": "You haven't made any requests.",
+  "myRequests.empty.personal": "These are the requests of {name}, the account this server signs in with.",
+  "validity.permanent": "No end date",
+  "validity.until": "Until {date}",
+  "validity.from": "From {date}",
+  "validity.fromUntil": "From {from} until {to}",
+  "validity.request.days": "Access for {count, plural, one {# day} other {# days}} (ends {date})",
+  "validity.request.fromDays": "Access from {from} for {count, plural, one {# day} other {# days}} (ends {to})",
+  "validity.request.fromNoEnd": "Access from {date}, no end date",
+  "validity.request.ended": "The requested end date has passed ({date})"
+};
+/* ================= constants ================= */
+/* The contract version this document implements; only MAJOR is compared with server.uiContract (contract 2). */
+const VIEW_CONTRACT = '1.0-draft.9';
+const APP_INFO = {name:'midpoint-my-requests', version:VIEW_CONTRACT};
+const PROTOCOL = '2026-01-26';
+const SLOW_MS = 8000;          /* 6.5: the one timer, for state.slow */
+const PAGE = 10;               /* 6.13: inline lists show 10, then 10 more */
+
+const ERR_KEY = 'midpoint-mcp-server/error';
+const SLOT_KEY = 'intermediary/decision';
+const NO_LONGER = ['error.notInInbox', 'error.alreadyDecided', 'error.requestClosed', 'error.notYourRequest', 'error.notAssigned'];
+
+const PARSED = new Map();
+function matchBrace(s, i){ let d = 0; for (let j = i; j < s.length; j++){ if (s[j] === '{') d++; else if (s[j] === '}' && --d === 0) return j; } return s.length - 1; }
+function parseMsg(src){
+  if (PARSED.has(src)) return PARSED.get(src);
+  const out = []; let i = 0, buf = '';
+  while (i < src.length){
+    if (src[i] === '{'){ if (buf){ out.push(buf); buf = ''; } const j = matchBrace(src, i); out.push(parseArg(src.slice(i + 1, j))); i = j + 1; }
+    else buf += src[i++];
+  }
+  if (buf) out.push(buf);
+  PARSED.set(src, out); return out;
+}
+function parseArg(inner){
+  const m = /^\s*(\w+)\s*,\s*(plural|select)\s*,([\s\S]*)$/.exec(inner);
+  if (!m) return {arg:inner.trim()};
+  const br = {}, s = m[3]; let i = 0;
+  while (i < s.length){
+    while (i < s.length && /\s/.test(s[i])) i++;
+    let k = ''; while (i < s.length && s[i] !== '{' && !/\s/.test(s[i])) k += s[i++];
+    while (i < s.length && s[i] !== '{') i++;
+    if (i >= s.length) break;
+    const j = matchBrace(s, i); br[k] = parseMsg(s.slice(i + 1, j)); i = j + 1;
+  }
+  return m[2] === 'plural' ? {plural:m[1], br} : {select:m[1], br};
+}
+function fill(tokens, p, n){
+  const out = [];
+  for (const tk of tokens){
+    if (typeof tk === 'string'){ out.push(n == null ? tk : tk.replace(/#/g, String(n))); continue; }
+    if (tk.arg){ const v = p[tk.arg]; out.push(v == null ? '' : v); continue; }
+    if (tk.select){ out.push(...fill(tk.br[String(p[tk.select])] || tk.br.other || [], p, n)); continue; }
+    const c = Number(p[tk.plural]);
+    out.push(...fill(tk.br['=' + c] || (c === 1 ? tk.br.one : null) || tk.br.other || [], p, c));
+  }
+  return out;
+}
+const msg = key => (key in CAT ? CAT[key] : key);
+/* t: catalog text as nodes (params may be nodes, e.g. a <time> or a name with its icon); ts: plain string */
+function t(key, p){
+  const f = document.createDocumentFragment();
+  for (const x of fill(parseMsg(msg(key)), p || {})) f.append(x instanceof Node ? x.cloneNode(true) : document.createTextNode(String(x)));
+  return f;
+}
+function ts(key, p){ return fill(parseMsg(msg(key)), p || {}).map(x => x instanceof Node ? x.textContent : String(x)).join(''); }
+
+/* ================= DOM: text-only insertion (contract 9) ================= */
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  if (attrs) for (const k in attrs){
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : String(v));
+  }
+  add(el, kids); return el;
+}
+function add(el, kids){ for (const k of kids.flat(Infinity)){ if (k == null || k === false || k === '') continue; el.append(k instanceof Node ? k : document.createTextNode(String(k))); } }
+
+/* ================= icons: own 16x16 glyphs and strokes (6.4) ================= */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const GLYPHS = {
+  user:'M8 1.8a3.1 3.1 0 1 1 0 6.2 3.1 3.1 0 0 1 0-6.2zM2.6 14.2c0-3 2.4-4.9 5.4-4.9s5.4 1.9 5.4 4.9z',
+  users:'M5.6 2.6a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM11.2 3.6a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM1 13.6c0-2.6 2.1-4.3 4.6-4.3s4.6 1.7 4.6 4.3zM11.2 13.6c0-1.6-.6-3-1.6-3.9.5-.2 1-.3 1.6-.3 2.1 0 3.8 1.4 3.8 3.5v.7z',
+  role:'M4.6 2.2h6.8l-.2 6.8H4.8zM4.72 6.4h6.56v1.1H4.72zM1.6 9.8h12.8v2.4H1.6z',
+  cloud:'M4.4 13.2a3.3 3.3 0 0 1-.5-6.6 4.4 4.4 0 0 1 8.5 1 2.8 2.8 0 0 1-.2 5.6z',
+  database:'M8 1.5c3 0 5.5.8 5.5 2s-2.5 2-5.5 2-5.5-.8-5.5-2 2.5-2 5.5-2zM2.5 5.2c1 .9 3.2 1.4 5.5 1.4s4.5-.5 5.5-1.4v3c0 1.1-2.5 2-5.5 2s-5.5-.9-5.5-2zM2.5 9.7c1 .9 3.2 1.4 5.5 1.4s4.5-.5 5.5-1.4v2.6c0 1.2-2.5 2.2-5.5 2.2s-5.5-1-5.5-2.2z',
+  inbox:'M3.6 2.5h8.8l2.1 6.6v4.4h-13V9.1zM4.7 3.9 3.3 8.4h3.3l.8 1.5h1.2l.8-1.5h3.3l-1.4-4.5z',
+  dot:'M8 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z'
+};
+const STROKES = {
+  refresh:'M13.2 8A5.2 5.2 0 1 1 11.6 4.3M13.2 2.6v3.1h-3.1',
+  expand:'M9.6 2.5h3.9v3.9M13.5 2.5 9.2 6.8M6.4 13.5H2.5V9.6M2.5 13.5l4.3-4.3',
+  collapse:'M13.5 2.5 9.4 6.6M9.4 3.2v3.4h3.4M2.5 13.5l4.1-4.1M6.6 12.8V9.4H3.2',
+  check:'M3.2 8.4l3 3 6.6-6.8',
+  x:'M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6',
+  clock:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM8 4.8V8l2.3 1.4',
+  ban:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM3.9 3.9l8.2 8.2',
+  alert:'M8 2.3l6.1 10.9H1.9zM8 6.6v3M8 11.3v.2',
+  info:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM8 7.3v4M8 5v.2',
+  chevron:'M6 3.8l4.2 4.2L6 12.2',
+  lock:'M4.2 7.2h7.6v6.3H4.2zM5.7 7.2V5.3a2.3 2.3 0 0 1 4.6 0v1.9',
+  layers:'M8 2.4l5.8 3-5.8 3-5.8-3zM2.2 8.2 8 11.2l5.8-3M2.2 10.9 8 13.9l5.8-3',
+  external:'M9.2 2.6h4.2v4.2M13.4 2.6 7.6 8.4M11.6 9.6v3.8H2.6V4.4h3.8',
+  hourglass:'M4 2.2h8M4 13.8h8M5.3 2.2v2.2L8 8l2.7-3.6V2.2M5.3 13.8v-2.2L8 8l2.7 3.6v2.2'
+};
+function svgEl(size){ const s = document.createElementNS(SVG_NS, 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.setAttribute('width', size); s.setAttribute('height', size); s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false'); return s; }
+function glyph(name, size){ const s = svgEl(size || 14), p = document.createElementNS(SVG_NS, 'path'); p.setAttribute('d', GLYPHS[name] || GLYPHS.dot); p.setAttribute('fill', 'currentColor'); p.setAttribute('fill-rule', 'evenodd'); s.append(p); return s; }
+function icon(name, size){ const s = svgEl(size || 14), p = document.createElementNS(SVG_NS, 'path'); p.setAttribute('d', STROKES[name]); p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'currentColor'); p.setAttribute('stroke-width', '1.7'); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round'); s.append(p); return s; }
+/* one neutral glyph per kind (D31); anything else a dot */
+const KIND_GLYPH = {User:'user', Role:'role', Org:'users', Service:'cloud', Resource:'database', Case:'inbox'};
+
+/* ================= shape checks: every message is untrusted (3.6) ================= */
+const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+const str = v => typeof v === 'string' ? v : '';
+const int = v => typeof v === 'number' && Number.isFinite(v) ? Math.trunc(v) : 0;
+const arr = v => Array.isArray(v) ? v : [];
+const pick = (v, allowed, dflt) => allowed.indexOf(v) >= 0 ? v : dflt;
+
+/* ObjectRef (4.5), with the extra members a person or a role may carry */
+function ref(v){
+  if (!isObj(v)) return {oid:'', type:'', name:'', displayName:'', readable:true, status:'', description:'', riskLevel:''};
+  return {oid:str(v.oid), type:str(v.type), name:str(v.name), displayName:str(v.displayName), readable:v.readable !== false,
+    status:str(v.status), description:str(v.description), riskLevel:str(v.riskLevel)};
+}
+/* D16: never an OID or a login next to a full name; a person the caller can't read is said in words */
+const isPerson = r => !r || !r.type || r.type === 'User';
+/* 4.5: an unreadable person is hidden; any other object keeps the name its reference carries */
+const hiddenRef = r => !r || (isPerson(r) && !r.readable) || (!r.displayName && !r.name);
+const dispName = r => hiddenRef(r) ? ts(isPerson(r) ? 'common.personHidden' : 'common.itemHidden') : (r.displayName || r.name);
+/* at the start of a sentence or a title (D33) */
+const dispNameStart = r => hiddenRef(r) && isPerson(r) ? ts('common.personHiddenStart') : dispName(r);
+
+function normActing(a){
+  if (!isObj(a)) return null;
+  return {oid:str(a.oid), name:str(a.name), fullName:str(a.fullName), mode:str(a.mode), sharedCredential:a.sharedCredential === true};
+}
+function normServer(s){
+  if (!isObj(s)) return null;
+  return {writesEnabled:s.writesEnabled !== false, requestReason:s.requestReason === true, uiContract:str(s.uiContract), gui:isObj(s.gui) ? s.gui : null};
+}
+function normValidity(v){
+  if (!isObj(v)) return null;
+  const from = str(v.validFrom), to = str(v.validTo);
+  return from || to ? {validFrom:from, validTo:to} : null;
+}
+const isOpen = c => c.state === 'open' || c.state === 'created';
+function normCase(sc){
+ if (!isObj(sc) || !str(sc.oid)) return null;
+ const workItems = arr(sc.workItems).filter(isObj).map(w => ({id:str(w.id), stage:int(w.stage),
+  assignees:arr(w.assignees).filter(isObj).map(ref), outcome:str(w.outcome), closedAt:str(w.closedAt),
+  performer:isObj(w.performer) ? ref(w.performer) : null, comment:str(w.comment)}));
+ return {oid:sc.oid,state:str(sc.state),outcome:str(sc.outcome),targetRef:ref(sc.targetRef || {type:'Role'}),
+  objectRef:ref(sc.objectRef),requestorRef:isObj(sc.requestorRef) ? ref(sc.requestorRef) : null,
+  requestedAt:str(sc.requestedAt),closedAt:str(sc.closedAt),validity:normValidity(sc.validity),
+  waitingFor:Array.isArray(sc.waitingFor) ? sc.waitingFor.filter(isObj).map(ref) : workItems.filter(w => !w.closedAt && !w.outcome).flatMap(w => w.assignees),
+  justification:str(sc.justification),workItems,
+  stages:arr(sc.stages).filter(isObj).map(s => ({number:int(s.number),name:str(s.name),strategy:str(s.strategy)})).filter(s => s.number > 0)};
+}
+function normList(sc){
+ if (!isObj(sc) || sc.tool !== 'list_my_requests' || !Array.isArray(sc.requests)) return null;
+ const acting=normActing(sc.acting),server=normServer(sc.server);
+ if (!acting || !server) return null;
+ return {acting,server,items:sc.requests.map(normCase).filter(Boolean).map(c => ({...c, requestorRef:c.requestorRef || ref({oid:acting.oid,type:'User'})}))};
+}
+function normWithdrawal(sc){
+ if (!isObj(sc) || sc.tool !== 'cancel_request' || !str(sc.caseOid) || !isObj(sc.withdrawal) || !['withdrawn','unconfirmed','preview'].includes(sc.withdrawal.outcome)) return null;
+ const w=sc.withdrawal;
+ return {caseOid:sc.caseOid,outcome:w.outcome,caseState:str(w.caseState),target:ref(w.target || {type:'Role'}),object:ref(w.object),
+  summary:str(sc.summary),method:str(sc.method),endpoint:str(sc.endpoint),body:sc.body,acting:normActing(sc.acting),server:normServer(sc.server)};
+}
+/* 5.3: the slot is valid as a whole or ignored; wrongly typed optional fields are dropped; control characters removed; truncated */
+function slotOf(res){
+  const s = isObj(res) && isObj(res._meta) ? res._meta[SLOT_KEY] : null;
+  if (!isObj(s) || s.v !== 1 || ['allowed', 'held', 'denied'].indexOf(s.decision) < 0 || typeof s.audited !== 'boolean') return null;
+  const clean = (x, n) => { if (typeof x !== 'string') return ''; x = x.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ''); return x.length > n ? x.slice(0, n - 1) + '…' : x; };
+  const out = {decision:s.decision};
+  const r = clean(s.reason, 500); if (r) out.reason = r;
+  if (isObj(s.approver)){ const n = clean(s.approver.name, 120); if (n) out.approver = n; }
+  const so = clean(s.source, 80); if (so) out.source = so;
+  const rf = clean(s.ref, 120); if (rf) out.ref = rf;
+  if (typeof s.expiresAt === 'string' && !isNaN(Date.parse(s.expiresAt))) out.expiresAt = s.expiresAt;
+  return out;
+}
+const blocked = slot => !!slot && slot.decision !== 'allowed';
+function textOf(res){ return arr(isObj(res) ? res.content : null).filter(c => isObj(c) && c.type === 'text' && typeof c.text === 'string').map(c => c.text).join('\n'); }
+const errOf = (res, tool) => ({tool, text:textOf(res), meta:isObj(res) && isObj(res._meta) ? res._meta : {}});
+const rpcErr = (tool, e) => ({tool, rpc:true, text:'JSON-RPC error' + (isObj(e) && typeof e.message === 'string' ? ': ' + e.message : '')});
+const major = v => String(v || '').split('.')[0];
+
+/* ================= state (in memory only; nothing outlives the frame, 3.6) ================= */
+const S = {
+ init:false,stopped:false,caps:{},ctx:{},entryTool:null,entryArgs:null,inputAt:0,phase:'wait',
+ cancelReason:'',entryError:null,entrySlot:null,entryText:'',acting:null,server:null,
+ items:null,caseMode:false,gen:0,asOf:0,listSig:'',rows:Object.create(null),det:Object.create(null),hist:Object.create(null),more:{},open:{},shown:PAGE,
+ notice:null,listPending:false,busy:false,busyAt:0,refreshNote:null,listSlot:null,
+ dialog:null,whoamiAsked:false,called:new Set(),withdrawn:new Set(),writeSigs:new Set(),active:0
+};
+const $root = document.getElementById('mp-root');
+const $polite = document.getElementById('mp-polite');
+const $assertive = document.getElementById('mp-assertive');
+
+/* ================= bridge: JSON-RPC 2.0 over postMessage (3.4) ================= */
+let rpcId = 0;
+const pending = new Map();
+function post(m){ window.parent.postMessage(m, '*'); }
+function request(method, params){ const id = ++rpcId; return new Promise(res => { pending.set(id, res); post({jsonrpc:'2.0', id, method, params}); }); }
+function notify(method, params){ post({jsonrpc:'2.0', method, params}); }
+const canCall = () => S.init && isObj(S.caps.serverTools);
+function callTool(name, args){
+  S.called.add(name); S.active++;
+  return request('tools/call', {name, arguments:args}).then(r => { S.active--; return r.error !== undefined ? {error:r.error} : isObj(r.result) ? {result:r.result} : {error:{message:'no result'}}; });
+}
+window.addEventListener('message', e => {
+  if (S.stopped || e.source !== window.parent) return;
+  const m = e.data;
+  if (!isObj(m) || m.jsonrpc !== '2.0') return;
+  if (typeof m.method !== 'string'){
+    if ((typeof m.id !== 'number' && typeof m.id !== 'string') || !pending.has(m.id)) return;
+    const done = pending.get(m.id); pending.delete(m.id);
+    done({result:m.result, error:isObj(m.error) ? m.error : undefined});
+    return;
+  }
+  const params = isObj(m.params) ? m.params : {};
+  if (m.id !== undefined && m.id !== null){
+    if (m.method === 'ui/resource-teardown'){
+      post({jsonrpc:'2.0', id:m.id, result:{}}); S.stopped=true; S.init=false;
+      clearTimeout(slowTimer); pending.clear(); sizeObserver.disconnect(); S.withdrawn.clear(); IDS.clear();
+      S.items=null; S.acting=null; S.server=null; S.hist=Object.create(null); S.rows=Object.create(null); S.dialog=null; S.notice=null;
+      $root.replaceChildren(); $polite.textContent=''; $assertive.textContent='';
+    }
+    else post({jsonrpc:'2.0', id:m.id, error:{code:-32601, message:'Method not found'}});
+    return;
+  }
+  switch (m.method){
+    case 'ui/notifications/tool-input': onToolInput(params); break;
+    case 'ui/notifications/tool-result': onToolResult(params); break;
+    case 'ui/notifications/tool-cancelled': onCancelled(params); break;
+    case 'ui/notifications/host-context-changed': mergeCtx(params); applyCtx(); render(); break;
+    default: break; /* tool-input-partial and anything else: ignored */
+  }
+});
+
+/* ================= host context (3.5, 6.9, 6.11, 6.13) ================= */
+const FONT_VALUE = /^[\w\s,"'.\-]{1,300}$/;
+function mergeCtx(c){
+  if (!isObj(c)) return;
+  const x = S.ctx;
+  if (c.theme === 'light' || c.theme === 'dark') x.theme = c.theme;
+  if (isObj(c.styles) && isObj(c.styles.variables)){
+    for (const k of ['--font-sans', '--font-mono']){ const v = c.styles.variables[k]; if (typeof v === 'string' && FONT_VALUE.test(v)) (x.fonts = x.fonts || {})[k] = v; }
+  }
+  if (typeof c.displayMode === 'string') x.displayMode = c.displayMode;
+  if (Array.isArray(c.availableDisplayModes)) x.modes = c.availableDisplayModes.filter(m => typeof m === 'string');
+  if (isObj(c.containerDimensions)) x.dimensions = {...(x.dimensions || {}), ...c.containerDimensions};
+  if (typeof c.locale === 'string') x.locale = c.locale;
+  if (typeof c.timeZone === 'string') x.timeZone = c.timeZone;
+  if (isObj(c.toolInfo) && isObj(c.toolInfo.tool) && typeof c.toolInfo.tool.name === 'string') x.toolName = c.toolInfo.tool.name;
+}
+function applyCtx(){
+  const de = document.documentElement;
+  if (S.ctx.theme) de.setAttribute('data-theme', S.ctx.theme); else de.removeAttribute('data-theme');
+  const dim = S.ctx.dimensions || {};
+  $root.style.height = Number.isFinite(dim.height) && dim.height > 0 ? Math.max(96,dim.height) + 'px' : '';
+  $root.style.maxHeight = !isFull() && Number.isFinite(dim.maxHeight) && dim.maxHeight >= 96 ? dim.maxHeight + 'px' : '';
+  for (const k in S.ctx.fonts || {}) de.style.setProperty(k, S.ctx.fonts[k]);
+}
+const isFull = () => S.ctx.displayMode === 'fullscreen';
+const canExpand = () => isFull() ? !S.ctx.modes || S.ctx.modes.indexOf('inline') >= 0 : !!S.ctx.modes && S.ctx.modes.indexOf('fullscreen') >= 0;
+
+/* ================= time (6.11) ================= */
+let FMT = null;
+function fmt(){
+  const loc = typeof S.ctx.locale === 'string' && /^en(-|$)/i.test(S.ctx.locale) ? S.ctx.locale : 'en-GB';
+  const tz = typeof S.ctx.timeZone === 'string' && S.ctx.timeZone ? S.ctx.timeZone : undefined;
+  const key = loc + '|' + (tz || '');
+  if (FMT && FMT.key === key) return FMT;
+  const build = (l, z) => ({key,
+    dt:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
+    date:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', timeZone:z}),
+    hm:new Intl.DateTimeFormat(l, {hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
+    zp:new Intl.DateTimeFormat('en-US', {timeZone:z, hourCycle:'h23', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'})});
+  try { FMT = build(loc, tz); } catch (e) { FMT = build('en-GB', undefined); }
+  return FMT;
+}
+const pad2 = n => String(n).padStart(2, '0');
+function ymdOf(ms){ const p = {}; fmt().zp.formatToParts(ms).forEach(x => { p[x.type] = x.value; }); return p.year + '-' + p.month + '-' + p.day; }
+function addDays(ymd, n){ const p = ymd.split('-').map(Number), d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + n)); return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()); }
+const dayNo = ymd => { const p = ymd.split('-').map(Number); return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 86400000); };
+const absTime = iso => { const d = Date.parse(iso); return isNaN(d) ? String(iso) : fmt().dt.format(d); };
+function dayWord(ms){ const d = ymdOf(ms), today = ymdOf(Date.now()); return d === today ? 'today' : d === addDays(today, 1) ? 'tomorrow' : null; }
+/* D33: today and tomorrow in words; any other day absolute */
+function smartTime(iso){ const d = Date.parse(iso); if (isNaN(d)) return String(iso); const w = dayWord(d); return w ? ts(w === 'today' ? 'time.todayAt' : 'time.tomorrowAt', {time:fmt().hm.format(d)}) : fmt().dt.format(d); }
+function smartDate(iso){ const d = Date.parse(iso); if (isNaN(d)) return String(iso); const w = dayWord(d); return w ? ts(w === 'today' ? 'time.today' : 'time.tomorrow') : fmt().date.format(d); }
+function relTime(iso){
+  const d = Date.parse(iso); if (isNaN(d)) return String(iso);
+  const diff = Date.now() - d, m = 60000, hr = 60 * m, day = 24 * hr;
+  if (diff >= 0){
+    if (diff < m) return ts('time.justNow');
+    if (diff < hr) return ts('time.minutesAgo', {count:Math.floor(diff / m)});
+    if (diff < day) return ts('time.hoursAgo', {count:Math.floor(diff / hr)});
+    if (diff <= 7 * day) return ts('time.daysAgo', {count:Math.floor(diff / day)});
+    return absTime(iso);
+  }
+  const ahead = -diff;
+  if (ahead < m) return ts('time.soon');
+  if (ahead < hr) return ts('time.inMinutes', {count:Math.floor(ahead / m)});
+  if (ahead < day) return ts('time.inHours', {count:Math.floor(ahead / hr)});
+  if (ahead <= 7 * day) return ts('time.inDays', {count:Math.floor(ahead / day)});
+  return absTime(iso);
+}
+/* every time is a <time>; the relative form shows the absolute one next to it, not only in a tooltip */
+function timeEl(iso, o){
+  o = o || {};
+  const ok = !isNaN(Date.parse(iso));
+  const el = h('time', {datetime:ok ? iso : null, title:ok ? absTime(iso) : null}, o.smart ? smartTime(iso) : relTime(iso));
+  if (o.withAbs && ok && relTime(iso) !== absTime(iso)) return h('span', null, el, ' (' + absTime(iso) + ')');
+  return el;
+}
+const dateEl = iso => { const ok = !isNaN(Date.parse(iso)); return h('time', {datetime:ok ? iso : null, title:ok ? fmt().date.format(Date.parse(iso)) : null}, smartDate(iso)); };
+
+/* requested access (4.5): always says something; N counts calendar days in the host zone */
+function requestValidity(v){
+  v = v || {};
+  const now = Date.now();
+  const to = v.validTo && !isNaN(Date.parse(v.validTo)) ? v.validTo : null;
+  const from = v.validFrom && Date.parse(v.validFrom) > now ? v.validFrom : null;
+  if (to && Date.parse(to) <= now) return t('validity.request.ended', {date:dateEl(to)});
+  if (!to) return from ? t('validity.request.fromNoEnd', {date:dateEl(from)}) : t('validity.permanent');
+  const end = dayNo(ymdOf(Date.parse(to)));
+  if (from) return t('validity.request.fromDays', {from:dateEl(from), to:dateEl(to), count:end - dayNo(ymdOf(Date.parse(from))) + 1});
+  return t('validity.request.days', {date:dateEl(to), count:Math.max(1, end - dayNo(ymdOf(now)))});
+}
+
+/* ================= small parts ================= */
+function disc(r, size){ const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : ''), 'aria-hidden':'true'}); el.append(glyph(KIND_GLYPH[r && r.type] || 'dot', 14)); return el; }
+function badge(r, o){
+  o = o || {};
+  return h('span', {class:'mp-badge'}, disc(r, o.size), h('span', {class:'mp-badge-text'}, h('span', {class:'mp-badge-name'}, o.nameNode || dispName(r))));
+}
+const personStatus = r => r && r.status === 'disabled' ? h('span', {class:'mp-status-note'}, t('status.personDisabled')) : null;
+/* a person inside a sentence: icon and name, no kind and no login (D15, D16) */
+const inlBadge = r => h('span', {class:'mp-inline'}, disc(r, 'sm'), h('span', null, dispName(r)), personStatus(r));
+const chip = (kind, ic, text) => h('span', {class:'mp-chip mp-chip--' + kind}, ic ? icon(ic, 12) : null, text);
+/* 6.4: risk chip only when riskLevel is set; danger fill for high and critical, the word carries the meaning */
+const line = (ic, node) => h('p', {class:'mp-line'}, ic, h('span', null, node));
+function slowNote(at){ return at && Date.now() - at >= SLOW_MS ? h('p', {class:'mp-note mp-note-row', role:'status'}, icon('clock', 12), t('state.slow')) : null; }
+function announce(text, assertive){
+  const r = assertive ? $assertive : $polite;
+  r.textContent = '';
+  requestAnimationFrame(() => { if(!S.stopped)r.textContent = text; });
+}
+/* card keys: caseOid and work item id; element ids come from a counter, never from data */
+const wk = it => it.oid;
+const IDS = new Map();
+const idOf = k => { if (!IDS.has(k)) IDS.set(k, 'k' + (IDS.size + 1)); return IDS.get(k); };
+
+/* ================= Open in midPoint (4.9): only with server.gui and hostCapabilities.openLinks ================= */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BASE_URL = /^https?:\/\/[^\s"'<>\\]+$/i;
+const PATH_TPL = /^\/[A-Za-z0-9\/_.~-]*\{oid\}[A-Za-z0-9\/_.~-]*$/;
+let LINKED = false;
+function gui(){
+  const g = S.server && S.server.gui;
+  if (!S.init || !isObj(S.caps.openLinks) || !g || typeof g.baseUrl !== 'string' || !BASE_URL.test(g.baseUrl) || !isObj(g.paths)) return null;
+  return g;
+}
+function openLink(oid, type, text){
+  const g = gui(), tpl = g && g.paths[type];
+  if (!g || typeof tpl !== 'string' || !PATH_TPL.test(tpl) || !UUID.test(oid)) return null;
+  LINKED = true;
+  const url = g.baseUrl.replace(/\/+$/, '') + tpl.replace('{oid}', oid); /* never shown as text; the host opens it */
+  return h('button', {type:'button', class:'mp-btn mp-btn--link mp-open', 'aria-label':ts('common.openInMidpointLabel', {name:text}),
+    onclick:() => { request('ui/open-link', {url}); }}, text, icon('external', 11));
+}
+
+/* ================= errors (6.8): by code first, then by text ================= */
+const ERR_CODES = {'shared-credential':'error.sharedCredential', 'not-requestable':'error.notRequestable', 'not-your-request':'error.notYourRequest',
+  'request-closed':'error.requestClosed', 'already-decided':'error.alreadyDecided', 'not-in-inbox':'error.notInInbox', 'not-assigned':'error.notAssigned',
+  'invalid-input':'error.invalidInput', 'invalid-field':'error.invalidField', 'invalid-validity':'error.invalidValidity',
+  'not-authorized':'error.notAuthorized', 'not-found':'error.notFound', 'midpoint-unavailable':'error.midpointUnavailable', internal:'error.generic'};
+const ERR_TEXT = [
+  [['shared/technical account'], 'error.sharedCredential'],
+  [['is not flagged requestable'], 'error.notRequestable'],
+  [['only the requester can withdraw'], 'error.notYourRequest'],
+  [[', not open,'], 'error.requestClosed'],
+  [['is already closed'], 'error.alreadyDecided'],
+  [['has no work item', 'is assigned to'], 'error.notInInbox'],
+  [['has no direct assignment to'], 'error.notAssigned'],
+  [['validating "arguments"', 'decision must be'], 'error.invalidInput'],
+  [['invalid request field'], 'error.invalidField'],
+  [['invalid validity'], 'error.invalidValidity'],
+  [['unexpected status 401', 'unexpected status 403'], 'error.notAuthorized'],
+  [['unexpected status 404'], 'error.notFound'],
+  [['unexpected status 5', 'calling midPoint'], 'error.midpointUnavailable']
+];
+function classify(err){
+  if (err.rpc) return 'error.hostRefused';
+  const m = err.meta[ERR_KEY];
+  if (isObj(m) && m.v === 1 && typeof m.code === 'string' && Object.hasOwn(ERR_CODES,m.code)) return ERR_CODES[m.code];
+  for (const x of ERR_TEXT) if (x[0].some(s => err.text.indexOf(s) >= 0)) return x[1];
+  return 'error.generic';
+}
+/* defence in depth for S14: any address left in raw text is replaced */
+const redact = text => String(text).replace(/https?:\/\/[^\s"']*/g, ts('common.redacted'));
+function disclosure(k, detailNodes){
+  const open = !!S.open[k], id = 'd-' + idOf(k);
+  const det = h('div', {class:'mp-details', id}, detailNodes); det.hidden = !open;
+  const btn = h('button', {type:'button', class:'mp-btn mp-btn--link', 'aria-expanded':String(open), 'aria-controls':id, 'data-k':k,
+    onclick:() => { S.open[k] = !S.open[k]; det.hidden = !S.open[k]; btn.setAttribute('aria-expanded', String(S.open[k])); btn.textContent = ts(S.open[k] ? 'common.hideDetails' : 'common.showDetails'); }},
+    t(open ? 'common.hideDetails' : 'common.showDetails'));
+  return [btn, det];
+}
+function errorBlock(err, k, refresh){
+  const [btn, det] = disclosure('err:' + k, [h('span', {class:'mp-details-lab'}, t('common.detailsTool', {tool:err.tool})), '\n', redact(err.text)]);
+  return h('div', {class:'mp-panel mp-panel--danger'},
+    h('p', {class:'mp-panel-title'}, icon('alert'), t(classify(err))),
+    h('div', {class:'mp-actions'}, btn, refresh && canCall() ? refreshButton('refresh2') : null), det);
+}
+
+/* ================= intermediary slot (5.5): held and denied only ================= */
+function slotPanel(slot){
+  const held = slot.decision === 'held';
+  return h('div', {class:'mp-panel mp-panel--' + (held ? 'warning' : 'danger'), role:'status'},
+    h('p', {class:'mp-panel-title'}, icon(held ? 'clock' : 'ban'), t(held ? 'strip.held.title' : 'strip.denied.title')),
+    h('p', null, held ? (slot.approver ? t('strip.held.body', {approver:slot.approver}) : t('strip.held.bodyNoApprover')) : t('strip.denied.body')),
+    slot.reason ? h('p', null, t('strip.reason', {reason:slot.reason})) : null,
+    held && slot.expiresAt ? h('p', null, t('strip.expires', {time:timeEl(slot.expiresAt, {withAbs:true})})) : null,
+    slot.ref ? h('p', {class:'mp-muted'}, t('strip.ref', {ref:slot.ref})) : null,
+    h('p', {class:'mp-muted'}, slot.source ? t('strip.source', {source:slot.source}) : t('strip.sourceUnnamed')));
+}
+
+/* ================= clamps (6.12, D33): cut at a word boundary with one "…", Show more / Show less ================= */
+function clampText(k, text, lines, cls){
+  const open = !!S.more[k];
+  const p = h('p', {class:'mp-clamp' + (cls ? ' ' + cls : ''), 'data-clamp':k, 'data-lines':String(lines)}, text);
+  p._full = String(text);
+  const b = h('button', {type:'button', class:'mp-btn mp-btn--link mp-more', 'data-k':'more:' + k, 'aria-expanded':String(open), hidden:true,
+    onclick:() => { S.more[k] = !S.more[k]; b.textContent = ts(S.more[k] ? 'common.showLess' : 'common.showMore'); b.setAttribute('aria-expanded', String(S.more[k])); fitClamp(p, S.more[k]); }},
+    t(open ? 'common.showLess' : 'common.showMore'));
+  b.dataset.for = k;
+  return [p, b];
+}
+function fitClamp(p, open){
+  const full = p._full, lines = +p.dataset.lines || 2;
+  p.textContent = full;
+  if (open || !p.clientWidth) return false;
+  const cs = getComputedStyle(p), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+  const max = lh * lines + 2;
+  if (p.scrollHeight <= max) return false;
+  const words = full.split(/\s+/);
+  const cut = n => words.slice(0, n).join(' ').replace(/[\s.,;:!?…–—-]+$/, '') + '…';
+  let lo = 1, hi = words.length - 1, best = 1;
+  while (lo <= hi){ const mid = (lo + hi) >> 1; p.textContent = cut(mid); if (p.scrollHeight <= max){ best = mid; lo = mid + 1; } else hi = mid - 1; }
+  p.textContent = cut(best);
+  return true;
+}
+function clampPass(){
+  $root.querySelectorAll('[data-clamp]').forEach(p => {
+    const k = p.getAttribute('data-clamp'), b = $root.querySelector('button[data-for="' + CSS.escape(k) + '"]');
+    const cut = fitClamp(p, !!S.more[k]);
+    if (b) b.hidden = !(cut || S.more[k]);
+  });
+}
+/* untrusted free text, quoted and attributed (4.1 rule 7, 9) */
+function quote(labelNode, text, k, lines){
+  return h('figure', {class:'mp-quote'}, h('figcaption', {class:'mp-quote-lab'}, labelNode), h('blockquote', null, clampText(k, text, lines, 'mp-quote-text')));
+}
+
+/* ================= header, banners, footer (6.1, 6.2, 6.6, 6.7) ================= */
+function refreshButton(k){
+  return h('button', {type:'button', class:'mp-btn mp-btn--tool', 'data-k':k || 'refresh', disabled:S.busy || null, onclick:doRefresh},
+    icon('refresh'), t(S.busy ? 'common.refreshing' : 'common.refresh'));
+}
+function headerEl(){
+  const a = S.acting;
+  let ident = null;
+  if (a && a.mode === 'personal'){
+    const open = !!S.open.modeHelp;
+    const help = h('p', {class:'mp-help', id:'mode-help'}, t('header.mode.personal.help')); help.hidden = !open;
+    const b = h('button', {type:'button', class:'mp-btn mp-btn--link', 'aria-expanded':String(open), 'aria-controls':'mode-help', 'data-k':'whats',
+      onclick:() => { S.open.modeHelp = !S.open.modeHelp; help.hidden = !S.open.modeHelp; b.setAttribute('aria-expanded', String(S.open.modeHelp)); }}, t('common.whatsThis'));
+    ident = h('div', {class:'mp-ident'}, h('span', {class:'mp-ident-who'}, icon('lock', 13), h('span', null, t('header.mode.personal', {name:a.fullName || a.name}))), b, help);
+  }
+  const actions = h('div', {class:'mp-head-actions'});
+  if (canCall()) actions.append(refreshButton());
+  if (canExpand()) actions.append(h('button', {type:'button', class:'mp-btn mp-btn--tool', 'data-k':'expand', onclick:toggleFull},
+    icon(isFull() ? 'collapse' : 'expand'), t(isFull() ? 'common.collapse' : 'common.expand')));
+  return h('header', {class:'mp-head'}, h('div', {class:'mp-head-main'}, h('h1', {class:'mp-title'}, t('app.title.myRequests')), ident), actions);
+}
+function bannersEl(){
+  const out = [];
+  if (S.acting && S.acting.sharedCredential) out.push(h('p', {class:'mp-banner mp-banner--warning', role:'note'}, icon('alert'), h('span', null, t('header.sharedCredential', {name:S.acting.fullName || S.acting.name}))));
+  /* at most one informational banner; read-only wins (6.1) */
+  if (!canCall()) out.push(h('p', {class:'mp-banner mp-banner--info', role:'note'}, icon('lock'), h('span', null, t('common.readOnlyHost'))));
+  else if (S.phase === 'loaded' && S.server && !S.server.writesEnabled) out.push(h('div', {class:'mp-panel mp-panel--info', role:'note'},
+    h('p', {class:'mp-panel-title'}, icon('info'), t('dryrun.banner.title')), h('p', null, t('dryrun.banner.body'))));
+  return out;
+}
+function footerEl(){
+  const at = S.asOf ? new Date(S.asOf).toISOString() : '';
+  return h('footer', {class:'mp-foot'},
+    at ? h('p', null, t('common.asOf', {time:h('time', {datetime:at}, absTime(at))})) : null,
+    LINKED ? h('p', null, t('common.openInMidpointNote')) : null,
+    canCall() ? null : h('p', null, t('common.askAssistantToRefresh')));
+}
+function skeletonEl(){
+  return [h('div', {class:'mp-skel-head', 'aria-hidden':'true'}, h('span', {class:'mp-skel', style:'width:34%;height:16px'}), h('span', {class:'mp-skel', style:'width:58%'})),
+    S.inputAt ? h('p', {class:'mp-note', role:'status'}, t('myRequests.loading')) : null,
+    slowNote(S.inputAt),
+    skeletonRows()];
+}
+const skeletonRows = () => h('div', {'aria-hidden':'true'}, [0, 1, 2].map(i => h('div', {class:'mp-skel-row'}, h('span', {class:'mp-skel mp-skel-disc'}),
+  h('span', {class:'mp-skel-lines'}, h('span', {class:'mp-skel', style:'width:' + (72 - i * 14) + '%'}), h('span', {class:'mp-skel', style:'width:' + (40 + i * 9) + '%;height:10px'})))));
+
+const outcomeText = row => t(row.key, row.p);
+function previewPanel(k, d){
+  const req = [h('span', {class:'mp-details-lab'}, t('dryrun.details.request')), '\n' + (d.method + ' ' + d.endpoint).trim() + (d.body !== undefined && d.body !== null ? '\n' + JSON.stringify(d.body, null, 2) : ''),
+    '\n\n', h('span', {class:'mp-details-lab'}, t('dryrun.details.summary', {summary:d.summary}))];
+  const [btn, det] = disclosure('pv:' + k, req);
+  return h('div', {class:'mp-panel mp-panel--info', role:'status', tabindex:'-1', 'data-k':'out:' + k},
+    h('p', {class:'mp-panel-title'}, icon('info'), t('dryrun.result.title')), summaryRows(d.target, d.object), h('div', {class:'mp-actions'}, btn), det);
+}
+function rowOutcome(k, row){
+  if (row.slot) return h('div', {tabindex:'-1', 'data-k':'out:' + k}, slotPanel(row.slot));
+  if (row.preview) return previewPanel(k, row.preview);
+  if (row.error) return h('div', {tabindex:'-1', 'data-k':'out:' + k}, errorBlock(row.error, k, row.refresh));
+  return h('div', {class:'mp-panel mp-panel--' + (row.tone || 'success'), role:'status', tabindex:'-1', 'data-k':'out:' + k},
+    h('p', {class:'mp-panel-title'}, icon(row.tone === 'warning' ? 'alert' : 'check'), outcomeText(row)));
+}
+const rowSay = row => row.slot ? ts(row.slot.decision === 'held' ? 'strip.held.title' : 'strip.denied.title')
+  : row.preview ? ts('dryrun.result.title') : row.error ? ts(classify(row.error)) : outcomeText(row).textContent;
+/* 6.14: after a write started in the view, the assistant gets the write tool's own text, nothing else */
+function modelContext(res){
+  if (!S.init || !isObj(S.caps.updateModelContext)) return;
+  const content = arr(res.content).filter(c => isObj(c) && c.type === 'text' && typeof c.text === 'string').map(c => ({type:'text', text:c.text}));
+  if (content.length) request('ui/update-model-context', {content});
+}
+
+/* Requester timeline: one heading per step; cancelled items have no decision attribution. */
+function names(refs, strategy, you){
+ const unique=new Map(); refs.forEach(r => {if (r.oid) unique.set(r.oid,r);});
+ const people=[...unique.values()], mine=you && people.some(r => r.oid === you);
+ const list=(mine ? [ts('common.you')] : []).concat(people.filter(r => r.oid !== you).map(dispName));
+ const shown=list.length>3 ? list.slice(0,3).concat(ts('common.andMore',{count:list.length-3})) : list;
+ const joined=new Intl.ListFormat('en',{style:'long',type:strategy === 'firstDecides' ? 'disjunction' : 'conjunction'}).format(shown);
+ if (list.length > 1 && strategy === 'allMustAgree') return ts('timeline.whoAll',{names:joined,count:list.length});
+ if (list.length > 1 && strategy === 'firstDecides') return ts('timeline.whoAny',{names:joined});
+ return joined;
+}
+function caseChip(c, withdrawn){
+ if (withdrawn) return chip('secondary','ban',t('status.case.withdrawn'));
+ if (isOpen(c)) return chip('outline','clock',t('status.case.waiting'));
+ if (c.outcome === 'approve') return chip('success','check',t('status.case.approved'));
+ if (c.outcome === 'reject') return chip('secondary','x',t('status.case.rejected'));
+ return chip('secondary','lock',t('status.case.closed'));
+}
+function timelineEl(c){
+ const steps=new Map(c.stages.map(s => [s.number,s]));
+ c.workItems.forEach(w => {if(w.stage>0 && !steps.has(w.stage)) steps.set(w.stage,{number:w.stage});});
+ return [c.justification ? quote(t('timeline.justification'),c.justification,'reason:'+c.oid,3) : null,
+  h('ol',{class:'mp-timeline'},[...steps.values()].sort((a,b)=>a.number-b.number).map(s=>{
+   const items=c.workItems.filter(w=>w.stage===s.number),who=names(items.flatMap(w=>w.assignees),s.strategy,S.acting && S.acting.oid);
+   const open=items.some(w=>!w.closedAt && !w.outcome),decided=items.filter(w=>w.closedAt && w.outcome && w.performer);
+   const outcome=items.some(w=>w.outcome==='reject') ? 'reject' : items.some(w=>w.outcome==='approve') ? 'approve' : '';
+   const p={number:s.number,name:s.name,who};
+   return h('li',null,h('div',{class:'mp-tl-head'},h('span',{class:'mp-tl-step'},t(who ? (s.name ? 'timeline.stageNamed':'timeline.stage') : (s.name ? 'timeline.stepNamed':'timeline.step'),p)),
+    items.length ? caseChip({state:open?'open':'closed',outcome},false) : null),
+    decided.map(w=>[h('p',null,t('timeline.decidedBy',{name:dispName(w.performer)})),h('p',{class:'mp-muted'},t('timeline.closedAt',{time:timeEl(w.closedAt,{withAbs:true})})),
+     w.comment ? quote(t('timeline.comment',{name:dispName(w.performer)}),w.comment,'comment:'+c.oid+':'+w.id,3):null]));
+  }))];
+}
+function historyEl(c){
+ const st=S.hist[c.oid];if(!st)return null;
+ if(st.state==='loading')return h('div',{'aria-busy':'true'},skeletonRows(),slowNote(st.at));
+ if(st.state==='error')return errorBlock(st.err,'hist:'+c.oid,false);
+ if(st.state==='slot')return slotPanel(st.slot);
+ return h('div',{class:'mp-group'},c.requestedAt ? h('p',{class:'mp-muted'},t('myRequests.row.requested',{time:timeEl(c.requestedAt,{withAbs:true})})):null,c.closedAt ? h('p',{class:'mp-muted'},t('myRequests.row.closed',{time:timeEl(c.closedAt,{withAbs:true})})):null,timelineEl(st.data));
+}
+function requestRow(c){
+ const k=c.oid, exp=!!S.det[k], row=S.rows[k],dry=S.server && !S.server.writesEnabled;
+ const id='details-'+idOf(k),actions=[];
+ if(canCall())actions.push(h('button',{type:'button',class:'mp-btn mp-btn--link','data-k':'det:'+k,'aria-expanded':String(exp),'aria-controls':id,onclick:()=>toggleDetails(c)},icon('chevron',12),t(exp?'myRequests.action.hideDetails':'myRequests.action.details')));
+ actions.push(openLink(c.oid,'Case',ts('common.openInMidpoint')));
+ if(canCall() && isOpen(c) && c.requestorRef && S.acting && c.requestorRef.oid===S.acting.oid){
+  actions.push(h('button',{type:'button',class:'mp-btn mp-btn--tool','data-k':'withdraw:'+k,
+   'aria-label':ts(dry?'myRequests.action.previewWithdrawLabel':'myRequests.action.withdrawLabel',{role:dispName(c.targetRef)}),
+   disabled:S.busy || (row && row.disabled) || S.withdrawn.has(k) || null,onclick:()=>openWithdraw(c)},t(dry?'myRequests.action.previewWithdraw':'myRequests.action.withdraw')));
+ }
+ const heading='row-'+idOf(k);
+ return h('article',{'aria-labelledby':heading,class:'mp-sub'},h('div',{class:'mp-row-main'},
+  h('h3',{class:'mp-section-title',id:heading},badge(c.targetRef)),caseChip(c,S.withdrawn.has(k))),
+  S.acting && c.objectRef.oid!==S.acting.oid ? h('p',{class:'mp-muted'},t('myRequests.row.forOther',{user:dispName(c.objectRef)})):null,
+  h('p',{class:'mp-row-meta'},c.requestedAt?t('myRequests.row.requested',{time:timeEl(c.requestedAt)}):null),
+  h('p',{class:'mp-row-meta'},requestValidity(c.validity)),
+  isOpen(c) ? (c.waitingFor.length ? h('p',{class:'mp-row-meta'},t('myRequests.row.waitingFor',{names:names(c.waitingFor)})):null)
+   : c.closedAt ? h('p',{class:'mp-row-meta'},t('myRequests.row.closed',{time:timeEl(c.closedAt)})):null,
+  openLink(c.targetRef.oid,c.targetRef.type,dispName(c.targetRef)),h('div',{class:'mp-actions'},actions),row?rowOutcome(k,row):null,
+  exp?h('div',{id,class:'mp-group'},historyEl(c)):null);
+}
+function requestsEl(){
+ const out=[];
+ if(S.notice)out.push(rowOutcome('notice',S.notice));
+ if(S.refreshNote)out.push(errorBlock(S.refreshNote,'refresh',false));
+ if(S.busy)out.push(slowNote(S.busyAt));
+ if(S.listSlot){out.push(slotPanel(S.listSlot));return out;}
+ if(!S.items){if(S.listPending)out.push(h('div',{'aria-busy':'true'},skeletonRows()));return out;}
+ if(S.caseMode){out.push(requestRow(S.items[0]));if(canCall())out.push(h('div',null,h('button',{type:'button',class:'mp-btn mp-btn--tool',disabled:S.busy||null,'data-k':'showall',onclick:doRefresh},t('myRequests.action.showAll'))));return out;}
+ if(!S.items.length){out.push(h('div',{class:'mp-panel mp-panel--info',role:'status'},h('p',null,t('myRequests.empty')),
+  S.acting && S.acting.mode==='personal'?h('p',null,t('myRequests.empty.personal',{name:S.acting.fullName||S.acting.name})):null));return out;}
+ const ms=s=>Date.parse(s)||0;
+ const waiting=S.items.filter(isOpen).sort((a,b)=>ms(b.requestedAt)-ms(a.requestedAt));
+ const closed=S.items.filter(c=>!isOpen(c)).sort((a,b)=>ms(b.closedAt||b.requestedAt)-ms(a.closedAt||a.requestedAt));
+ const all=waiting.concat(closed),shown=new Set((isFull()?all:all.slice(0,S.shown)).map(c=>c.oid));
+ for(const [key,list] of [['myRequests.group.open',waiting],['myRequests.group.closed',closed]]){
+  const visible=list.filter(c=>shown.has(c.oid)),id='group-'+idOf(key);
+  if(visible.length)out.push(h('section',{class:'mp-group','aria-labelledby':id},h('h2',{class:'mp-section-title',id},t(key)),h('ul',{class:'mp-rows'},visible.map(c=>h('li',null,requestRow(c))))));
+ }
+ if(shown.size<all.length)out.push(h('button',{type:'button',class:'mp-btn mp-btn--tool','data-k':'more-rows',onclick:()=>{S.shown+=PAGE;render({focus:'more-rows'});}},t('common.showMore')));
+ return out;
+}
+function contentEl(){
+ switch(S.phase){
+ case 'slot':return slotPanel(S.entrySlot);
+ case 'error':return errorBlock(S.entryError,'entry',false);
+ case 'cancelled':return h('p',{class:'mp-panel mp-panel--info',role:'status'},S.cancelReason?t('state.cancelledReason',{reason:S.cancelReason}):t('state.cancelled'));
+ case 'text':return [h('p',{class:'mp-note'},t('state.textOnly')),h('pre',{class:'mp-textblock'},S.entryText)];
+ default:return requestsEl();
+ }
+}
+function summaryRows(target,object,caseOid){
+ const link=caseOid && openLink(caseOid,'Case',ts('common.openInMidpoint'));
+ return h('dl',{class:'mp-kv'},h('dt',null,t('confirm.row.role')),h('dd',null,badge(target)),h('dt',null,t('confirm.row.for')),h('dd',null,badge(object)),
+  link?[h('dt',null,t('confirm.row.request')),h('dd',null,link)]:null);
+}
+function dialogEl(){
+ const d=S.dialog,c=d.it,dry=S.server && !S.server.writesEnabled;
+ const body=t(S.acting && c.objectRef.oid===S.acting.oid?'confirm.withdraw.bodySelf':'confirm.withdraw.body',{role:dispName(c.targetRef),user:dispName(c.objectRef)});
+ return h('div',{class:'mp-overlay'},h('div',{class:'mp-dialog',role:'dialog','aria-modal':'true','aria-labelledby':'dlg-t','aria-describedby':'dlg-d',tabindex:'-1','data-k':'dlg-box',onkeydown:dialogKeys},
+  h('h2',{id:'dlg-t'},t('confirm.withdraw.title')),h('p',{id:'dlg-d'},body),summaryRows(c.targetRef,c.objectRef,c.oid),d.working?slowNote(d.at):null,
+  h('div',{class:'mp-actions'},h('button',{type:'button',class:'mp-btn mp-btn--tool','data-k':'dlg-cancel',disabled:d.working||null,onclick:closeDialog},t('common.cancel')),
+   h('button',{type:'button',class:'mp-btn mp-btn--danger','data-k':'dlg-submit',disabled:d.working||null,onclick:submitDialog},t(d.working?'confirm.working':dry?'dryrun.submit':'confirm.withdraw.submit')))));
+}
+function dialogKeys(e){
+ const d=S.dialog;if(!d)return;
+ if(e.key==='Escape'){e.preventDefault();e.stopPropagation();if(!d.working)closeDialog();return;}
+ if(e.key!=='Tab')return;
+ const box=e.currentTarget,f=[...box.querySelectorAll('button:not([disabled])')],first=f[0],last=f[f.length-1];
+ if(!f.length){e.preventDefault();box.focus();return;}
+ if(e.shiftKey && (document.activeElement===first || document.activeElement===box)){e.preventDefault();last.focus();}
+ else if(!e.shiftKey && document.activeElement===last){e.preventDefault();first.focus();}
+}
+function openWithdraw(c){if(S.dialog || !canCall() || S.busy)return;S.notice=null;S.dialog={it:c,opener:'withdraw:'+c.oid,working:false,at:0};render({focus:'dlg-cancel'});}
+function closeDialog(){const d=S.dialog;if(!d || d.working)return;S.dialog=null;render({focus:d.opener});}
+function withdrawalRow(r){
+ if(r.error!==undefined)return {error:rpcErr('cancel_request',r.error)};
+ const res=r.result,slot=slotOf(res);if(blocked(slot))return {slot};
+ if(res.isError){const error=errOf(res,'cancel_request'),disabled=['error.requestClosed','error.notYourRequest'].includes(classify(error));return {error,disabled,refresh:disabled};}
+ const d=normWithdrawal(res.structuredContent);if(!d)return {error:errOf(res,'cancel_request')};
+ if(d.acting)S.acting=d.acting;if(d.server)S.server=d.server;
+ if(d.outcome==='preview')return {preview:d};
+ if(d.outcome==='withdrawn')S.withdrawn.add(d.caseOid);
+ return {key:d.outcome==='withdrawn'?'myRequests.outcome.withdrawn':'myRequests.outcome.unconfirmed',tone:d.outcome==='withdrawn'?'success':'warning'};
+}
+function submitDialog(){
+ const d=S.dialog;if(!d || d.working)return;
+ d.working=true;d.at=Date.now();render({focus:'dlg-box'});
+ callTool('cancel_request',{caseOid:d.it.oid}).then(r=>{
+  const row=withdrawalRow(r);S.dialog=null;
+  if(r.result)S.writeSigs.add(sig(r.result));
+  if(row.error)S.rows[d.it.oid]=row;else S.notice=row;
+  if(r.result && !row.error && !row.slot && !row.preview)modelContext(r.result);
+  render({focus:'out:'+(row.error?d.it.oid:'notice')});announce(rowSay(row),!!row.error);
+  if(!row.error && !row.slot && !row.preview)readList(false);
+ });
+}
+function doRefresh(){readList(true);}
+function readList(userRefresh){
+ if(S.busy || !canCall())return;
+ S.busy=true;S.listPending=true;S.busyAt=Date.now();if(userRefresh){S.notice=null;$polite.textContent='';$assertive.textContent='';}render();
+ callTool('list_my_requests',{limit:50}).then(r=>{S.busy=false;S.busyAt=0;onListAnswer(r);render();});
+}
+function onListAnswer(r){
+ S.listPending=false;
+ const fresh=S.phase!=='loaded';
+ const fail=err=>{if(fresh){S.phase='error';S.entryError=err;}else S.refreshNote=err;announce(ts(classify(err)),true);};
+ if(r.error!==undefined)return fail(rpcErr('list_my_requests',r.error));
+ const res=r.result,slot=slotOf(res);
+ if(blocked(slot)){if(fresh){S.phase='slot';S.entrySlot=slot;}else{S.listSlot=slot;S.refreshNote=null;}return;}
+ if(res.isError)return fail(errOf(res,'list_my_requests'));
+ const sc=res.structuredContent;
+ if(mismatch(sc)){S.phase='mismatch';S.entryText=textOf(res);return;}
+ const l=normList(sc);if(!l){S.phase='text';S.entryText=textOf(res);return;}
+ applySnapshot(l,sig(sc));
+}
+function applySnapshot(l,signature){
+ S.phase='loaded';S.caseMode=false;S.items=l.items;S.acting=l.acting;S.server=l.server;S.listSig=signature;
+ S.gen++;S.asOf=Date.now();S.rows=Object.create(null);S.det=Object.create(null);S.hist=Object.create(null);S.more={};S.shown=PAGE;S.refreshNote=null;S.listSlot=null;S.listPending=false;
+ if(S.dialog && !S.dialog.working){const same=S.items.find(c=>c.oid===S.dialog.it.oid);if(same && isOpen(same))S.dialog.it=same;else S.dialog=null;}
+}
+function toggleDetails(c){const k=c.oid;S.det[k]=!S.det[k];if(S.det[k] && !S.hist[k] && canCall())loadHistory(c);render({focus:'det:'+k});}
+function loadHistory(c){
+ const k=c.oid,gen=S.gen;S.hist[k]={state:'loading',at:Date.now()};
+ callTool('get_case',{oid:k}).then(r=>{
+  if(S.gen!==gen)return;
+  if(r.error!==undefined)S.hist[k]={state:'error',err:rpcErr('get_case',r.error)};
+  else{const res=r.result,slot=slotOf(res),sc=res.structuredContent,cs=sc && sc.tool==='get_case'?normCase(sc):null;
+   if(blocked(slot))S.hist[k]={state:'slot',slot};
+   else if(res.isError || !cs || cs.oid!==k)S.hist[k]={state:'error',err:errOf(res,'get_case')};
+   else if(mismatch(sc)){S.phase='mismatch';S.entryText=textOf(res);}
+   else {S.hist[k]={state:'done',data:cs};if(normActing(sc.acting))S.acting=normActing(sc.acting);if(normServer(sc.server))S.server=normServer(sc.server);}
+  }render();
+ });
+}
+function askWhoami(){
+ if(S.whoamiAsked || !canCall())return;S.whoamiAsked=true;
+ callTool('whoami',{}).then(r=>{const sc=r.result && !r.result.isError && !blocked(slotOf(r.result)) ? r.result.structuredContent:null;
+  if(!isObj(sc) || sc.tool!=='whoami')return;
+  if(!S.acting)S.acting=normActing(sc.acting);if(!S.server)S.server=normServer(sc.server);render();});
+}
+function toggleFull(){const mode=isFull()?'inline':'fullscreen';request('ui/request-display-mode',{mode}).then(r=>{if(isObj(r.result) && ['inline','fullscreen'].includes(r.result.mode)){S.ctx.displayMode=r.result.mode;render({focus:'expand'});}});}
+const sig=v=>{try{return JSON.stringify(v);}catch(e){return '';}};
+const mismatch=sc=>isObj(sc) && isObj(sc.server) && major(sc.server.uiContract)!==major(VIEW_CONTRACT);
+function onToolInput(p){if(S.entryArgs || S.called.size)return;S.entryArgs=isObj(p.arguments)?p.arguments:{};if(S.phase==='wait'){S.inputAt=Date.now();render();}}
+function onCancelled(p){if(S.phase!=='wait')return;S.phase='cancelled';S.cancelReason=str(p.reason).replace(/[\u0000-\u001f\u007f-\u009f]/g,' ').slice(0,300);S.asOf=Date.now();render();}
+function onToolResult(res){
+ if(!isObj(res))return;
+ const sc=isObj(res.structuredContent)?res.structuredContent:null,tool=sc && str(sc.tool);
+ if(S.phase==='wait')return applyEntry(res,sc,tool);
+ if(S.phase!=='loaded' || S.active || !sc || res.isError || blocked(slotOf(res)))return;
+ if(tool==='list_my_requests' && (S.entryTool===tool || S.called.has(tool)) && sig(sc)!==S.listSig){onListAnswer({result:res});render();}
+ /* get_case read responses belong only to the requested row; cancellation responses are handled by their own promise.
+    Repeated entry notifications therefore cannot duplicate a write, re-read, or outcome. */
+}
+function applyEntry(res,sc,tool){
+ S.entryTool=S.ctx.toolName || tool || (S.entryArgs && S.entryArgs.caseOid?'cancel_request':S.entryArgs && S.entryArgs.oid?'get_case':'list_my_requests');S.asOf=Date.now();
+ const slot=slotOf(res);
+ if(blocked(slot)){S.phase='slot';S.entrySlot=slot;askWhoami();return render();}
+ if(mismatch(sc)){S.phase='mismatch';S.entryText=textOf(res);return render();}
+ if(tool && tool!==S.entryTool)return;
+ if(sc){S.acting=normActing(sc.acting);S.server=normServer(sc.server);}
+ if(S.entryTool==='cancel_request'){
+  if(!res.isError && !normWithdrawal(sc)){S.phase='text';S.entryText=textOf(res);if(!S.acting)askWhoami();return render();}
+  S.phase='loaded';S.notice=withdrawalRow({result:res});S.writeSigs.add(sig(res));
+  if(!S.acting)askWhoami();render();if(canCall())readList(false);return;
+ }
+ if(res.isError){S.phase='error';S.entryError=errOf(res,S.entryTool);if(!S.acting)askWhoami();return render();}
+ if(S.entryTool==='get_case' && S.acting && S.server){
+  const c=normCase(sc);if(c){S.phase='loaded';S.items=[c];S.caseMode=true;S.det[c.oid]=true;S.hist[c.oid]={state:'done',data:c};return render();}
+ }
+ const l=normList(sc);
+ if(!l){S.phase='text';S.entryText=textOf(res);if(!S.acting)askWhoami();return render();}
+ applySnapshot(l,sig(sc));render();
+}
+/* ================= render: the whole view from state; focus kept by data-k ================= */
+let slowTimer = 0;
+function armSlow(){
+  /* 6.5: the one timer; it wakes when the oldest wait reaches 8 s, so state.slow can appear */
+  clearTimeout(slowTimer);
+  const now = Date.now(), starts = [];
+  if (S.phase === 'wait' && S.inputAt) starts.push(S.inputAt);
+  if (S.busy) starts.push(S.busyAt);
+  if (S.dialog && S.dialog.working) starts.push(S.dialog.at);
+  for (const k in S.hist) if (S.hist[k].state === 'loading' && S.det[k]) starts.push(S.hist[k].at);
+  const next = starts.map(a => a + SLOW_MS - now).filter(ms => ms > 0);
+  if (next.length) slowTimer = setTimeout(render, Math.min.apply(null, next) + 20);
+}
+function build(){
+  if (S.phase === 'mismatch') return [h('div', {class:'mp-panel mp-panel--info', role:'status'}, h('p', {class:'mp-panel-title'}, icon('info'), t('state.versionMismatch'))),
+    h('pre', {class:'mp-textblock'}, S.entryText)];
+  if (S.phase === 'wait') return [h('div', {'aria-busy':'true'}, skeletonEl())];
+  const content = h('main', {class:'mp-content' + (S.busy ? ' is-busy' : ''), 'aria-busy':S.busy || (S.listPending && !S.items) ? 'true' : null}, contentEl());
+  const parts = [headerEl(), bannersEl(), content, footerEl()].flat();
+  if (S.dialog) parts.forEach(el => el.setAttribute('inert', ''));
+  if (S.dialog) parts.push(dialogEl());
+  return parts;
+}
+function render(o){
+  if(S.stopped)return;
+  o = o || {};
+  const ae = document.activeElement, inside = ae && ae !== document.body && $root.contains(ae);
+  const keep = o.focus || (inside ? ae.getAttribute('data-k') : null);
+  const sel = !o.focus && inside && ae.tagName === 'TEXTAREA' ? [ae.selectionStart, ae.selectionEnd] : null;
+  LINKED = false; applyCtx();
+  $root.classList.toggle('is-full', isFull());
+  $root.style.minHeight = '';
+  $root.replaceChildren(...build());
+  if (keep){
+    const el = $root.querySelector('[data-k="' + CSS.escape(keep) + '"]');
+    if (el){
+      el.focus({preventScroll:!o.focus});
+      if (el.tagName === 'TEXTAREA'){ const n = el.value.length; try { el.setSelectionRange(sel ? sel[0] : n, sel ? sel[1] : n); } catch (e) { /* not focusable */ } }
+    }
+  }
+  if (S.dialog){ const box = $root.querySelector('.mp-dialog'); if (box) $root.style.minHeight = Math.max(360, box.offsetHeight + 24) + 'px'; }
+  clampPass();
+  armSlow();
+}
+
+/* ================= size (6.13): report content size, only on change ================= */
+let sizeQueued = false, lastW = -1, lastH = -1, lastRootW = -1;
+function reportSize(){
+  sizeQueued = false;
+  const rw = $root.clientWidth;
+  if (rw !== lastRootW){ lastRootW = rw; clampPass(); }
+  if (!S.init) return;
+  const w = Math.ceil(document.documentElement.clientWidth), hh = Math.ceil($root.getBoundingClientRect().height);
+  if (w === lastW && hh === lastH) return;
+  lastW = w; lastH = hh;
+  notify('ui/notifications/size-changed', {width:w, height:hh});
+}
+const sizeObserver = new ResizeObserver(() => { if (!sizeQueued){ sizeQueued = true; requestAnimationFrame(reportSize); } });
+sizeObserver.observe($root);
+
+/* ================= start (3.5) ================= */
+document.title = ts('app.title.myRequests');
+render();
+request('ui/initialize', {appInfo:APP_INFO, appCapabilities:{availableDisplayModes:['inline', 'fullscreen']}, protocolVersion:PROTOCOL}).then(r => {
+  const res = isObj(r.result) ? r.result : {};
+  S.caps = isObj(res.hostCapabilities) ? res.hostCapabilities : {};
+  mergeCtx(res.hostContext);
+  applyCtx();
+  S.init = true;
+  notify('ui/notifications/initialized', {});
+  render();
+  reportSize();
+});
+})();
+</script>
+</body>
+</html>

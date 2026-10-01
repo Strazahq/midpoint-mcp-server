@@ -1,0 +1,24 @@
+{
+  "about": "Requester scenario: not-your-request. Recorded case enriched by this server; second open approver item and bodyless cancellation modeled from the documented REST shapes (live verification pending).",
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001"
+    },
+    "name": "cancel_request"
+  },
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-your-request",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "refused: case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) was requested by dlee, not by bstone; only the requester can withdraw a request"
+      }
+    ],
+    "isError": true
+  }
+}

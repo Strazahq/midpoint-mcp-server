@@ -1,0 +1,91 @@
+{
+  "about": "Requester scenario: personal. Recorded case enriched by this server; second open approver item and bodyless cancellation modeled from the documented REST shapes (live verification pending).",
+  "call": {
+    "arguments": {},
+    "name": "list_my_requests"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "bstone has initiated 1 request(s).\n- \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000001 state=open target=db-admin targetOid=20000000-0000-0000-0000-0000000000f1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requested=2026-10-01T10:53:58.855Z validFrom=2026-10-02T00:00:00+02:00 validTo=2026-10-31T23:59:59+01:00 waitingFor=mkovac"
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Bob Stone",
+        "impersonated": false,
+        "mode": "personal",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "orgs": [
+          {
+            "manager": false,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "default",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "count": 1,
+      "requests": [
+        {
+          "change": "add",
+          "name": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
+          "object": "bstone",
+          "objectRef": {
+            "displayName": "Bob Stone",
+            "name": "bstone",
+            "oid": "10000000-0000-0000-0000-0000000000b1",
+            "type": "User"
+          },
+          "oid": "40000000-0000-0000-0000-000000000001",
+          "requestedAt": "2026-10-01T10:53:58.855Z",
+          "requestor": "bstone",
+          "stage": {
+            "count": 2,
+            "name": "Team leads",
+            "number": 1,
+            "strategy": "allMustAgree"
+          },
+          "state": "open",
+          "target": "db-admin",
+          "targetRef": {
+            "displayName": "Database admin",
+            "name": "db-admin",
+            "oid": "20000000-0000-0000-0000-0000000000f1",
+            "type": "Role"
+          },
+          "validity": {
+            "validFrom": "2026-10-02T00:00:00+02:00",
+            "validTo": "2026-10-31T23:59:59+01:00"
+          },
+          "waitingFor": [
+            {
+              "displayName": "Mia Kovac",
+              "name": "mkovac",
+              "oid": "10000000-0000-0000-0000-0000000000a2",
+              "type": "User"
+            }
+          ]
+        }
+      ],
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "personal",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1"
+      },
+      "tool": "list_my_requests"
+    }
+  }
+}

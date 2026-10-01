@@ -212,7 +212,7 @@ func TestUISessionToolLinkage(t *testing.T) {
 		"list_work_items":  inbox,
 		"decide_work_item": inbox,
 		// Their views aren't served yet: callable from views, but no link.
-		"list_requestable_roles": nil, "request_role": nil, "list_my_requests": nil, "get_case": nil,
+		"list_requestable_roles": nil, "request_role": nil, "list_my_requests": nil, "get_case": nil, "cancel_request": nil,
 		"get_user_assignments": nil, "unassign_role": nil, "list_my_team": nil,
 		"list_my_managers": nil, "whoami": nil,
 		// Every other tool is the agent's alone.
@@ -243,10 +243,9 @@ func TestUISessionToolLinkage(t *testing.T) {
 			t.Errorf("%s: expected in tools/list", name)
 		}
 	}
-	// The linkage tables name only real tools (cancel_request arrives with My
-	// requests).
+	// The linkage tables name only real tools.
 	for name := range toolViews {
-		if !seen[name] && name != "cancel_request" {
+		if !seen[name] {
 			t.Errorf("toolViews names unknown tool %s", name)
 		}
 	}
@@ -334,6 +333,7 @@ func TestViewResources(t *testing.T) {
 // viewTools are the tools a view renders or calls (contract 4.2): their
 // results lead with tool, acting and server.
 var viewTools = []string{
+	"cancel_request",
 	"decide_work_item", "get_case", "get_user_assignments", "list_my_managers", "list_my_requests",
 	"list_my_team", "list_requestable_roles", "list_work_items", "request_role", "unassign_role", "whoami",
 }
@@ -375,7 +375,7 @@ func TestViewToolsDeclareViewFields(t *testing.T) {
 		t.Errorf("tools with view fields = %v, want %v", got, viewTools)
 	}
 	for name := range toolViews {
-		if name != "cancel_request" && !slices.Contains(viewTools, name) {
+		if !slices.Contains(viewTools, name) {
 			t.Errorf("%s renders a view but its result lacks the view fields", name)
 		}
 	}
