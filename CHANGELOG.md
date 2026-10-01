@@ -8,6 +8,49 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- **Approval inbox data (PLAN.md M10.2; contract S4, S5, S8, S23, S25).**
+  `list_work_items` fills `workItems[].context` with what an approver needs
+  to decide:
+  - the change (add, delete, modify or unknown) from the case's parked delta;
+  - the requester, the requestee with status, and the target with
+    description and risk level;
+  - the requester's justification and the requested validity, both from the
+    parked assignment value;
+  - the requested, created and deadline times, and the step with its count,
+    name and strategy;
+  - why the item is in this inbox (`manager`, `roleApprover`, `roleOwner`
+    or `assigned`), the co-assignees and the step's other approvers;
+  - the requestee's roles in effect now, each induced one with the role it
+    comes through (`via`, from the membership's assignment-path metadata).
+
+  `get_case` names its requestee, target, requester, work-item assignees and
+  performers as display-ready references. It adds the change, times,
+  justification, validity, current step, `stages[]`, and per-item comments
+  and close times. `decide_work_item` reports `nextApprovers`, read back
+  after the decision (`[]` in a dry run). Every read is a plain GET by OID as
+  the caller, made at most once per call; no new grants. A failed read marks
+  the object `readable: false` and never fails the answer. The list reads
+  for at most its first 50 items. The stock Approver role sees only its own
+  work item in a case, so for such a caller the other approvers come from
+  the case's approval schema; approvers that midPoint picks by expression
+  (such as a manager) aren't listed there. Fired on midPoint 4.10.3 as a
+  person holding only the stock End user and Approver roles, and as a
+  manager:
+  - where the parked change, extension values and validity sit;
+  - the creation time in the case's value metadata;
+  - `approvalSchema/stage[]` (midPoint's enum value is `allMustApprove`,
+    reported as `allMustAgree`);
+  - delegated work items with several assignees;
+  - memberships' assignment-path metadata readable to approvers;
+  - `roleMembershipRef` already leaving out disabled and not-yet-valid
+    assignments.
+  Recorded answers, made neutral, are the unit-test fixtures. A read-only
+  live test sits behind the `integration` build tag. No new dependency.
+- **`requests.justificationItem` setting (contract 8.1).** The qualified
+  name `{namespace}localName` of the assignment extension item that holds a
+  requester's reason. A bad value is a startup error. When set, view results
+  report `server.requestReason: true`. README settings table and example
+  config updated.
 - **Stable error codes on every error result (contract S18).** Every tool
   error result now carries `_meta["midpoint-mcp-server/error"]` =
   `{"v": 1, "code": "…"}` with the codes of contract 6.8, so a view can tell
