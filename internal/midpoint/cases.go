@@ -176,8 +176,8 @@ func (c *Client) GetCase(ctx context.Context, oid string) (CaseDetail, error) {
 // RequestsResult is the caller's requests plus the identity they were resolved
 // for — an empty list means nothing without knowing whose it is.
 type RequestsResult struct {
-	Subject  Subject       `json:"subject"`
-	Requests []CaseSummary `json:"requests"`
+	Subject  Subject          `json:"subject"`
+	Requests []RequestSummary `json:"requests"`
 }
 
 // InboxResult is the caller's approval inbox plus the identity it belongs to.
@@ -192,19 +192,20 @@ func (c *Client) ListMyRequests(ctx context.Context, limit int) (RequestsResult,
 	if err != nil {
 		return RequestsResult{}, err
 	}
-	res := RequestsResult{Subject: subj, Requests: []CaseSummary{}}
+	res := RequestsResult{Subject: subj, Requests: []RequestSummary{}}
 
 	filter := fmt.Sprintf("requestorRef matches (oid = %s)", quoteQueryString(subj.OID))
 	raws, err := c.searchRawOpts(ctx, collCases, filter, limit, true)
 	if err != nil {
 		return RequestsResult{}, err
 	}
+	reader := newRefReader(c)
 	for _, raw := range raws {
 		var cj caseJSON
 		if err := json.Unmarshal(raw, &cj); err != nil {
 			return RequestsResult{}, fmt.Errorf("decoding case: %w", err)
 		}
-		res.Requests = append(res.Requests, cj.summary())
+		res.Requests = append(res.Requests, c.requestSummary(ctx, cj, reader))
 	}
 	return res, nil
 }

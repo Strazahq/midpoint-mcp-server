@@ -136,7 +136,13 @@ func TestListMyRequests(t *testing.T) {
 	}
 	// The search filter must scope to the authenticated requestor.
 	var sr searchRequest
-	if err := json.Unmarshal([]byte(lastRequest(t, reqs).body), &sr); err != nil {
+	var searchBody string
+	for _, req := range *reqs {
+		if req.path == "/ws/rest/cases/search" {
+			searchBody = req.body
+		}
+	}
+	if err := json.Unmarshal([]byte(searchBody), &sr); err != nil {
 		t.Fatalf("decoding search body: %v", err)
 	}
 	if sr.Query.Filter == nil || !strings.Contains(sr.Query.Filter.Text, `requestorRef matches (oid = "u-self")`) {

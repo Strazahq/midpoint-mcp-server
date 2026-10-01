@@ -1,0 +1,58 @@
+{
+  "about": "Requester scenario: whoami. Recorded case enriched by this server; second open approver item and bodyless cancellation modeled from the documented REST shapes (live verification pending).",
+  "call": {
+    "arguments": {},
+    "name": "whoami"
+  },
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Acting as \"bstone\" (oid 10000000-0000-0000-0000-0000000000b1), resource-server mode. Org links: dev-ops (member)."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Bob Stone",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "orgs": [
+          {
+            "manager": false,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "default",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "fullName": "Bob Stone",
+      "impersonated": true,
+      "mode": "resource-server",
+      "name": "bstone",
+      "oid": "10000000-0000-0000-0000-0000000000b1",
+      "orgs": [
+        {
+          "manager": false,
+          "name": "dev-ops",
+          "oid": "30000000-0000-0000-0000-000000000001",
+          "relation": "default",
+          "selected": true,
+          "source": "parentOrgRef"
+        }
+      ],
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "tool": "whoami"
+    }
+  }
+}

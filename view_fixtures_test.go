@@ -550,7 +550,8 @@ func TestWriteViewFixtures(t *testing.T) {
 	}
 	var stale []string
 	for _, e := range entries {
-		if filepath.Ext(e.Name()) == ".json" && !written[e.Name()] {
+		if filepath.Ext(e.Name()) == ".json" && !written[e.Name()] &&
+			!strings.HasPrefix(e.Name(), "my-requests.") && !strings.HasPrefix(e.Name(), "request-access.") && !strings.HasPrefix(e.Name(), "access-review.") {
 			stale = append(stale, e.Name())
 			_ = os.Remove(filepath.Join(viewFixtureDir, e.Name()))
 		}

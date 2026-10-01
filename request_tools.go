@@ -21,6 +21,7 @@ func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrit
 	registerListWorkItems(server, client, info)
 	registerGetCase(server, client, info)
 	registerDecideWorkItem(server, client, allowWrites, info)
+	registerCancelRequest(server, client, allowWrites, info)
 }
 
 // --- list_requestable_roles ---
@@ -136,9 +137,9 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 
 type listMyRequestsOutput struct {
 	viewFields
-	Subject  midpoint.Subject       `json:"subject" jsonschema:"the identity this answered for"`
-	Requests []midpoint.CaseSummary `json:"requests"`
-	Count    int                    `json:"count"`
+	Subject  midpoint.Subject          `json:"subject" jsonschema:"the identity this answered for"`
+	Requests []midpoint.RequestSummary `json:"requests"`
+	Count    int                       `json:"count"`
 }
 
 func registerListMyRequests(server *mcp.Server, client *midpoint.Client, info serverInfo) {
@@ -153,8 +154,8 @@ func registerListMyRequests(server *mcp.Server, client *midpoint.Client, info se
 			return nil, listMyRequestsOutput{}, err
 		}
 		n := len(res.Requests)
-		return text(fmt.Sprintf("%s has initiated %d request(s).%s",
-				res.Subject.Name, n, subjectHint(res.Subject, n == 0))),
+		return text(requestsText(fmt.Sprintf("%s has initiated %d request(s).%s",
+				res.Subject.Name, n, subjectHint(res.Subject, n == 0)), res.Requests)),
 			listMyRequestsOutput{Subject: res.Subject, Requests: res.Requests, Count: n}, nil
 	}))
 }

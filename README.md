@@ -333,6 +333,9 @@ and the approval actions respect the write gate):
 - `list_my_requests` — approval cases you initiated
 - `list_work_items` — your approval inbox
 - `get_case` — a case and its work items
+- `cancel_request` — withdraw your own open request (no comment). Checks requester
+  and state even in dry run, sends a bodyless REST cancel, and reads back closure.
+  midPoint must authorize the caller to cancel the case.
 - `decide_work_item` — approve or reject a work item in your inbox, with an
   optional comment. It first reads the case as you and refuses a work item that
   is not open or not assigned to you, then runs as you and reports the outcome

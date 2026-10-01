@@ -522,7 +522,10 @@ func nextApprovers(cj caseJSON, a approval, items []workItemJSON, selfOID string
 // 7.3): the case's references named, the request, the steps and every work
 // item with its people.
 func (c *Client) caseDetail(ctx context.Context, cj caseJSON) CaseDetail {
-	r := newRefReader(c)
+	return c.caseDetailWithReader(ctx, cj, newRefReader(c))
+}
+
+func (c *Client) caseDetailWithReader(ctx context.Context, cj caseJSON, r *refReader) CaseDetail {
 	a := cj.approval()
 	items := cj.items()
 	item, hasItem := c.cfg.File.Requests.Justification()

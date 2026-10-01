@@ -1,0 +1,24 @@
+{
+  "about": "Requester scenario: shared. Recorded case enriched by this server; second open approver item and bodyless cancellation modeled from the documented REST shapes (live verification pending).",
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000001"
+    },
+    "name": "cancel_request"
+  },
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "shared-credential",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "this server authenticates to midPoint with a shared/technical account and this request carries no caller identity, so a self-scoped answer would describe that account rather than you; use resource-server mode to pass the end user's identity, or set identity.credentialIsShared=false in MIDPOINT_MCP_CONFIG if the configured credentials really are one person's"
+      }
+    ],
+    "isError": true
+  }
+}
