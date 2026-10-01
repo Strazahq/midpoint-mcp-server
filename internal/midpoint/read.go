@@ -162,7 +162,7 @@ func (c *Client) ListRequestableRolesFor(ctx context.Context, targetOID string, 
 // executes it immediately everywhere else, so without this check "request" is an
 // unrestricted grant path wearing a reassuring name.
 func (c *Client) EnsureRequestable(ctx context.Context, roleOID string) error {
-	if !c.cfg.File.Requests.requireRequestable() {
+	if !c.cfg.File.Requests.RequestableRequired() {
 		return nil
 	}
 	var r roleJSON

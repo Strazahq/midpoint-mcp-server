@@ -75,7 +75,7 @@ func serveHTTP(addr string, client *midpoint.Client, cfg midpoint.Config) error 
 			// Worth a line at startup: it is the only unauthenticated surface
 			// this server ever exposes, and an operator should see it announced
 			// rather than discover it from behaviour.
-			mode += "; anonymous discovery ON (handshake + tools/list need no token)"
+			mode += "; anonymous discovery ON (handshake, tools/list and view templates need no token)"
 		}
 	}
 	log.Printf("%s %s serving on http://%s/mcp (midPoint: %s; writes: %s; %s)",

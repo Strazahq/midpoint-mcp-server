@@ -11,13 +11,16 @@ import (
 
 // registerRequestTools installs the M3 requests & approvals tools. The mutating
 // ones (request_role, decide_work_item) respect the write gate.
-func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
-	registerListRequestableRoles(server, client)
-	registerRequestRole(server, client, allowWrites)
-	registerListMyRequests(server, client)
-	registerListWorkItems(server, client)
-	registerGetCase(server, client)
-	registerDecideWorkItem(server, client, allowWrites)
+//
+// Every tool here is one a view renders or calls, so each result carries
+// viewFields.
+func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
+	registerListRequestableRoles(server, client, info)
+	registerRequestRole(server, client, allowWrites, info)
+	registerListMyRequests(server, client, info)
+	registerListWorkItems(server, client, info)
+	registerGetCase(server, client, info)
+	registerDecideWorkItem(server, client, allowWrites, info)
 }
 
 // --- list_requestable_roles ---
@@ -28,20 +31,21 @@ type listRequestableRolesInput struct {
 }
 
 type listRequestableRolesOutput struct {
+	viewFields
 	Roles   []midpoint.RoleSummary `json:"roles"`
 	Count   int                    `json:"count"`
 	ForUser string                 `json:"forUser,omitempty"`
 }
 
-func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:  "list_requestable_roles",
 		Title: "List requestable roles",
 		Description: "List requestable roles (self-service, or for a report via forUser): roles flagged " +
 			"requestable in midPoint's catalog, filtered to what the caller is authorized to see. With forUser, " +
 			"returns roles that report does not already hold. Pair with request_role (which accepts the same target " +
 			"user) to submit one, then list_my_requests / list_work_items to track approval.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in listRequestableRolesInput) (*mcp.CallToolResult, listRequestableRolesOutput, error) {
+	}, viewTool("list_requestable_roles", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in listRequestableRolesInput) (*mcp.CallToolResult, listRequestableRolesOutput, error) {
 		target := strings.TrimSpace(in.ForUser)
 		roles, err := client.ListRequestableRolesFor(ctx, target, in.Limit)
 		if err != nil {
@@ -52,7 +56,7 @@ func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client) {
 			msg = fmt.Sprintf("Found %d role(s) you can request for user %s.", len(roles), target)
 		}
 		return text(msg), listRequestableRolesOutput{Roles: roles, Count: len(roles), ForUser: target}, nil
-	})
+	}))
 }
 
 // --- request_role ---
@@ -62,8 +66,8 @@ type requestRoleInput struct {
 	UserOID string `json:"userOid,omitempty" jsonschema:"OID of the user the role is for; defaults to the authenticated user (self-service)"`
 }
 
-func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
-	mcp.AddTool(server, &mcp.Tool{
+func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:  "request_role",
 		Title: "Request role",
 		Description: "Request a role for yourself or a report. Submits an assignment-add delta; midPoint policy " +
@@ -71,72 +75,79 @@ func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrite
 			"that midPoint's catalog does not flag requestable (see list_requestable_roles), because for those it " +
 			"would grant rather than request. Use assign_role for a deliberate grant. The requester is always the " +
 			"authenticated user. Respects the write gate.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in requestRoleInput) (*mcp.CallToolResult, writeOutput, error) {
-		target := strings.TrimSpace(in.UserOID)
-		if target == "" {
-			self, err := client.Self(ctx)
-			if err != nil {
-				return nil, writeOutput{}, fmt.Errorf("resolving self: %w", err)
-			}
-			target = self.OID
-		}
+	}, viewTool("request_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in requestRoleInput) (*mcp.CallToolResult, viewWriteOutput, error) {
+		res, out, err := requestRole(ctx, client, allowWrites, in)
+		return res, viewWriteOutput{writeOutput: out}, err
+	}))
+}
 
-		// Checked before the dry-run preview too: a preview that says "would
-		// request" for a role that would in fact be granted is the same lie.
-		if err := client.EnsureRequestable(ctx, in.RoleOID); err != nil {
-			return nil, writeOutput{}, err
-		}
-
-		plan, err := client.PlanRequestRole(target, in.RoleOID)
+// requestRole is request_role's handler, apart from the view fields.
+func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool, in requestRoleInput) (*mcp.CallToolResult, writeOutput, error) {
+	target := strings.TrimSpace(in.UserOID)
+	if target == "" {
+		self, err := client.Self(ctx)
 		if err != nil {
-			return nil, writeOutput{}, err
+			return nil, writeOutput{}, fmt.Errorf("resolving self: %w", err)
 		}
-		if !allowWrites {
-			res, out := previewWrite(plan)
-			return res, out, nil
-		}
+		target = self.OID
+	}
 
-		applied, err := client.Apply(ctx, plan)
-		if err != nil {
-			return nil, writeOutput{}, err
-		}
-		out := writeOutput{
-			Applied:  true,
-			Summary:  plan.Summary,
-			Method:   plan.Method,
-			Endpoint: plan.Endpoint(),
-			Body:     plan.Body,
-		}
-		// Best-effort: surface the approval case, if policy created one. This is
-		// robust to whether midPoint signals approval via status code.
-		if caseOID := client.FindRequestCase(ctx, target, in.RoleOID); caseOID != "" {
-			out.Result = "pending approval; caseOid=" + caseOID
-			return text(fmt.Sprintf("Requested role %s for %s — pending approval (case %s).", in.RoleOID, target, caseOID)), out, nil
-		}
-		// No case means midPoint applied the assignment then and there. Say so
-		// plainly: the caller asked to request access and instead received it,
-		// and a hedge like "likely executed directly" leaves that ambiguous.
-		out.Result = fmt.Sprintf("GRANTED directly — no approval case was created (status=%d)", applied.StatusCode)
-		return text(fmt.Sprintf("Role %s was GRANTED to %s immediately: midPoint applied the assignment and no "+
-			"approval policy matched, so this was not a request. (status=%d)", in.RoleOID, target, applied.StatusCode)), out, nil
-	})
+	// Checked before the dry-run preview too: a preview that says "would
+	// request" for a role that would in fact be granted is the same lie.
+	if err := client.EnsureRequestable(ctx, in.RoleOID); err != nil {
+		return nil, writeOutput{}, err
+	}
+
+	plan, err := client.PlanRequestRole(target, in.RoleOID)
+	if err != nil {
+		return nil, writeOutput{}, err
+	}
+	if !allowWrites {
+		res, out := previewWrite(plan)
+		return res, out, nil
+	}
+
+	applied, err := client.Apply(ctx, plan)
+	if err != nil {
+		return nil, writeOutput{}, err
+	}
+	out := writeOutput{
+		Applied:  true,
+		Summary:  plan.Summary,
+		Method:   plan.Method,
+		Endpoint: plan.Endpoint(),
+		Body:     plan.Body,
+	}
+	// Best-effort: surface the approval case, if policy created one. This is
+	// robust to whether midPoint signals approval via status code.
+	if caseOID := client.FindRequestCase(ctx, target, in.RoleOID); caseOID != "" {
+		out.Result = "pending approval; caseOid=" + caseOID
+		return text(fmt.Sprintf("Requested role %s for %s — pending approval (case %s).", in.RoleOID, target, caseOID)), out, nil
+	}
+	// No case means midPoint applied the assignment then and there. Say so
+	// plainly: the caller asked to request access and instead received it,
+	// and a hedge like "likely executed directly" leaves that ambiguous.
+	out.Result = fmt.Sprintf("GRANTED directly — no approval case was created (status=%d)", applied.StatusCode)
+	return text(fmt.Sprintf("Role %s was GRANTED to %s immediately: midPoint applied the assignment and no "+
+		"approval policy matched, so this was not a request. (status=%d)", in.RoleOID, target, applied.StatusCode)), out, nil
 }
 
 // --- list_my_requests ---
 
 type listMyRequestsOutput struct {
+	viewFields
 	Subject  midpoint.Subject       `json:"subject" jsonschema:"the identity this answered for"`
 	Requests []midpoint.CaseSummary `json:"requests"`
 	Count    int                    `json:"count"`
 }
 
-func registerListMyRequests(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+func registerListMyRequests(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:  "list_my_requests",
 		Title: "List my requests",
 		Description: "List approval cases the authenticated user initiated. The result names the identity it " +
 			"answered for — in personal mode that is the server's configured account, not necessarily the caller.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listMyRequestsOutput, error) {
+	}, viewTool("list_my_requests", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listMyRequestsOutput, error) {
 		res, err := client.ListMyRequests(ctx, in.Limit)
 		if err != nil {
 			return nil, listMyRequestsOutput{}, err
@@ -145,24 +156,25 @@ func registerListMyRequests(server *mcp.Server, client *midpoint.Client) {
 		return text(fmt.Sprintf("%s has initiated %d request(s).%s",
 				res.Subject.Name, n, subjectHint(res.Subject, n == 0))),
 			listMyRequestsOutput{Subject: res.Subject, Requests: res.Requests, Count: n}, nil
-	})
+	}))
 }
 
 // --- list_work_items ---
 
 type listWorkItemsOutput struct {
+	viewFields
 	Subject   midpoint.Subject    `json:"subject" jsonschema:"the identity whose inbox this is"`
 	WorkItems []midpoint.WorkItem `json:"workItems"`
 	Count     int                 `json:"count"`
 }
 
-func registerListWorkItems(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+func registerListWorkItems(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:  "list_work_items",
 		Title: "List work items",
 		Description: "List the authenticated user's approval inbox: open work items assigned to them. The result " +
 			"names whose inbox it is — in personal mode that is the server's configured account, not necessarily the caller.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listWorkItemsOutput, error) {
+	}, viewTool("list_work_items", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listWorkItemsOutput, error) {
 		res, err := client.ListWorkItems(ctx, in.Limit)
 		if err != nil {
 			return nil, listWorkItemsOutput{}, err
@@ -171,23 +183,28 @@ func registerListWorkItems(server *mcp.Server, client *midpoint.Client) {
 		return text(fmt.Sprintf("%d work item(s) in the approval inbox of %s.%s",
 				n, res.Subject.Name, subjectHint(res.Subject, n == 0))),
 			listWorkItemsOutput{Subject: res.Subject, WorkItems: res.WorkItems, Count: n}, nil
-	})
+	}))
 }
 
 // --- get_case ---
 
-func registerGetCase(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+type getCaseOutput struct {
+	viewFields
+	midpoint.CaseDetail
+}
+
+func registerGetCase(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:        "get_case",
 		Title:       "Get case",
 		Description: "Fetch an approval case by OID, including its work items.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, midpoint.CaseDetail, error) {
+	}, viewTool("get_case", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, getCaseOutput, error) {
 		c, err := client.GetCase(ctx, in.OID)
 		if err != nil {
-			return nil, midpoint.CaseDetail{}, err
+			return nil, getCaseOutput{}, err
 		}
-		return text(fmt.Sprintf("Case %s: state=%s, %d work item(s).", c.OID, c.State, len(c.WorkItems))), c, nil
-	})
+		return text(fmt.Sprintf("Case %s: state=%s, %d work item(s).", c.OID, c.State, len(c.WorkItems))), getCaseOutput{CaseDetail: c}, nil
+	}))
 }
 
 // --- decide_work_item ---
@@ -200,6 +217,7 @@ type decideWorkItemInput struct {
 }
 
 type decideWorkItemOutput struct {
+	viewFields
 	writeOutput
 	Subject         midpoint.Subject `json:"subject" jsonschema:"the identity midPoint executed the decision as (or, in a dry run, would)"`
 	CaseOID         string           `json:"caseOid"`
@@ -225,15 +243,15 @@ func parseDecision(s string) (bool, error) {
 	return false, fmt.Errorf("decision must be %q or %q, got %q", "approve", "reject", s)
 }
 
-func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
-	mcp.AddTool(server, &mcp.Tool{
+func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:  "decide_work_item",
 		Title: "Decide work item",
 		Description: "Approve or reject an open approval work item assigned to the authenticated user, with an " +
 			"optional comment. Before writing anything it reads the case as that user and refuses a work item that is " +
 			"not open or not in their approval inbox (list_work_items). The decision executes as that user, and the " +
 			"result names the case, the outcome midPoint recorded, and the identity it ran as. Respects the write gate.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in decideWorkItemInput) (*mcp.CallToolResult, decideWorkItemOutput, error) {
+	}, viewTool("decide_work_item", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in decideWorkItemInput) (*mcp.CallToolResult, decideWorkItemOutput, error) {
 		approve, err := parseDecision(in.Decision)
 		if err != nil {
 			return nil, decideWorkItemOutput{}, err
@@ -318,7 +336,7 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 			}
 		}
 		return text(fmt.Sprintf("%s %s as %s: %s.", verb, what, as, recorded)), out, nil
-	})
+	}))
 }
 
 // decidedWhat names a work item for a decision message: the item, its case,

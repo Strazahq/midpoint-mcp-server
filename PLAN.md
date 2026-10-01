@@ -212,6 +212,35 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   accepts a later authenticated `tools/call` and impersonates the token's user
   (the SDK skips its session-hijack check when the session's user ID is empty —
   pinned by `TestAnonymousDiscoveryThenAuthenticatedCall`); default-off proven.
+- **M10 — MCP Apps views, approval inbox first**: the four interactive views of
+  [`docs/ui-contract.md`](docs/ui-contract.md) (`1.0-draft.8`), built in the
+  contract's order (inbox, Get access, My requests, My team's access). The
+  contract is the spec; its section 8 numbers the server changes (S1 to S25)
+  and the slices below cite them. Each slice is one session.
+  - **M10.1 — views plumbing (no view yet)**: UI-session detection from the
+    client's `io.modelcontextprotocol/ui` extension; per-session `tools/list`
+    (`_meta.ui.resourceUri` for tools whose view is embedded,
+    `visibility: ["model"]` for tools no view calls, nothing in other
+    sessions); the embedded view directory with its size and network-construct
+    test; `ui://midpoint/*` resources listed only in UI sessions, readable
+    always (S1); anonymous discovery covering them (S17); `tool`, `acting` and
+    `server` on the results of the tools views render or call (S2); no URLs in
+    tool errors (S14); `initialize` instructions for readable chat (S24). AC:
+    unit tests in both modes, with and without the UI capability; a non-UI
+    session's `tools/list` stays byte-identical.
+  - **M10.2 — inbox data**: `workItems[].context` with justification,
+    validity, reason, co-assignees, stage approvers and the requestee's access
+    (S4, S23, S25 for work items and cases); `nextApprovers` (S8); `get_case`
+    enrichment (S5); complete, marked text for `list_work_items` and
+    `get_case` (S13, S19); stable error codes (S18). AC: the [live] and
+    [verify] items for these fields fired on a midPoint 4.10 instance.
+  - **M10.3 — the inbox view**: `ui://midpoint/approval-inbox`, one
+    self-contained document built from the reviewed mockup, linked from
+    `list_work_items` and `decide_work_item`. AC: an approver opens the inbox in
+    a host that supports MCP Apps, approves and rejects, and the view follows
+    contract 7.1.
+  - Later slices: Get access, My requests (with `cancel_request`, S16), My
+    team's access.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

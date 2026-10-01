@@ -26,7 +26,7 @@ func TestLoadFileConfigAbsent(t *testing.T) {
 		t.Fatalf("LoadFileConfig with no file: %v", err)
 	}
 	if fc.Team.orgSource() != OrgSourceParentOrgRef || fc.Team.managerRelation() != "manager" ||
-		fc.Team.memberRelation() != "default" || !fc.Requests.requireRequestable() ||
+		fc.Team.memberRelation() != "default" || !fc.Requests.RequestableRequired() ||
 		fc.Identity.CredentialIsShared {
 		t.Errorf("defaults = %+v, want parentOrgRef/manager/default/requireRequestable/not-shared", fc)
 	}
@@ -56,7 +56,7 @@ func TestLoadFileConfigParses(t *testing.T) {
 		fc.Team.memberRelation() != "member" {
 		t.Errorf("team = %+v", fc.Team)
 	}
-	if fc.Requests.requireRequestable() {
+	if fc.Requests.RequestableRequired() {
 		t.Error("requests.requireRequestable=false not read")
 	}
 }

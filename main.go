@@ -56,17 +56,30 @@ func run(httpAddr string) error {
 	return serveHTTP(httpAddr, client, cfg)
 }
 
-// newMCPServer builds a server with every tool registered.
+// newMCPServer builds a server with every tool and embedded view registered.
 func newMCPServer(client *midpoint.Client, cfg midpoint.Config) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: version}, nil)
-	registerPing(server, client)
-	registerIdentityTools(server, client)
-	registerReadTools(server, client)
-	registerWriteTools(server, client, cfg.AllowWrites)
-	registerRequestTools(server, client, cfg.AllowWrites)
-	registerAuditTools(server, client)
-	registerTeamTools(server, client)
+	return newMCPServerWithViews(client, cfg, embeddedViews())
+}
+
+// newMCPServerWithViews builds a server with every tool and the given views.
+func newMCPServerWithViews(client *midpoint.Client, cfg midpoint.Config, v views) *mcp.Server {
+	server := mcp.NewServer(&mcp.Implementation{Name: serverName, Version: version},
+		&mcp.ServerOptions{Instructions: serverInstructions})
+	registerTools(server, client, cfg)
+	v.install(server)
 	return server
+}
+
+// registerTools registers every tool.
+func registerTools(server *mcp.Server, client *midpoint.Client, cfg midpoint.Config) {
+	info := newServerInfo(cfg)
+	registerPing(server, client)
+	registerIdentityTools(server, client, info)
+	registerReadTools(server, client, info)
+	registerWriteTools(server, client, cfg.AllowWrites, info)
+	registerRequestTools(server, client, cfg.AllowWrites, info)
+	registerAuditTools(server, client)
+	registerTeamTools(server, client, info)
 }
 
 // writeState describes the write gate for startup logging.
@@ -89,7 +102,7 @@ type pingOutput struct {
 }
 
 func registerPing(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "ping",
 		Title:       "Ping midPoint",
 		Description: "Check connectivity to midPoint and report the authenticated identity (calls GET /ws/rest/self).",

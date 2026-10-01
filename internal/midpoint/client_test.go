@@ -188,3 +188,30 @@ func TestConfigFromEnv(t *testing.T) {
 		})
 	}
 }
+
+// Transport errors reach tool results, so they must not carry midPoint's
+// address: net/http's *url.Error repeats the full request URL (contract S14).
+func TestTransportErrorsCarryNoURL(t *testing.T) {
+	srv := httptest.NewServer(http.NotFoundHandler())
+	base := srv.URL + "/midpoint-base"
+	srv.Close() // nothing listens there any more: the dial fails
+
+	c := NewClient(Config{BaseURL: base, Username: "u", Password: "p"})
+	_, err := c.Self(context.Background())
+	if err == nil {
+		t.Fatal("Self against a closed server succeeded")
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "http") || strings.Contains(msg, "midpoint-base") {
+		t.Errorf("error carries the URL: %q", msg)
+	}
+	if !strings.HasPrefix(msg, "calling midPoint GET /self: ") {
+		t.Errorf("error = %q, want the operation and REST path", msg)
+	}
+
+	bad := NewClient(Config{BaseURL: "http://exa mple.org/secret-base", Username: "u", Password: "p"})
+	_, err = bad.Self(context.Background())
+	if err == nil || strings.Contains(err.Error(), "secret-base") || !strings.HasPrefix(err.Error(), "building request for /self: ") {
+		t.Errorf("bad base URL error = %v", err)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 )
 
 // SwitchToPrincipalHeader is midPoint's REST impersonation header: the service
@@ -112,6 +113,64 @@ func (c *Client) Whoami(ctx context.Context) (Principal, error) {
 		Impersonated: principalFromContext(ctx) != "",
 		Orgs:         orgLinks(callerOrgs(self, team), team),
 	}, nil
+}
+
+// ActingIdentity is who midPoint executed one tool call as, in the shape the
+// views' header needs. Unlike Subject it travels on results that are not
+// self-scoped too, and it never refuses: it describes the shared account
+// rather than pretending to be the caller, and says so in SharedCredential.
+type ActingIdentity struct {
+	OID              string    `json:"oid"`
+	Name             string    `json:"name" jsonschema:"login name"`
+	FullName         string    `json:"fullName,omitempty"`
+	Mode             string    `json:"mode" jsonschema:"how this identity was established: personal (the configured credentials) or resource-server (a validated per-request end user)"`
+	Impersonated     bool      `json:"impersonated" jsonschema:"true when this call ran as an end user via Switch-To-Principal"`
+	SharedCredential bool      `json:"sharedCredential" jsonschema:"true when the deployment declared its credentials a shared account (identity.credentialIsShared) and this call ran as that account"`
+	Orgs             []OrgLink `json:"orgs" jsonschema:"the orgs this identity is linked to, with the relation that links them"`
+}
+
+// Acting resolves the identity a call executes as. Like Whoami it is exempt
+// from requireCallerIdentity.
+func (c *Client) Acting(ctx context.Context) (ActingIdentity, error) {
+	p, err := c.Whoami(ctx)
+	if err != nil {
+		return ActingIdentity{}, err
+	}
+	orgs := p.Orgs
+	if orgs == nil {
+		orgs = []OrgLink{}
+	}
+	return ActingIdentity{
+		OID:              p.OID,
+		Name:             p.Name,
+		FullName:         p.FullName,
+		Mode:             p.Mode,
+		Impersonated:     p.Impersonated,
+		SharedCredential: c.cfg.File.Identity.CredentialIsShared && p.Mode == ModePersonal,
+		Orgs:             orgs,
+	}, nil
+}
+
+type selfMemoKey struct{}
+
+// selfMemo holds the caller's own user object for the rest of one call.
+type selfMemo struct {
+	mu   sync.Mutex
+	user *userJSON
+}
+
+// WithSelfMemo returns a context in which the caller's own user object is read
+// from midPoint at most once: every self lookup made with it (Self, Whoami,
+// Acting and the self-scoped tools) shares the first successful read. It is
+// scoped to one tool call, so a later call sees changes. Nothing else is
+// memoized, so a read-back after a write still reaches midPoint.
+func WithSelfMemo(ctx context.Context) context.Context {
+	return context.WithValue(ctx, selfMemoKey{}, &selfMemo{})
+}
+
+func selfMemoFromContext(ctx context.Context) *selfMemo {
+	m, _ := ctx.Value(selfMemoKey{}).(*selfMemo)
+	return m
 }
 
 // subject resolves who a self-scoped call answers for, refusing first when the

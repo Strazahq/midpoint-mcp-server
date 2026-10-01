@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	sdkauth "github.com/modelcontextprotocol/go-sdk/auth"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -66,11 +67,33 @@ func bearerVerifier(authn *oidcauth.Authenticator, client *midpoint.Client, corr
 // "ping" here is the JSON-RPC protocol ping, not this server's ping *tool*.
 // The tool is reached through tools/call, which is deliberately absent from
 // this set, so the tool's /ws/rest/self lookup stays behind the token.
+//
+// resources/list and resources/read serve the view templates (ui://midpoint/*):
+// static documents, the same bytes for everyone, holding no midPoint data.
+// resources/read is not in the map: it is anonymous only for a URI under that
+// prefix, which anonymous() checks.
 var anonymousDiscoveryMethods = map[string]bool{
 	"initialize":                true,
 	"notifications/initialized": true,
 	"ping":                      true,
 	"tools/list":                true,
+	"resources/list":            true,
+}
+
+// rpcMessage is the part of a JSON-RPC message the discovery gate classifies.
+type rpcMessage struct {
+	Method string `json:"method"`
+	Params struct {
+		URI string `json:"uri"`
+	} `json:"params"`
+}
+
+// anonymous reports whether one message may be served without a token.
+func (m rpcMessage) anonymous() bool {
+	if m.Method == "resources/read" {
+		return strings.HasPrefix(m.Params.URI, viewURIPrefix)
+	}
+	return anonymousDiscoveryMethods[m.Method]
 }
 
 // maxDiscoveryBody caps how much of an untrusted body the gate will buffer to
@@ -132,16 +155,13 @@ func discoveryOnly(body []byte) bool {
 	if len(trimmed) == 0 {
 		return false
 	}
-	type rpcMessage struct {
-		Method string `json:"method"`
-	}
 	if trimmed[0] == '[' {
 		var batch []rpcMessage
 		if err := json.Unmarshal(trimmed, &batch); err != nil || len(batch) == 0 {
 			return false
 		}
 		for _, m := range batch {
-			if !anonymousDiscoveryMethods[m.Method] {
+			if !m.anonymous() {
 				return false
 			}
 		}
@@ -151,7 +171,7 @@ func discoveryOnly(body []byte) bool {
 	if err := json.Unmarshal(trimmed, &single); err != nil {
 		return false
 	}
-	return anonymousDiscoveryMethods[single.Method]
+	return single.anonymous()
 }
 
 // principalMiddleware copies the correlated midPoint OID from the per-request

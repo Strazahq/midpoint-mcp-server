@@ -194,6 +194,25 @@ func (c *Client) teamQuery(ctx context.Context, viaManaged bool, wantRelation st
 // best-effort: the identity is already established, so a failure there degrades
 // to OIDs rather than failing the call.
 func (c *Client) selfUser(ctx context.Context) (userJSON, error) {
+	memo := selfMemoFromContext(ctx)
+	if memo == nil {
+		return c.readSelfUser(ctx)
+	}
+	memo.mu.Lock()
+	defer memo.mu.Unlock()
+	if memo.user != nil {
+		return *memo.user, nil
+	}
+	u, err := c.readSelfUser(ctx)
+	if err != nil {
+		return userJSON{}, err
+	}
+	memo.user = &u
+	return u, nil
+}
+
+// readSelfUser reads the caller's own user object from midPoint.
+func (c *Client) readSelfUser(ctx context.Context) (userJSON, error) {
 	body, err := c.get(ctx, "/self", nil)
 	if err != nil {
 		return userJSON{}, err

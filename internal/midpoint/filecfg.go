@@ -79,8 +79,8 @@ type RequestsConfig struct {
 	RequireRequestable *bool `json:"requireRequestable"`
 }
 
-// requireRequestable resolves the tri-state pointer against its default.
-func (r RequestsConfig) requireRequestable() bool {
+// RequestableRequired resolves the tri-state pointer against its default.
+func (r RequestsConfig) RequestableRequired() bool {
 	return r.RequireRequestable == nil || *r.RequireRequestable
 }
 

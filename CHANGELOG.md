@@ -151,8 +151,48 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   view states and strings, the midPoint-GUI look, the rules for intermediaries
   in the path, and every owner decision (D1 to D36) with three open questions.
   Writes stay plain REST. Nothing in it is implemented yet.
+- **MCP Apps views: plumbing (PLAN.md M10.1; contract S1, S2, S17, S24).** No
+  view ships yet; this is what the inbox and the later views stand on.
+  - A session is a UI session when its client's `initialize` advertises the
+    `io.modelcontextprotocol/ui` extension with `text/html;profile=mcp-app`. In
+    a UI session `tools/list` links each tool to its view
+    (`_meta.ui.resourceUri`, once that view's document is embedded) and marks
+    tools no view calls `visibility: ["model"]`, so a host refuses a view that
+    tries to call them. Any other session's `tools/list` is byte-identical to
+    before, which a test pins.
+  - View documents live in `views/`, are embedded at build time and served as
+    `ui://midpoint/*` resources: listed only in UI sessions, readable in every
+    session. A test walks the directory and fails the build for a document
+    over 150 KB or one that could reach the network (`<link`, `@import`,
+    `<iframe`, absolute `src=`/`href=`, `fetch(`, `XMLHttpRequest`,
+    `WebSocket`, `EventSource`).
+  - The results of the eleven tools views render or call (`list_work_items`,
+    `decide_work_item`, `get_case`, `list_my_requests`,
+    `list_requestable_roles`, `request_role`, `get_user_assignments`,
+    `unassign_role`, `list_my_team`, `list_my_managers`, `whoami`) lead with
+    `tool`, `acting` and `server`, in every session. `acting` is who midPoint
+    ran the call as, with its org links. It never refuses: under
+    `identity.credentialIsShared` it describes the shared account and says so
+    in `sharedCredential`. `server` carries the write gate,
+    `requireRequestable`, `requestReason` (false until
+    `requests.justificationItem` exists), the contract version (`1.0-draft.8`)
+    and the server version. Text is unchanged.
+  - The `initialize` result now carries `instructions`: name people, roles
+    and requests by display name when writing to a person, and keep OIDs for
+    tool calls. Every tool description ends with the same request.
+  - With `MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true`, `resources/list` and a
+    `resources/read` of a `ui://midpoint/` URI need no token either. A read of
+    any other URI, and a batch carrying one, still does.
+  - No new dependency: `embed` and `testing/fstest` are standard library.
 
 ### Changed
+
+- **The eleven view tools read the caller's own user first.** Building
+  `acting` costs one `GET /ws/rest/self` (plus the by-OID re-read that names
+  org links, as `whoami` does) before the tool runs, so a write never happens
+  without it. Self lookups inside the same call share that read, so tools that
+  already resolved the caller make no extra request. An unreachable midPoint now
+  fails these tools with `resolving the acting identity: …`.
 
 - **Module path is now `github.com/strazahq/midpoint-mcp-server`.** The
   repository moved to the `strazahq` organisation; the module path follows it so
@@ -187,6 +227,12 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Fixed
 
+- **Tool errors no longer carry midPoint's base URL (contract S14).** A
+  transport failure was wrapped with Go's `*url.Error`, whose message repeats
+  the full request URL, and that text reached tool results. Errors now name the
+  operation and the REST path only: `calling midPoint GET /self: dial tcp …:
+  connection refused`. A base URL that can't be parsed is reported the same
+  way, as `building request for /self: …`.
 - **Search results carry namespace-prefixed reference keys; the inbox now
   reads them.** In a `POST /{collection}/search` answer midPoint 4.10.3 writes a
   reference as `{"t:oid":…,"t:type":…,"t:relation":…,"targetName":…}`, while a

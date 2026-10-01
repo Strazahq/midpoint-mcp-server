@@ -29,11 +29,19 @@ func TestDiscoveryOnly(t *testing.T) {
 		// The ping *tool* shares a name with the protocol ping but reaches
 		// midPoint's /ws/rest/self; it must not ride in on the allowlisted method.
 		{"ping tool via tools/call", `{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"ping"}}`, false},
-		{"resources list is not allowlisted", `{"jsonrpc":"2.0","id":6,"method":"resources/list"}`, false},
+		// The view templates are static documents (contract S17); any other
+		// resource stays behind the token.
+		{"resources list", `{"jsonrpc":"2.0","id":6,"method":"resources/list"}`, true},
+		{"resources read of a view", `{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"ui://midpoint/approval-inbox"}}`, true},
+		{"resources read of another uri", `{"jsonrpc":"2.0","id":8,"method":"resources/read","params":{"uri":"file:///etc/passwd"}}`, false},
+		{"resources read of a look-alike uri", `{"jsonrpc":"2.0","id":9,"method":"resources/read","params":{"uri":"ui://midpointx/a"}}`, false},
+		{"resources read without a uri", `{"jsonrpc":"2.0","id":10,"method":"resources/read"}`, false},
+		{"resources templates list", `{"jsonrpc":"2.0","id":11,"method":"resources/templates/list"}`, false},
 
 		{"batch all discovery", `[{"jsonrpc":"2.0","id":1,"method":"initialize"},{"jsonrpc":"2.0","id":2,"method":"tools/list"}]`, true},
 		// One privileged member makes the whole request privileged.
 		{"batch smuggling a tools/call", `[{"jsonrpc":"2.0","id":1,"method":"tools/list"},{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_user"}}]`, false},
+		{"batch smuggling another resource", `[{"jsonrpc":"2.0","id":1,"method":"resources/read","params":{"uri":"ui://midpoint/approval-inbox"}},{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"file:///x"}}]`, false},
 		{"empty batch", `[]`, false},
 
 		{"empty body", ``, false},
@@ -270,6 +278,37 @@ func TestAnonymousDiscoveryListsToolsWithoutToken(t *testing.T) {
 	}
 	if len(tools.Tools) == 0 {
 		t.Fatal("anonymous ListTools returned no tools")
+	}
+	if n := mp.pathsSeen(); n != 0 {
+		t.Errorf("discovery reached midPoint on %d path(s), want 0", n)
+	}
+}
+
+// The view templates are discovery too (contract S17): a tokenless caller can
+// list resources and read a ui://midpoint/ URI, which never reaches midPoint.
+// No view is embedded yet, so the read gets the server's not-found answer
+// rather than the gate's 401: proof that it went through.
+func TestAnonymousDiscoveryReachesViewTemplates(t *testing.T) {
+	oidc := newMockOIDC(t)
+	mp := newRecordingMidpoint(t)
+
+	cs, err := connectAnonymousDiscovery(t, oidc, mp, &mutableBearer{base: http.DefaultTransport})
+	if err != nil {
+		t.Fatalf("anonymous connect: %v", err)
+	}
+	defer cs.Close()
+	ctx := context.Background()
+
+	if _, err := cs.ListResources(ctx, nil); err != nil {
+		t.Fatalf("anonymous ListResources: %v", err)
+	}
+	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "ui://midpoint/approval-inbox"})
+	if err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Errorf("anonymous read of a view URI = %v, want the server's not-found", err)
+	}
+	_, err = cs.ReadResource(ctx, &mcp.ReadResourceParams{URI: "file:///etc/passwd"})
+	if err == nil || !strings.Contains(err.Error(), "Unauthorized") {
+		t.Errorf("anonymous read of another URI = %v, want refused at the gate", err)
 	}
 	if n := mp.pathsSeen(); n != 0 {
 		t.Errorf("discovery reached midPoint on %d path(s), want 0", n)

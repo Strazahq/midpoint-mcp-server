@@ -9,10 +9,10 @@ import (
 )
 
 // registerReadTools installs the M1 read-only tools on the server.
-func registerReadTools(server *mcp.Server, client *midpoint.Client) {
+func registerReadTools(server *mcp.Server, client *midpoint.Client, info serverInfo) {
 	registerSearchUsers(server, client)
 	registerGetUser(server, client)
-	registerGetUserAssignments(server, client)
+	registerGetUserAssignments(server, client, info)
 	registerListRoles(server, client)
 	registerGetRole(server, client)
 	registerListResources(server, client)
@@ -33,7 +33,7 @@ type searchUsersOutput struct {
 }
 
 func registerSearchUsers(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "search_users",
 		Title:       "Search users",
 		Description: "Find midPoint users by free-text query (name, full name, or email) or by exact OID.",
@@ -58,7 +58,7 @@ type oidInput struct {
 }
 
 func registerGetUser(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "get_user",
 		Title:       "Get user",
 		Description: "Fetch a single midPoint user by OID (identity attributes and status).",
@@ -73,19 +73,24 @@ func registerGetUser(server *mcp.Server, client *midpoint.Client) {
 
 // --- get_user_assignments ---
 
-func registerGetUserAssignments(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+type getUserAssignmentsOutput struct {
+	viewFields
+	midpoint.UserAssignments
+}
+
+func registerGetUserAssignments(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:        "get_user_assignments",
 		Title:       "Get user assignments",
 		Description: "List a user's direct assignments and effective role membership (each flagged direct or inherited) — what they have and why.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, midpoint.UserAssignments, error) {
+	}, viewTool("get_user_assignments", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, getUserAssignmentsOutput, error) {
 		res, err := client.GetUserAssignments(ctx, in.OID)
 		if err != nil {
-			return nil, midpoint.UserAssignments{}, err
+			return nil, getUserAssignmentsOutput{}, err
 		}
 		return text(fmt.Sprintf("%s has %d direct assignment(s), %d effective membership(s).",
-			res.User.Name, len(res.Assignments), len(res.Effective))), res, nil
-	})
+			res.User.Name, len(res.Assignments), len(res.Effective))), getUserAssignmentsOutput{UserAssignments: res}, nil
+	}))
 }
 
 // --- list_roles ---
@@ -100,7 +105,7 @@ type listRolesOutput struct {
 }
 
 func registerListRoles(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "list_roles",
 		Title:       "List roles",
 		Description: "List midPoint roles (name, display name, description).",
@@ -117,7 +122,7 @@ func registerListRoles(server *mcp.Server, client *midpoint.Client) {
 // --- get_role ---
 
 func registerGetRole(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "get_role",
 		Title:       "Get role",
 		Description: "Fetch a single midPoint role by OID.",
@@ -138,7 +143,7 @@ type listResourcesOutput struct {
 }
 
 func registerListResources(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "list_resources",
 		Title:       "List resources",
 		Description: "List midPoint resources (connected systems).",
@@ -155,7 +160,7 @@ func registerListResources(server *mcp.Server, client *midpoint.Client) {
 // --- get_resource ---
 
 func registerGetResource(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "get_resource",
 		Title:       "Get resource",
 		Description: "Fetch a single midPoint resource by OID, including connection status where reported.",

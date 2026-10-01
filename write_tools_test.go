@@ -35,6 +35,10 @@ func mockMidpointWrite(t *testing.T) (*httptest.Server, *[]recordedReq) {
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws/rest/self", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"user":{"oid":"oid-self","name":"writer"}}`)
+	})
 	mux.HandleFunc("POST /ws/rest/users", record(func(w http.ResponseWriter, r *http.Request, _ string) {
 		w.Header().Set("Location", "http://"+r.Host+"/ws/rest/users/created-oid")
 		w.WriteHeader(http.StatusCreated)
@@ -57,7 +61,7 @@ func connectWithWrites(t *testing.T, srv *httptest.Server, allowWrites bool) *mc
 	ctx := context.Background()
 	client := midpoint.NewClient(midpoint.Config{BaseURL: srv.URL, Username: "u", Password: "p"})
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "t"}, nil)
-	registerWriteTools(server, client, allowWrites)
+	registerWriteTools(server, client, allowWrites, serverInfo{})
 
 	t1, t2 := mcp.NewInMemoryTransports()
 	if _, err := server.Connect(ctx, t1, nil); err != nil {

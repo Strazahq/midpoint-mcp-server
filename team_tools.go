@@ -11,9 +11,9 @@ import (
 // registerTeamTools installs the M6 manager/team read tools. They are read-only
 // (outside the write gate) and, in resource-server mode, run as the caller so
 // midPoint scopes results to what that manager may see.
-func registerTeamTools(server *mcp.Server, client *midpoint.Client) {
-	registerListMyTeam(server, client)
-	registerListMyManagers(server, client)
+func registerTeamTools(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	registerListMyTeam(server, client, info)
+	registerListMyManagers(server, client, info)
 	registerListMyTeammates(server, client)
 }
 
@@ -26,38 +26,44 @@ type teamOutput struct {
 	Count   int                    `json:"count"`
 }
 
-func registerListMyTeam(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+// teamViewOutput is a team answer in the shape views read.
+type teamViewOutput struct {
+	viewFields
+	teamOutput
+}
+
+func registerListMyTeam(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:  "list_my_team",
 		Title: "List my team",
 		Description: "List the authenticated user's direct reports: the members of the orgs they manage " +
 			"(empty if they manage none). Use the returned OIDs with get_user_assignments to review a report's " +
 			"access, or request_role to request access for them. The result names the identity it answered for.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, teamOutput, error) {
+	}, viewTool("list_my_team", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, teamViewOutput, error) {
 		res, err := client.ListMyTeam(ctx, in.Limit)
 		if err != nil {
-			return nil, teamOutput{}, err
+			return nil, teamViewOutput{}, err
 		}
-		return text(teamMessage(res, "manages", "direct report", "manages no orgs")), teamResult(res), nil
-	})
+		return text(teamMessage(res, "manages", "direct report", "manages no orgs")), teamViewOutput{teamOutput: teamResult(res)}, nil
+	}))
 }
 
-func registerListMyManagers(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+func registerListMyManagers(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:        "list_my_managers",
 		Title:       "List my managers",
 		Description: "List who the authenticated user reports to: the managers of the orgs they are a member of.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, teamOutput, error) {
+	}, viewTool("list_my_managers", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, teamViewOutput, error) {
 		res, err := client.ListMyManagers(ctx, in.Limit)
 		if err != nil {
-			return nil, teamOutput{}, err
+			return nil, teamViewOutput{}, err
 		}
-		return text(teamMessage(res, "reports to", "manager", "belongs to no orgs")), teamResult(res), nil
-	})
+		return text(teamMessage(res, "reports to", "manager", "belongs to no orgs")), teamViewOutput{teamOutput: teamResult(res)}, nil
+	}))
 }
 
 func registerListMyTeammates(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:  "list_my_teammates",
 		Title: "List my teammates",
 		Description: "List the authenticated user's peers: the other members of the orgs they belong to " +

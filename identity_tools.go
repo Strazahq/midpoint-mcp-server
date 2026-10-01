@@ -11,16 +11,21 @@ import (
 
 // registerIdentityTools installs whoami — the tool that answers "who does this
 // server think I am?", which every self-scoped tool's result depends on.
-func registerIdentityTools(server *mcp.Server, client *midpoint.Client) {
-	registerWhoami(server, client)
+func registerIdentityTools(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	registerWhoami(server, client, info)
 }
 
 // --- whoami ---
 
 type whoamiInput struct{}
 
-func registerWhoami(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+type whoamiOutput struct {
+	viewFields
+	midpoint.Principal
+}
+
+func registerWhoami(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:  "whoami",
 		Title: "Who am I",
 		Description: "Report the identity midPoint executes as, how it was established (personal = the server's " +
@@ -28,10 +33,10 @@ func registerWhoami(server *mcp.Server, client *midpoint.Client) {
 			"is linked to. Call this first when a self-scoped tool (list_my_team, list_work_items, list_my_requests) " +
 			"returns an unexpectedly empty result — it distinguishes 'you genuinely have none' from 'this server is " +
 			"not acting as you'.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ whoamiInput) (*mcp.CallToolResult, midpoint.Principal, error) {
+	}, viewTool("whoami", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, _ whoamiInput) (*mcp.CallToolResult, whoamiOutput, error) {
 		p, err := client.Whoami(ctx)
 		if err != nil {
-			return nil, midpoint.Principal{}, err
+			return nil, whoamiOutput{}, err
 		}
 
 		var b strings.Builder
@@ -45,8 +50,8 @@ func registerWhoami(server *mcp.Server, client *midpoint.Client) {
 		} else {
 			fmt.Fprintf(&b, " Org links: %s.", orgLinkSummary(p.Orgs))
 		}
-		return text(b.String()), p, nil
-	})
+		return text(b.String()), whoamiOutput{Principal: p}, nil
+	}))
 }
 
 // orgLinkSummary renders org links as "name (manager)" / "name (member)".

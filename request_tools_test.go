@@ -58,7 +58,7 @@ func connectRequests(t *testing.T, srv *httptest.Server, allowWrites bool) *mcp.
 	ctx := context.Background()
 	client := midpoint.NewClient(midpoint.Config{BaseURL: srv.URL, Username: "u", Password: "p"})
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "t"}, nil)
-	registerRequestTools(server, client, allowWrites)
+	registerRequestTools(server, client, allowWrites, serverInfo{})
 
 	t1, t2 := mcp.NewInMemoryTransports()
 	if _, err := server.Connect(ctx, t1, nil); err != nil {
@@ -201,7 +201,7 @@ func TestRequestRoleGuardrailCanBeDisabled(t *testing.T) {
 
 	ctx := context.Background()
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "t"}, nil)
-	registerRequestTools(server, midpoint.NewClient(cfg), true)
+	registerRequestTools(server, midpoint.NewClient(cfg), true, serverInfo{})
 	t1, t2 := mcp.NewInMemoryTransports()
 	if _, err := server.Connect(ctx, t1, nil); err != nil {
 		t.Fatalf("server connect: %v", err)
@@ -464,7 +464,11 @@ func TestDecideWorkItemRejectsUnknownDecision(t *testing.T) {
 	if !strings.Contains(msg, `"approve" or "reject"`) {
 		t.Errorf("refusal = %q", msg)
 	}
-	if reqs := mp.requests(); len(reqs) != 0 {
-		t.Errorf("an invalid decision reached midPoint: %+v", reqs)
+	// Only the acting-identity read every view tool makes may happen: the
+	// case is never read and nothing is decided.
+	for _, r := range mp.requests() {
+		if r.method != http.MethodGet || r.path != "/ws/rest/self" {
+			t.Errorf("an invalid decision reached midPoint: %+v", r)
+		}
 	}
 }

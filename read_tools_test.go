@@ -22,6 +22,7 @@ func mockMidpoint(t *testing.T) *httptest.Server {
 		}
 	}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws/rest/self", json(`{"user":{"oid":"oid-self","name":"reader"}}`))
 	mux.HandleFunc("POST /ws/rest/users/search", json(`{"object":[{"oid":"oid-1","name":"jdoe","fullName":"Jane Doe","emailAddress":"j@x.com"}]}`))
 	mux.HandleFunc("GET /ws/rest/users/{oid}", json(`{"user":{"oid":"oid-1","name":"jdoe","givenName":"Jane","familyName":"Doe","fullName":"Jane Doe","emailAddress":"j@x.com","activation":{"effectiveStatus":"enabled"}}}`))
 	mux.HandleFunc("POST /ws/rest/roles/search", json(`{"object":[{"oid":"role-1","name":"Superuser","description":"all"}]}`))
@@ -40,7 +41,7 @@ func TestReadToolsRoundTrip(t *testing.T) {
 	client := midpoint.NewClient(midpoint.Config{BaseURL: srv.URL, Username: "u", Password: "p"})
 
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "t"}, nil)
-	registerReadTools(server, client)
+	registerReadTools(server, client, serverInfo{})
 
 	t1, t2 := mcp.NewInMemoryTransports()
 	if _, err := server.Connect(ctx, t1, nil); err != nil {
@@ -91,7 +92,7 @@ func TestReadToolsRegistered(t *testing.T) {
 	client := midpoint.NewClient(midpoint.Config{BaseURL: srv.URL, Username: "u", Password: "p"})
 
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "t"}, nil)
-	registerReadTools(server, client)
+	registerReadTools(server, client, serverInfo{})
 
 	t1, t2 := mcp.NewInMemoryTransports()
 	if _, err := server.Connect(ctx, t1, nil); err != nil {

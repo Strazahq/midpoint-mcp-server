@@ -31,7 +31,7 @@ type searchObjectsOutput struct {
 }
 
 func registerSearchObjects(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:  "search_objects",
 		Title: "Search objects",
 		Description: "Filtered search across midPoint object types (" + strings.Join(midpoint.SearchObjectTypes(), ", ") +
@@ -67,7 +67,7 @@ type searchAuditOutput struct {
 }
 
 func registerSearchAudit(server *mcp.Server, client *midpoint.Client) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:  "search_audit",
 		Title: "Search audit trail",
 		Description: "Query the midPoint audit trail — who changed what and when, logins, approvals — " +

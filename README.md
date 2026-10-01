@@ -68,7 +68,7 @@ Credentials are read from the environment at runtime (never written to disk):
 | `MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE` | no | midPoint attribute the claim is matched against (default `name`) |
 | `MIDPOINT_MCP_OIDC_CLIENT_CORRELATION_CLAIM` | no | claim that only an OAuth client's own token carries (`client_id` on Keycloak); its value is then the name to correlate. Set together with the archetypes below; see [docs](docs/identity-providers.md#tokens-a-client-obtains-for-itself-agents-and-services) |
 | `MIDPOINT_MCP_OIDC_CLIENT_ARCHETYPES` | no | comma-separated archetype oids; a client's token is matched only to a midPoint user that holds one of them |
-| `MIDPOINT_MCP_ANONYMOUS_DISCOVERY` | no | `true` serves the MCP handshake and `tools/list` without a token in resource-server mode; `tools/call` still requires one ([below](#anonymous-discovery)) |
+| `MIDPOINT_MCP_ANONYMOUS_DISCOVERY` | no | `true` serves the MCP handshake, `tools/list` and the view templates without a token in resource-server mode; `tools/call` still requires one ([below](#anonymous-discovery)) |
 | `MIDPOINT_MCP_CONFIG` | no | path to a JSON settings file (below) — org modelling and self-service guardrails |
 
 In resource-server mode, `MIDPOINT_USERNAME`/`MIDPOINT_PASSWORD` are the **service
@@ -209,15 +209,17 @@ argument a caller could use to act as someone else.
 Some gateways and catalog builders inventory an MCP server's tool surface
 *before* any user has authenticated. In resource-server mode that probe gets a
 `401` at the transport layer, because the bearer requirement wraps the whole
-endpoint. Setting `MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true` opens exactly four
+endpoint. Setting `MIDPOINT_MCP_ANONYMOUS_DISCOVERY=true` opens exactly these
 methods to a tokenless caller:
 
-`initialize` · `notifications/initialized` · `ping` · `tools/list`
+`initialize` · `notifications/initialized` · `ping` · `tools/list` ·
+`resources/list` · `resources/read` (only for a `ui://midpoint/` URI)
 
 Everything else — `tools/call` above all — still requires a validated token.
 What a tokenless caller can read is the **static tool surface**: names,
-descriptions, and input schemas, identical for every caller. None of the four
-methods reaches midPoint, so no directory data is exposed.
+descriptions, input schemas, and the [view templates](#views-mcp-apps),
+identical for every caller. None of these methods reaches midPoint, so no
+directory data is exposed.
 
 ```sh
 MIDPOINT_MCP_OIDC_ISSUER=https://keycloak.example.com/realms/corp \
@@ -265,6 +267,27 @@ deployment shapes, verified against midPoint 4.10.3 — is covered in
 Neither profile should be a superuser. If you are wondering whether `#proxy` can be
 restricted to approvals only, that question is answered (with the reasoning) in the
 authorization doc.
+
+## Views (MCP Apps)
+
+Hosts that render [MCP Apps](https://github.com/modelcontextprotocol/ext-apps)
+views get interactive screens for the approval inbox, requesting access, your
+requests, and your team's access. [`docs/ui-contract.md`](docs/ui-contract.md)
+specifies them. **Status: the plumbing is in place, but no view ships yet.** The
+inbox comes first (PLAN.md M10).
+
+What is in place:
+
+- A session is a **UI session** when its client advertises the
+  `io.modelcontextprotocol/ui` extension with the `text/html;profile=mcp-app` MIME
+  type. Only UI sessions see `_meta.ui` on tools and the `ui://midpoint/*`
+  resources in `resources/list`. Any other session's `tools/list` is unchanged.
+- The results of the tools views render or call (`list_work_items`,
+  `decide_work_item`, `get_case`, `list_my_requests`, `list_requestable_roles`,
+  `request_role`, `get_user_assignments`, `unassign_role`, `list_my_team`,
+  `list_my_managers`, `whoami`) lead with `tool`, `acting` (who midPoint ran the
+  call as) and `server` (write gate, contract and server versions) in every
+  session.
 
 ## Tools
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,6 +52,14 @@ type Identity struct {
 // credentials by calling GET /ws/rest/self. It is the connectivity/identity
 // check behind the ping tool.
 func (c *Client) Self(ctx context.Context) (Identity, error) {
+	if selfMemoFromContext(ctx) != nil {
+		u, err := c.selfUser(ctx)
+		if err != nil {
+			return Identity{}, err
+		}
+		s := u.summary()
+		return Identity{OID: s.OID, Name: s.Name, FullName: s.FullName, EmailAddress: s.EmailAddress}, nil
+	}
 	body, err := c.get(ctx, "/self", nil)
 	if err != nil {
 		return Identity{}, err
@@ -106,7 +115,7 @@ func (c *Client) doFull(ctx context.Context, method, path string, query url.Valu
 	}
 	req, err := http.NewRequestWithContext(ctx, method, u, reqBody)
 	if err != nil {
-		return rawResponse{}, fmt.Errorf("building request for %s: %w", path, err)
+		return rawResponse{}, fmt.Errorf("building request for %s: %w", path, withoutURL(err))
 	}
 	req.SetBasicAuth(c.cfg.Username, c.cfg.Password)
 	req.Header.Set("Accept", "application/json")
@@ -121,7 +130,7 @@ func (c *Client) doFull(ctx context.Context, method, path string, query url.Valu
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return rawResponse{}, fmt.Errorf("calling midPoint %s: %w", path, err)
+		return rawResponse{}, fmt.Errorf("calling midPoint %s %s: %w", method, path, withoutURL(err))
 	}
 	defer resp.Body.Close()
 
@@ -135,6 +144,17 @@ func (c *Client) doFull(ctx context.Context, method, path string, query url.Valu
 		return out, fmt.Errorf("midPoint %s: unexpected status %s", path, resp.Status)
 	}
 	return out, nil
+}
+
+// withoutURL drops the request URL from a net/http error. A *url.Error's
+// message repeats the full URL, midPoint's base address included, and these
+// errors end up in tool results; the callers already name the REST path.
+func withoutURL(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return ue.Err
+	}
+	return err
 }
 
 // selfResponse mirrors midPoint's JSON envelope for a focus object, which wraps

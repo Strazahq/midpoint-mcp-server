@@ -10,12 +10,12 @@ import (
 
 // registerWriteTools installs the M2 write tools. When allowWrites is false,
 // every tool returns a dry-run preview instead of calling midPoint.
-func registerWriteTools(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
+func registerWriteTools(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
 	registerCreateUser(server, client, allowWrites)
 	registerSetUserEnabled(server, client, allowWrites, true)
 	registerSetUserEnabled(server, client, allowWrites, false)
 	registerAssignRole(server, client, allowWrites)
-	registerUnassignRole(server, client, allowWrites)
+	registerUnassignRole(server, client, allowWrites, info)
 	registerRecomputeUser(server, client, allowWrites)
 }
 
@@ -82,7 +82,7 @@ type createUserInput struct {
 }
 
 func registerCreateUser(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "create_user",
 		Title:       "Create user",
 		Description: "Create a new midPoint user. Requires the write gate; otherwise returns a dry-run preview.",
@@ -108,7 +108,7 @@ func registerSetUserEnabled(server *mcp.Server, client *midpoint.Client, allowWr
 	if enable {
 		name, title, desc = "enable_user", "Enable user", "Enable a midPoint user (activation → enabled). Requires the write gate; otherwise a dry-run preview."
 	}
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        name,
 		Title:       title,
 		Description: desc,
@@ -129,7 +129,7 @@ type roleAssignmentInput struct {
 }
 
 func registerAssignRole(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "assign_role",
 		Title:       "Assign role",
 		Description: "Assign a role to a user. Requires the write gate; otherwise a dry-run preview.",
@@ -142,25 +142,32 @@ func registerAssignRole(server *mcp.Server, client *midpoint.Client, allowWrites
 	})
 }
 
-func registerUnassignRole(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
-	mcp.AddTool(server, &mcp.Tool{
+// viewWriteOutput is a write tool's result in the shape views read.
+type viewWriteOutput struct {
+	viewFields
+	writeOutput
+}
+
+func registerUnassignRole(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
+	addTool(server, &mcp.Tool{
 		Name:        "unassign_role",
 		Title:       "Unassign role",
 		Description: "Remove a user's assignment to a role. Requires the write gate; otherwise a dry-run preview.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in roleAssignmentInput) (*mcp.CallToolResult, writeOutput, error) {
+	}, viewTool("unassign_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in roleAssignmentInput) (*mcp.CallToolResult, viewWriteOutput, error) {
 		// Resolves the assignment id via a read even in dry-run, so the preview is accurate.
 		plan, err := client.PlanUnassignRole(ctx, in.UserOID, in.RoleOID)
 		if err != nil {
-			return nil, writeOutput{}, err
+			return nil, viewWriteOutput{}, err
 		}
-		return runWrite(ctx, allowWrites, client, plan)
-	})
+		res, out, err := runWrite(ctx, allowWrites, client, plan)
+		return res, viewWriteOutput{writeOutput: out}, err
+	}))
 }
 
 // --- recompute_user ---
 
 func registerRecomputeUser(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
-	mcp.AddTool(server, &mcp.Tool{
+	addTool(server, &mcp.Tool{
 		Name:        "recompute_user",
 		Title:       "Recompute user",
 		Description: "Recompute (reconcile) a user so midPoint re-evaluates policies and propagates changes. Requires the write gate; otherwise a dry-run preview.",
