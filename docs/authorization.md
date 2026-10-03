@@ -1,231 +1,278 @@
-# Authorization — what the midPoint account behind the server may do
+# Authorize the midPoint account behind the server
 
-This server talks to midPoint over REST as **one** midPoint account. Which account,
-and what that account is allowed to do, is the single most important deployment
-decision you make: it is the blast radius of the whole integration.
+The server talks to midPoint over REST as one midPoint account. What that account
+may do is the blast radius of the whole integration, so choosing it is the most
+important deployment decision. This document describes two shapes and ships an
+importable midPoint role for each.
 
-There are two supported shapes, and this document ships a complete, importable
-midPoint role for each:
-
-| Profile | Deployment | Role example | Standing privilege of the account |
+| Profile | When to use it | Role | Standing privilege of the account |
 | --- | --- | --- | --- |
-| **rs-service** | resource-server mode (OIDC, `--http`) — every call runs as the correlated end user | [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml) | **near zero**: REST entry + `#proxy`, no model rights at all |
-| **direct-service** | personal/stdio mode and any deployment using a *shared technical account* | [`examples/role-mcp-direct-service.xml`](../examples/role-mcp-direct-service.xml) | enumerated: exactly the object types and operations the tools use |
+| rs-service | Shared mode, where every call runs as the correlated user | [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml) | REST entry and `#proxy`, no model rights, plus the read authorization for correlation described below |
+| direct-service | Personal mode with a shared technical account, where every call runs as that account | [`examples/role-mcp-direct-service.xml`](../examples/role-mcp-direct-service.xml) | Exactly the object types and operations the tools use |
 
-> Everything below was verified against **midPoint 4.10.3** with throwaway accounts.
-> Where 4.10.3 behaves differently from what the documentation (including this
-> project's older notes) claimed, the verified behaviour is stated and the old claim
-> is called out.
+Unless a statement says otherwise, the behaviour described here was verified
+against midPoint 4.10.3 with throwaway accounts.
 
-## The five facts that shape both profiles
+## Know the five facts that shape both roles
 
-1. **REST authorization in 4.10 is per endpoint, not all-or-nothing.**
-   Besides `authorization-rest-3#all` there is one action per REST operation:
-   `#getSelf`, `#getObject`, `#getObjects`, `#searchObjects`, `#addObject`,
-   `#modifyObject`, `#deleteObject`, `#completeWorkItem`, `#executeScript`,
-   `#testResource`, `#importFromResource`, `#notifyChange`, `#compareObject`,
-   `#getExtensionSchema`, `#resetCredential`, `#claimWorkItem`, `#releaseWorkItem`,
-   `#delegateWorkItem`, `#cancelCase`, the task/log/thread ones, and the
-   value-policy ones. Granting only the handful this server calls means every other
-   REST verb is refused **before** midPoint even looks at the object — a `DELETE`
-   comes back `403` from the security filter.
+1. REST authorization in midPoint 4.10 is granted per endpoint. Besides
+   `authorization-rest-3#all` there is one action per REST operation: `#getSelf`,
+   `#getObject`, `#getObjects`, `#searchObjects`, `#addObject`, `#modifyObject`,
+   `#deleteObject`, `#completeWorkItem`, `#executeScript`, `#testResource`,
+   `#importFromResource`, `#notifyChange`, `#compareObject`, `#getExtensionSchema`,
+   `#resetCredential`, `#claimWorkItem`, `#releaseWorkItem`, `#delegateWorkItem`,
+   `#cancelCase`, and the task, log, thread and value policy actions. If the account
+   holds only the actions this server calls, every other REST operation is refused
+   at the security filter before midPoint looks at any object. A `DELETE` gets 403.
+2. midPoint checks the REST action against the authenticated account, even while
+   that account impersonates someone. With `Switch-To-Principal`, the REST action
+   is checked for the service account and the model authorizations are checked for
+   the impersonated user. An account that holds only `#proxy` gets 403 on every
+   endpoint, `/self` included. Impersonation is a way to act as someone once you
+   are in, not a way in.
+3. `#proxy` can be scoped by archetype. In 4.10.3 an object selector accepts
+   `archetypeRef`, which is repeatable, and an object matches if it holds any of the
+   listed archetypes. Impersonating a user with an archetype in scope succeeds, and
+   impersonating a user outside the scope gets 403 at the security filter.
+4. `#proxy` describes who may be impersonated, not what may be done afterwards. No
+   authorization can say "impersonate only for approvals". The section
+   [Understand why the account cannot impersonate only for approvals](#understand-why-the-account-cannot-impersonate-only-for-approvals)
+   explains why that is the better design anyway.
+5. `search_audit` cannot be least-privileged on 4.10. midPoint 4.10 has no audit
+   REST endpoint, so the tool runs a Groovy bulk action, and bulk action scripting
+   is gated by the deployment's expression profile, which no authorization grants.
+   See [Handle the search_audit exception](#handle-the-search_audit-exception).
 
-2. **REST entry is evaluated against the *authenticated* account, even while
-   impersonating.** With `Switch-To-Principal`, midPoint checks the REST action
-   against the service account and the *object/model* authorizations against the
-   impersonated user. A `#proxy`-only account is refused (`403`) on every endpoint,
-   including `/self` — impersonation is not a way in, it is a way to *act as*
-   someone once you are already in.
+The superuser role's `#all` covers `authorization-rest-3#proxy` on 4.10.3, so a
+superuser can impersonate without any extra grant. An earlier version of these docs
+claimed the opposite. The explicit `#proxy` grant still matters, because the service
+account must not be a superuser, and once superuser is gone the explicit grant is
+what keeps impersonation working.
 
-3. **`#proxy` can be scoped by archetype.** `ObjectSelectorType` accepts
-   `archetypeRef` (repeatable, OR semantics) in 4.10.3, so the impersonatable
-   population can be limited to real people (and, if you want, machine identities)
-   while administrators, contractors, service and personal-agent identities stay out
-   of reach. Verified: in-scope archetype → impersonation succeeds; out-of-scope
-   archetype → `403` at the security filter.
+## Use the rs-service role in shared mode
 
-4. **`#proxy` is per (subject, impersonated object) — it cannot be scoped to a
-   downstream operation.** There is no way to express "may impersonate, but only for
-   approvals". See [Why not "`#proxy` only for approvals"](#why-not-proxy-only-for-approvals).
+In shared mode the bearer token identifies the caller, the server correlates the
+token to a midPoint user, and every tool call runs as that user through
+`Switch-To-Principal`. midPoint's authorizations for that user decide what happens.
+The server adds no permission model of its own, and midPoint's audit attributes
+every change to the person or agent who asked for it.
 
-5. **`search_audit` cannot be least-privileged on 4.10.** It runs a Groovy bulk
-   action (midPoint 4.10 has no audit REST endpoint), and bulk-action scripting is
-   gated by the deployment's *expression profile*, not by any grantable action. See
-   [The search_audit exception](#the-search_audit-exception).
-
-Correction to an earlier claim in this repo's docs: **superuser's `#all` DOES cover
-`authorization-rest-3#proxy`** on 4.10.3 — a superuser can impersonate without any
-extra grant. The explicit `#proxy` role still matters, because a service account
-must not *be* a superuser; the moment you take superuser away (which is the point of
-this document) the explicit grant becomes load-bearing.
-
-## Profile: rs-service (OIDC resource-server mode)
-
-**This is the recommended enterprise deployment.** The bearer token identifies the
-human, the server correlates them to a midPoint user, and every call is executed as
-that user via `Switch-To-Principal`. midPoint's own authorizations for that human are
-the access-control decision — the server adds no permission model of its own, and
-audit attributes every change to the person who asked for it.
-
-The service account therefore needs **no model rights whatsoever**. It needs:
-
-- the REST endpoints the tools call (`#getSelf`, `#getObject`, `#searchObjects`,
-  `#addObject`, `#modifyObject`, `#completeWorkItem`), and
-- `#proxy`, scoped to the archetypes it may act for.
-
-That is the entire role. Verified on 4.10.3 with an account holding exactly that:
+For tool calls the service account therefore needs no model rights. It needs the
+REST actions for the endpoints the tools call, which are `#getSelf`, `#getObject`,
+`#searchObjects`, `#addObject`, `#modifyObject` and `#completeWorkItem`. It also
+needs `#proxy`, scoped to the archetypes it may act for. The example role holds
+exactly these two authorizations. Verified on 4.10.3 with an account that held
+exactly that role:
 
 | Check | Result |
 | --- | --- |
-| `GET /self` with `Switch-To-Principal: <employee oid>` | `200`, returns that employee |
-| `GET /self` **without** the header | `500 Access denied` — the account cannot even read itself |
-| `POST /users/search` **without** the header | `200` with an **empty** list — zero visibility |
-| `GET /users/<oid>` **without** the header | `403` |
-| `Switch-To-Principal: <external contractor oid>` | `403` — outside the archetype scope |
+| `GET /self` with `Switch-To-Principal: <employee oid>` | 200, that employee |
+| `GET /self` without the header | 500 Access denied. The account cannot read itself. |
+| `POST /users/search` without the header | 200 with an empty list |
+| `GET /users/<oid>` without the header | 403 |
+| `Switch-To-Principal: <oid of a user outside the archetype scope>` | 403 |
 
-An account that can see nothing and change nothing on its own, and whose only power
-is to borrow the authorizations of a bounded set of end users, is a much smaller
-target than any enumerated permission set could be. If its credentials leak, the
-attacker still has to present a valid OIDC token for a specific in-scope human to do
-anything at all.
+If the account's credentials leak, the attacker can impersonate any user inside the
+`#proxy` scope by sending `Switch-To-Principal` directly. Keep the scope as narrow
+as the population the server serves, and keep the password out of files.
 
-**The end users must be authorized.** Because the request runs as them, a user with
-no midPoint authorizations cannot even read `/self`. Assign real users midPoint's
-built-in **End user** role or your deployment's equivalent; that is also what enables
-the self-service tools (`list_requestable_roles`, `request_role`, work items).
+The users the server impersonates need authorizations of their own, because every
+call runs as them. A user with no midPoint authorizations cannot even read `/self`.
+Assign midPoint's built-in End user role or your own equivalent. That role is also
+what makes the self-service tools such as `list_requestable_roles`, `request_role`
+and the work item tools useful.
 
-## Profile: direct-service (shared technical account)
+### Let the service account find users
 
-In personal/stdio mode the credentials are usually the operator's own, and midPoint
-sees the real person — nothing extra is needed. But many deployments run stdio (or
-loopback HTTP) with a **shared technical account**, and then *every* call executes as
-that account. It must not be a superuser.
+Correlation is the search that maps a token to a midPoint user. It runs before any
+impersonation, as the service account itself and without `Switch-To-Principal`,
+because the server does not yet know whom to impersonate. The searches filter on
+these user items:
 
-[`examples/role-mcp-direct-service.xml`](../examples/role-mcp-direct-service.xml) is
-the enumerated least-privilege alternative: exactly the REST endpoints and model
-operations the 27 tools use, and nothing else. Highlights of what it deliberately
-does **not** grant:
+- `externalId`, against the token's `sub`, but only if your schema defines such an
+  item. midPoint 4.10's standard user schema does not, and the server moves on when
+  this search fails.
+- the correlation attribute, `name` by default or whatever
+  `MIDPOINT_MCP_OIDC_CORRELATION_ATTRIBUTE` names.
+- `name`, which a client's own token is always matched on.
+- `archetypeRef`, which the archetype check for client tokens filters on.
 
-- no `#deleteObject` — no tool deletes anything, so `DELETE /users/<oid>` is refused
-  at the REST layer;
-- `#modify` on `UserType` is restricted with `<item>activation</item>` and
-  `<item>assignment</item>` — the account can enable/disable and (un)assign, but a
-  `PATCH` of `fullName`, `emailAddress` or `credentials` is refused (verified: `403`);
-- no read of `TaskType`, `SystemConfigurationType`, `SecurityPolicyType`, … — the
-  configuration layer is invisible (verified: `GET /tasks/<oid>` → `403`,
-  `PATCH /systemConfigurations/…` → `403`);
-- no script execution (see below).
+The example role carries no model rights, and the check table above shows that its
+`POST /users/search` returns an empty list. With that role alone, every correlation
+search finds nobody and every token is refused with `no midPoint user matches`. Do
+not deploy `examples/role-mcp-rs-service.xml` unchanged in shared mode. A
+deployment that works with it today is getting read rights from another role.
 
-### Endpoint / authorization map
+The service account needs read access to the users it may correlate, limited to the
+same archetypes as its `#proxy` authorization and to the items above. midPoint's
+authorization model supports this shape. Its 4.10 documentation describes
+`model-3#read` as a shortcut for the `get` and `search` actions. It says the search
+authorization governs how a search filter can be formed and which objects are
+returned. It describes `archetypeRef` as a selector that limits an authorization to
+objects with that archetype, and `<item>` as a way to limit read access to selected
+items. A minimal authorization in that shape looks like this, with your archetype
+oids and the correlation attribute you configured.
 
-Everything the server sends, and what each call needs. `rest-3` =
-`…/security/authorization-rest-3#`, `model-3` = `…/security/authorization-model-3#`.
+```xml
+<authorization>
+    <name>read-users-for-correlation</name>
+    <description>Lets midpoint-mcp-server find the user a token belongs to.</description>
+    <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#read</action>
+    <object>
+        <type>UserType</type>
+        <archetypeRef oid="11111111-2222-3333-4444-5555555500a1"/>
+        <archetypeRef oid="11111111-2222-3333-4444-5555555500a2"/>
+    </object>
+    <item>name</item>
+    <item>archetypeRef</item>
+    <!-- Add the correlation attribute if it is not name, for example extension/entraObjectId. -->
+</authorization>
+```
 
-| Tools | Request | `rest-3` action | `model-3` action (object) |
+This requirement follows from the code. The authorization above has not yet been
+fired live against midPoint 4.10 with this server. After you add it, run the
+correlation check in [Verify a deployment](#verify-a-deployment). If the search
+still returns an empty list, remove the `<item>` lines, check again, and record what
+your midPoint version needs. The cost of this grant is that the account can read
+those items of in-scope users on its own, without a token.
+
+## Use the direct-service role for a shared technical account
+
+In personal mode the credentials are usually the operator's own, and midPoint sees
+the real person. Some deployments run personal mode, over stdio or loopback HTTP,
+with a shared technical account instead. Then every call runs as that account, and
+it must not be a superuser.
+
+[`examples/role-mcp-direct-service.xml`](../examples/role-mcp-direct-service.xml)
+grants exactly the REST endpoints and model operations the tools use. It
+deliberately leaves out the following.
+
+- It grants no `#deleteObject`, because no tool deletes anything. `DELETE
+  /users/<oid>` is refused at the REST layer.
+- It restricts `#modify` on users to the items `activation` and `assignment`. The
+  account can enable, disable, assign and unassign, but a `PATCH` of `fullName`,
+  `emailAddress` or `credentials` gets 403.
+- It grants no read of `TaskType`, `SystemConfigurationType` or
+  `SecurityPolicyType`. `GET /tasks/<oid>` and `PATCH /systemConfigurations/...`
+  both get 403.
+- It grants no script execution, as [Handle the search_audit exception](#handle-the-search_audit-exception)
+  explains.
+
+### Map each tool to the authorizations it needs
+
+`rest-3` stands for `http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#`
+and `model-3` for `http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#`.
+In shared mode the `rest-3` actions are checked for the service account and the
+`model-3` actions for the impersonated user, except in the correlation row.
+
+| Tools | Request | `rest-3` action | `model-3` action and object |
 | --- | --- | --- | --- |
-| `ping`, and the `/self` step of `list_my_*`, `list_work_items`, `list_my_requests`, `decide_work_item` | `GET /self` | `getSelf` | `read` (UserType) |
-| `search_users`, `list_roles`, `list_requestable_roles`, `list_resources`, `search_objects`, `list_my_team`, `list_my_managers`, `list_my_requests`, `list_work_items` | `POST /{users,roles,resources,orgs,services,shadows,cases}/search` | `searchObjects` | `read` (each type searched) |
-| `get_user`, `get_user_assignments`, `get_role`, `get_resource`, `get_case`, and `decide_work_item`'s check and read-back of the case | `GET /{users,roles,resources,cases}/{oid}` | `getObject` | `read` (that type; plus RoleType/OrgType/ArchetypeType/ServiceType for `?options=resolveNames` to fill `targetName`) |
-| `create_user` | `POST /users` | `addObject` | `add` (UserType) |
-| `enable_user`, `disable_user` | `PATCH /users/{oid}` | `modifyObject` | `modify` (UserType, item `activation`) |
-| `assign_role`, `unassign_role`, `request_role` | `PATCH /users/{oid}` | `modifyObject` | `modify` (UserType, item `assignment`) + `assign`/`unassign` (UserType → target RoleType) |
-| `recompute_user` | `PATCH /users/{oid}?options=reconcile` | `modifyObject` | `modify` (UserType; empty delta) |
-| `decide_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` (CaseType) |
-| (no direct call — midPoint's projector, as a consequence of the two rows above) | — | — | `add`/`modify`/`delete` (ShadowType) whenever the affected users are provisioned |
-| `search_audit` | `POST /rpc/executeScript` | `executeScript` | `executeScript` + `auditRead` + `read` (SystemConfigurationType) **and a deployment expression profile — see below** |
+| `ping`, `whoami`, and the `/self` step of the `list_my_*` tools, `list_work_items`, `list_my_requests` and `decide_work_item` | `GET /self` | `getSelf` | `read` on UserType |
+| `search_users`, `list_roles`, `list_requestable_roles`, `list_resources`, `search_objects`, `list_my_team`, `list_my_managers`, `list_my_teammates`, `list_my_requests`, `list_work_items` | `POST /{users,roles,resources,orgs,services,shadows,cases}/search` | `searchObjects` | `read` on each type searched |
+| `get_user`, `get_user_assignments`, `get_role`, `get_resource`, `get_case`, and the case checks and read-backs of `decide_work_item` and `cancel_request` | `GET /{users,roles,resources,cases}/{oid}` | `getObject` | `read` on that type, plus RoleType, OrgType, ArchetypeType and ServiceType so that `resolveNames` can fill `targetName` |
+| `create_user` | `POST /users` | `addObject` | `add` on UserType |
+| `enable_user`, `disable_user` | `PATCH /users/{oid}` | `modifyObject` | `modify` on UserType, item `activation` |
+| `assign_role`, `unassign_role`, `request_role` | `PATCH /users/{oid}` | `modifyObject` | `modify` on UserType, item `assignment`, plus `assign` or `unassign` on UserType with target RoleType |
+| `recompute_user` | `PATCH /users/{oid}?options=reconcile` | `modifyObject` | `modify` on UserType, with an empty change |
+| `decide_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` on CaseType |
+| `cancel_request` | `POST /cases/{oid}/cancel` | `cancelCase` | Not yet verified |
+| No tool. midPoint's projector does this as a consequence of the activation and assignment rows. | none | none | `add`, `modify` and `delete` on ShadowType whenever the affected users are provisioned |
+| `search_audit` | `POST /rpc/executeScript` | `executeScript` | `executeScript`, `auditRead`, and `read` on SystemConfigurationType, and a deployment expression profile |
+| Correlation, in shared mode only, run as the service account itself | `POST /users/search` | `searchObjects` | `read` on the users in scope, see [Let the service account find users](#let-the-service-account-find-users) |
 
-**The half-applied-write trap.** `enable_user` / `disable_user` change the focus, and
-midPoint's projector then pushes that downstream as the *same* account. If the role
-grants `modify` on `UserType` but not on `ShadowType`, midPoint **commits the focus
-change and then fails provisioning** (`not authorized for operation …#modify on
-shadow:<oid>`): the user is disabled in midPoint and still enabled in the connected
-systems — worse than a clean refusal. Verified on 4.10.3. Any deployment whose tools
-may touch provisioned users needs the `provision-shadows` authorization; midPoint's
-own built-in *End user* role has the same shape for self-shadows.
+Neither example role grants `rest-3#cancelCase`, so with the roles as shipped
+`cancel_request` is refused at the REST layer. Add the action to the `rest-entry`
+authorization if requesters should withdraw their own requests. `cancel_request`
+has not yet been fired against a live midPoint, so its model authorization is not
+documented here.
 
-Notes on scoping the enumerated role further:
+When the settings file sets `requests.formItems`, the server also reads midPoint's
+extension schemas at startup, as the service account itself, from `/ws/rest/schemas`
+and `/ws/schema`. Neither example role was verified with that setting.
 
-- `assign`/`unassign` are scoped with `<target><type>RoleType</type></target>`. A
-  deployment that only wants self-service can narrow the target with a filter (e.g.
-  `requestable = true`), exactly like midPoint's built-in *End user* role does.
-- `ShadowType`, `ServiceType` and `OrgType` reads exist only for `search_objects`
-  reporting; drop them if you do not use it.
-- `ArchetypeType` read exists only so `?options=resolveNames` can print an
-  archetype's name in assignment listings; dropping it degrades a display name, it
+Beware the half-applied write. `enable_user` and `disable_user` change the user, and
+midPoint's projector then pushes the change to connected systems as the same
+account. If the role grants `modify` on UserType but not on ShadowType, midPoint
+commits the user change and then fails provisioning with `not authorized for
+operation ...#modify on shadow:<oid>`. The user ends up disabled in midPoint and
+still enabled downstream, which is worse than a clean refusal. Verified on 4.10.3.
+Grant the `provision-shadows` authorization whenever the tools may touch
+provisioned users. midPoint's built-in End user role has the same shape for a
+user's own shadows.
+
+The enumerated role can be narrowed further.
+
+- `assign` and `unassign` are scoped to the target type RoleType. A self-service
+  deployment can narrow the target with a filter such as `requestable = true`, as
+  midPoint's built-in End user role does.
+- The reads of ShadowType, ServiceType and OrgType exist only for `search_objects`
+  reports and the team tools. Drop them if you do not use those.
+- The read of ArchetypeType exists only so that `resolveNames` can print an
+  archetype's name in assignment listings. Dropping it blanks a display name and
   breaks nothing.
 
-### The `search_audit` exception
+### Handle the search_audit exception
 
-midPoint 4.10 exposes **no** audit REST endpoint, so `search_audit` reaches the audit
-trail through a Groovy `execute-script` bulk action. On 4.10.3 that is gated twice:
+midPoint 4.10 has no audit REST endpoint, so `search_audit` reaches the audit trail
+through a Groovy `execute-script` bulk action. On 4.10.3 two gates apply.
 
-1. by authorizations you *can* grant (`rest-3#executeScript`, `model-3#executeScript`,
-   `authorization-bulk-3#all`, `model-3#auditRead`, plus `read` of
-   `SystemConfigurationType` because the script pipeline seeds from it), and
-2. by the deployment's **bulk-actions expression profile**, which you cannot grant to
-   a principal at all.
+1. Authorizations you can grant: `rest-3#executeScript`, `model-3#executeScript`,
+   `authorization-bulk-3#all`, `model-3#auditRead`, and `read` on
+   SystemConfigurationType, because the script pipeline starts from it.
+2. The deployment's bulk actions expression profile, which no principal can be
+   granted.
 
 With no `expressions/defaults/bulkActions` configured, midPoint uses the built-in
-`##legacyUnprivilegedBulkActions` profile and refuses the script evaluator:
+`##legacyUnprivilegedBulkActions` profile and refuses to run the script with this
+message:
 
 ```
 Access to script expression evaluator not allowed
 (expression profile: ##legacyUnprivilegedBulkActions) in script
 ```
 
-Verified on 4.10.3, the important part: adding `authorization-model-3#all` to the
-account is **not** enough — it is still refused. Only the real superuser action
-`authorization-3#all` gets through. In other words, **on 4.10 `search_audit` requires
-a superuser-equivalent account**; there is no least-privilege grant that enables it.
+Adding `authorization-model-3#all` to the account does not help. Only the real
+superuser action `authorization-3#all` gets through, so on 4.10 `search_audit`
+needs a superuser-equivalent account. The one alternative is to set
+`SystemConfigurationType/expressions/defaults/bulkActions` to a permissive profile,
+which gives the account arbitrary Groovy inside midPoint. That is a larger grant
+than the superuser role you were trying to remove. The tool also cannot work in
+shared mode, because the impersonated user has no script authorization.
 
-A deployment that wants `search_audit` from a non-superuser account has exactly one
-knob: set `SystemConfigurationType/expressions/defaults/bulkActions` to a permissive
-expression profile. Understand what that buys the account: arbitrary Groovy inside
-midPoint, with privilege elevation if the profile allows it — which is a *larger*
-grant than the superuser role you were trying to remove. Our recommendation:
+Leave it off. Every other tool works under the enumerated role, and the example
+ships the audit block commented out so that enabling it is a deliberate, reviewed
+act. If you need audit through an assistant, run that one workload under separately
+managed admin credentials, or read the audit trail in midPoint's own interface.
 
-- **leave it off.** The other 24 tools work fine under the enumerated role; the audit
-  block is shipped commented-out in the example so enabling it is a deliberate,
-  reviewed act;
-- if you need audit through an assistant, run that one workload under separately
-  managed admin credentials, or read the audit trail from midPoint's own UI/report
-  engine, rather than widening the account 24 tools share.
+## Understand why the account cannot impersonate only for approvals
 
-## Why not "`#proxy` only for approvals"
+Deployers often ask whether the service account can impersonate users only for
+approvals and use its own rights for everything else. midPoint cannot express that,
+and the result would be worse if it could.
 
-The most common question from deployers is: *can the service account impersonate
-users only for approval operations, and use its own rights for everything else?*
+- `#proxy` selects who may be impersonated by type, archetype, org or filter. It has
+  no dimension for what is done afterwards, so "impersonate for `completeWorkItem`
+  only" cannot be written.
+- If only approvals ran as the person, every read and write would run as the
+  service account. The account would then need standing `read`, `add`, `modify` and
+  `assign` over the whole user population, all the time.
+- midPoint's audit records the acting principal. Approvals would be attributed to
+  the person while the changes they authorize would be attributed to the service
+  account. An identity governance audit trail whose writes all name the service
+  account does not tell you who did what.
 
-midPoint cannot express that, and the shape you would get if it could is worse than
-what you have:
+The better answer is the inverse. Keep impersonation total, so every tool call runs
+as the correlated user, and keep the service account's own rights as close to zero
+as midPoint allows. Its power is then bounded twice: by the archetype scope of
+`#proxy`, and by each user's own authorizations.
 
-- **`#proxy` is per subject + impersonated object.** Its selector describes *who may
-  be impersonated* (type, archetype, org, filter), not *what may be done afterwards*.
-  There is no "action" dimension on the proxy authorization, so "impersonate for
-  `completeWorkItem` only" is not expressible.
-- **It would force broad standing privilege.** If only approvals ran as the human,
-  every read and every write would run as the service account — which would then need
-  standing `read`/`add`/`modify`/`assign` over the whole user population. That is the
-  opposite of the goal: instead of an account that can do nothing by itself, you get
-  an account that can read and change everyone, all the time.
-- **It would corrupt attribution.** midPoint's audit records the acting principal.
-  With mixed lanes, approvals would be attributed to the human while the *changes*
-  those approvals authorize would be attributed to a robot. An IGA audit trail whose
-  writes all say `mcp-service` is not an audit trail.
-
-The enterprise answer is the inverse: keep impersonation **total** — every call runs
-as the correlated human — and make the service account's own privilege as close to
-zero as midPoint allows. `#proxy` then *is* essentially the only power the account
-has, and it is bounded twice over: by the archetype scope on the grant, and by each
-end user's own authorizations.
-
-## Verifying a deployment
+## Verify a deployment
 
 ```sh
 MP=https://midpoint.example.com/midpoint
-SVC=mcp-service:...            # the service account
+SVC=mcp-service:...            # the service account and its password, typed in and never stored
 ALICE=<oid of an in-scope user>
-EXT=<oid of an out-of-scope user, e.g. a contractor>
+EXT=<oid of an out-of-scope user, for example a contractor>
 
 # impersonation works for an in-scope archetype
 curl -s -u "$SVC" -H "Switch-To-Principal: $ALICE" "$MP/ws/rest/self"       # 200, alice
@@ -234,21 +281,26 @@ curl -s -u "$SVC" -H "Switch-To-Principal: $ALICE" "$MP/ws/rest/self"       # 20
 curl -s -o /dev/null -w '%{http_code}\n' -u "$SVC" \
      -H "Switch-To-Principal: $EXT" "$MP/ws/rest/self"                      # 403
 
-# rs-service profile: the account is blind on its own
+# shared mode: correlation finds an in-scope user without the header
+curl -s -u "$SVC" -H 'Content-Type: application/json' \
+     -d '{"query":{"filter":{"text":"name = \"alice\""}}}' \
+     "$MP/ws/rest/users/search"                                             # alice, not an empty list
+
+# rs-service profile: the account cannot read itself
 curl -s -o /dev/null -w '%{http_code}\n' -u "$SVC" "$MP/ws/rest/self"       # 500 Access denied
 
 # no tool deletes anything, so this must fail at the REST layer
 curl -s -o /dev/null -w '%{http_code}\n' -u "$SVC" -X DELETE \
      "$MP/ws/rest/users/$ALICE"                                             # 403
 
-# the configuration layer must be invisible/untouchable
+# the configuration layer must be untouchable
 curl -s -o /dev/null -w '%{http_code}\n' -u "$SVC" -X PATCH \
      -H 'Content-Type: application/json' \
      -d '{"objectModification":{"itemDelta":[{"modificationType":"replace","path":"description","value":"x"}]}}' \
      "$MP/ws/rest/systemConfigurations/00000000-0000-0000-0000-000000000001"  # 403
 ```
 
-Two failure signatures are worth telling apart: an **HTML** `403` body is the REST
-security filter refusing the endpoint (the account lacks the `rest-3` action), while a
-**JSON** `403`/`500` with `not authorized for operation …` / `Access denied` is
-midPoint's model layer refusing the object or operation.
+Two failure signatures are worth telling apart. An HTML 403 body is the REST
+security filter refusing the endpoint, because the account lacks the `rest-3`
+action. A JSON 403 or 500 with `not authorized for operation` or `Access denied` is
+midPoint's model layer refusing the object or the operation.
