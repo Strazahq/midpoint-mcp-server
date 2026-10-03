@@ -1,0 +1,26 @@
+{
+  "task": {
+    "oid": "e5e5e5e5-2c32-4704-b080-8665d778fad5",
+    "name": "Nightly change run",
+    "ownerRef": {
+      "oid": "00000000-0000-0000-0000-000000000002",
+      "relation": "org:default",
+      "type": "c:UserType"
+    },
+    "executionState": "closed",
+    "resultStatus": "partial_error",
+    "lastRunFinishTimestamp": "2026-10-03T18:13:29.281Z",
+    "result": {
+      "operation": "run",
+      "status": "partial_error",
+      "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+      "partialResults": [
+        {
+          "operation": "SqaleRepositoryService.modifyObject",
+          "status": "success",
+          "message": null
+        }
+      ]
+    }
+  }
+}

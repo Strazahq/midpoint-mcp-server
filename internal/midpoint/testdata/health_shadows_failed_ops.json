@@ -1,0 +1,76 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@type": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3#ObjectListType",
+    "object": [
+      {
+        "@type": "c:ShadowType",
+        "oid": "7ce0f287-5f1a-4a54-99f1-49c570c3e118",
+        "name": "alice",
+        "resourceRef": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "oid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c04",
+          "relation": "org:default",
+          "type": "c:ResourceType"
+        },
+        "objectClass": "ri:user",
+        "kind": "account",
+        "intent": "default",
+        "exists": true,
+        "operationExecution": {
+          "@id": 3,
+          "recordType": "simple",
+          "timestamp": "2026-10-01T16:20:08.780Z",
+          "operation": [
+            {
+              "objectDelta": {
+                "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+                "changeType": "add",
+                "objectType": "c:ShadowType"
+              },
+              "executionResult": {
+                "operation": "com.evolveum.midpoint.model.impl.lens.ChangeExecutor.executeDelta",
+                "status": "fatal_error",
+                "importance": "normal",
+                "token": 1000000000000004429,
+                "message": "Object already exists on the resource (Keycloak (realm lab): Keycloak login (user), ConnId jp.openstandia.connector.keycloak.KeycloakConnector v2.0.0): org.identityconnectors.framework.common.exceptions.AlreadyExistsException(Already exists when calling \"createUser\". status. 409)"
+              },
+              "objectName": "alice",
+              "resourceOid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c04",
+              "resourceName": "Keycloak (realm lab)",
+              "shadowKind": "account",
+              "shadowIntent": "default"
+            },
+            {
+              "objectDelta": {
+                "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+                "changeType": "modify",
+                "objectType": "c:ShadowType"
+              },
+              "executionResult": {
+                "operation": "com.evolveum.midpoint.model.impl.lens.ChangeExecutor.executeDelta",
+                "status": "success",
+                "importance": "normal",
+                "token": 1000000000000004430
+              },
+              "objectName": "alice",
+              "resourceOid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c04",
+              "resourceName": "Keycloak (realm lab)",
+              "shadowKind": "account",
+              "shadowIntent": "default"
+            }
+          ],
+          "status": "fatal_error",
+          "message": "Object already exists on the resource (Keycloak (realm lab): Keycloak login (user), ConnId jp.openstandia.connector.keycloak.KeycloakConnector v2.0.0): org.identityconnectors.framework.common.exceptions.AlreadyExistsException(Already exists when calling \"createUser\". status. 409)",
+          "initiatorRef": {
+            "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+            "oid": "00000000-0000-0000-0000-000000000002",
+            "relation": "org:default",
+            "type": "c:UserType"
+          },
+          "channel": "http://midpoint.evolveum.com/xml/ns/public/common/channels-3#rest"
+        }
+      }
+    ]
+  }
+}

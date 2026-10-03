@@ -1,0 +1,27 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@type": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3#ObjectListType",
+    "object": [
+      {
+        "@type": "c:TaskType",
+        "oid": "e5e5e5e5-2c32-4704-b080-8665d778fad5",
+        "name": "Nightly change run",
+        "ownerRef": {
+          "t:oid": "00000000-0000-0000-0000-000000000002",
+          "t:relation": "org:default",
+          "t:type": "c:UserType",
+          "targetName": "administrator"
+        },
+        "executionState": "closed",
+        "schedulingState": "closed",
+        "resultStatus": "partial_error",
+        "lastRunStartTimestamp": "2026-10-03T18:13:28.890Z",
+        "lastRunFinishTimestamp": "2026-10-03T18:13:29.281Z",
+        "result": {
+          "@incomplete": true
+        }
+      }
+    ]
+  }
+}

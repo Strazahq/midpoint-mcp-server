@@ -1,0 +1,68 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@type": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3#ObjectListType",
+    "object": [
+      {
+        "@type": "c:ResourceType",
+        "oid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c01",
+        "name": "Lab Directory",
+        "operationalState": {
+          "lastAvailabilityStatus": "up",
+          "message": "Status set to UP because resource schema was successfully fetched",
+          "timestamp": "2026-10-01T16:19:34.341Z",
+          "nodeId": "DefaultNode"
+        },
+        "schemaHandling": {
+          "objectType": [
+            {
+              "@id": 2,
+              "kind": "account",
+              "intent": "default",
+              "default": true
+            },
+            {
+              "@id": 28,
+              "kind": "entitlement",
+              "intent": "app",
+              "default": null
+            },
+            {
+              "@id": 51,
+              "kind": "entitlement",
+              "intent": "tool",
+              "default": null
+            },
+            {
+              "@id": 68,
+              "kind": "entitlement",
+              "intent": "group",
+              "default": true
+            }
+          ]
+        }
+      },
+      {
+        "@type": "c:ResourceType",
+        "oid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c04",
+        "name": "Keycloak (realm lab)",
+        "operationalState": {
+          "lastAvailabilityStatus": "up",
+          "message": "Status set to UP because resource schema was successfully fetched",
+          "timestamp": "2026-10-01T16:19:39.590Z",
+          "nodeId": "DefaultNode"
+        },
+        "schemaHandling": {
+          "objectType": [
+            {
+              "@id": 2,
+              "kind": "account",
+              "intent": "default",
+              "default": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

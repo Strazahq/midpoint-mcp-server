@@ -1,0 +1,76 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@type": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3#ObjectListType",
+    "object": [
+      {
+        "@type": "c:ShadowType",
+        "oid": "8bf64a12-7e97-4de2-a66e-afd3666675c4",
+        "name": "lab-group-scouts",
+        "resourceRef": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "oid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c01",
+          "relation": "org:default",
+          "type": "c:ResourceType"
+        },
+        "objectClass": "ri:GroupObjectClass",
+        "kind": "entitlement",
+        "intent": "group",
+        "exists": false,
+        "dead": true,
+        "deathTimestamp": "2026-10-01T16:24:04.427Z"
+      },
+      {
+        "@type": "c:ShadowType",
+        "oid": "e0b91f81-b577-4985-8e08-3117fed9da0a",
+        "name": "lab-group-all",
+        "resourceRef": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "oid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c01",
+          "relation": "org:default",
+          "type": "c:ResourceType"
+        },
+        "objectClass": "ri:GroupObjectClass",
+        "kind": "entitlement",
+        "intent": "group",
+        "exists": false,
+        "dead": true,
+        "deathTimestamp": "2026-10-01T16:23:59.661Z"
+      },
+      {
+        "@type": "c:ShadowType",
+        "oid": "54b0fa48-baa2-48d6-9f89-e6bea16c5738",
+        "name": "lab-group-carol",
+        "resourceRef": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "oid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c01",
+          "relation": "org:default",
+          "type": "c:ResourceType"
+        },
+        "objectClass": "ri:GroupObjectClass",
+        "kind": "entitlement",
+        "intent": "group",
+        "exists": false,
+        "dead": true,
+        "deathTimestamp": "2026-10-01T16:24:02.190Z"
+      },
+      {
+        "@type": "c:ShadowType",
+        "oid": "12fee06b-8afa-40ec-a5bb-030c5f64c274",
+        "name": "lab-policy-only",
+        "resourceRef": {
+          "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+          "oid": "b6f9f2c8-0d5a-4e77-9a1e-9d3c0e5a1c01",
+          "relation": "org:default",
+          "type": "c:ResourceType"
+        },
+        "objectClass": "ri:GroupObjectClass",
+        "kind": "entitlement",
+        "intent": "group",
+        "exists": false,
+        "dead": true,
+        "deathTimestamp": "2026-10-01T16:23:59.048Z"
+      }
+    ]
+  }
+}
