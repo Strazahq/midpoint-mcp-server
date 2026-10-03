@@ -226,8 +226,19 @@ jobs:
       - name: Sign checksums.txt
         run: cosign sign-blob --yes --bundle dist/checksums.txt.sigstore.json dist/checksums.txt
 
-      - name: Write the release notes from CHANGELOG.md
-        run: .github/scripts/changelog-section.sh "${GITHUB_REF_NAME}" > "${RUNNER_TEMP}/release-notes.md"
+      # A short summary for users lives in release-notes/X.Y.Z.md. Without one the
+      # page falls back to the full CHANGELOG section, which is written for
+      # developers and runs long.
+      - name: Write the release notes
+        run: |
+          set -euo pipefail
+          summary="release-notes/${GITHUB_REF_NAME#v}.md"
+          if [ -s "${summary}" ]; then
+            cp "${summary}" "${RUNNER_TEMP}/release-notes.md"
+          else
+            echo "::warning::${summary} is missing, so the release page shows the full CHANGELOG section."
+            .github/scripts/changelog-section.sh "${GITHUB_REF_NAME}" > "${RUNNER_TEMP}/release-notes.md"
+          fi
 
       - name: Create GitHub release
         env:

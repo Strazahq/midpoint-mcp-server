@@ -6,6 +6,13 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+### Changed
+
+- The release page takes its text from `release-notes/X.Y.Z.md` when that file
+  exists, so users read a short summary instead of the full CHANGELOG section.
+  Without the file the page still shows the CHANGELOG section, with a warning
+  in the run.
+
 ## [0.4.0] - 2026-10-03
 
 ### Added
