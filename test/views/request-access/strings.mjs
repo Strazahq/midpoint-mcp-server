@@ -1,9 +1,9 @@
 // Expected English from contract 10, independent of the view document.
 export const S={
  title:'Get access',refresh:'Refresh',refreshing:'Refreshing…',cancel:'Cancel',more:'Show more',less:'Show less',technical:'Show technical details',
- self:'Myself',selfOnly:'Roles you can request for yourself',target:'Request for',search:'Search roles',loading:'Loading roles you can request…',slow:'Still waiting for midPoint…',
+ self:'Myself',listTitle:(n,u)=>`Roles you can request for ${u||'yourself'} (${n})`,target:'Request for',search:'Search roles',loading:'Loading roles you can request…',slow:'Still waiting for midPoint…',
  selfHint:'midPoint decides who approves your requests.',managerHint:n=>`Requests are usually approved by your manager (${n}).`,reportHint:n=>`Requests for ${n} usually go to their manager. That may be you.`,
- request:'Request',requestLabel:r=>`Request ${r} for yourself`,reportLabel:(r,u)=>`Request ${r} for ${u}`,previewLabel:r=>`Preview request for ${r} for yourself`,requested:'Requested',
+ request:'Request',requestLabel:r=>`Request ${r} for yourself`,reportLabel:(r,u)=>`Request ${r} for ${u}`,previewLabel:r=>`Preview request for ${r} for yourself`,requested:'Requested',grantedPill:'Granted',columns:['Role','Risk','Status'],risk:l=>`Risk: ${l}`,
  titleRequest:r=>`Request ${r}?`,body:r=>`You're requesting ${r} for yourself.`,policy:"Nothing changes until it's approved.",submit:'Send request',working:'Working…',previewSubmit:'Show preview',
  permanent:'No end date',days:'For a number of days',other:'Other',daysLabel:'Number of days',custom:'Custom dates',from:'Valid from',to:'Valid until',validity:'How long',
  errorDays:'Enter a whole number of days from 1 to 3650.',errorTo:'Choose an end date.',errorFrom:"The start date can't be in the past.",errorPast:'The end date must be in the future.',errorOrder:'The end date must be after the start date.',

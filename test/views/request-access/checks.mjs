@@ -15,8 +15,8 @@ const listTools=fx=>({list_requestable_roles:[{result:fx.result}]});
 const writeTools=(name,extra={})=>({request_role:[{result:(typeof name==='string'?fixture(name):name).result,...extra}]});
 const noTools={message:{},updateModelContext:{},openLinks:{}};
 
-check('ac01.self','7.2 AC1','non-managers see only self; manager hint fetched once',async t=>{
- const v=await catalog(t);t.ok(await v.hasText(S.selfOnly),'self line absent');t.ok(await v.frame.getByRole('group',{name:S.target,exact:true}).count()===0,'non-manager picker');t.ok(await v.waitFor(S.managerHint('Jane Doe')),'manager hint absent');
+check('ac01.self','7.2 AC1','non-managers see only self, named in the list heading; manager hint fetched once',async t=>{
+ const v=await catalog(t);t.ok(await v.visible(v.frame.getByRole('heading',{name:S.listTitle(2),exact:true})),'self heading absent');t.ok(await v.frame.getByRole('group',{name:S.target,exact:true}).count()===0,'non-manager picker');t.ok(await v.waitFor(S.managerHint('Jane Doe')),'manager hint absent');
  t.ok((await v.calls('list_my_team')).length===0,'team called');t.ok((await v.calls('list_my_managers')).length===1,'managers not once');
  await v.button(S.refresh).click();await sleep(200);t.ok((await v.calls('list_my_managers')).length===1,'managers fetched again');
 });
@@ -106,7 +106,7 @@ for(const outcome of ['pending','granted','preview'])check(`ac09.${outcome}`,'7.
  const v=await catalog(t,outcome==='preview'?'dry-catalog':'catalog',{tools:writeTools(outcome)});await open(t,v,outcome==='preview'?S.previewLabel(rn):S.requestLabel(rn));await submit(v,outcome==='preview'?S.previewSubmit:S.submit);
  if(outcome==='pending'){t.ok(await v.waitFor(v.button(S.track)),'track missing');t.ok(await v.hasText(S.requested),'requested badge missing');}
  if(outcome==='preview'){t.ok(await v.waitFor(S.preview),'preview missing');t.ok(!(await v.hasText(S.requested)),'preview claimed requested');t.ok(await v.hasText(S.permanent),'preview summary missing');}
- if(outcome==='granted'){const r=fixture('granted').result.structuredContent.request;t.ok(await v.waitFor(S.granted(roleName(r.role),r.user.displayName)),'grant outcome');const warning=v.frame.getByRole('status').filter({hasText:S.granted(roleName(r.role),r.user.displayName)});t.ok(await warning.evaluate(el=>getComputedStyle(el).backgroundColor)==='rgb(255, 243, 205)','grant not warning');}
+ if(outcome==='granted'){const r=fixture('granted').result.structuredContent.request;t.ok(await v.waitFor(S.granted(roleName(r.role),r.user.displayName)),'grant outcome');const warning=v.frame.getByRole('status').filter({hasText:S.granted(roleName(r.role),r.user.displayName)});t.ok(await warning.evaluate(el=>getComputedStyle(el).backgroundColor)==='rgb(255, 243, 205)','grant not warning');t.ok(await v.hasText(S.grantedPill)&&!(await v.hasText(S.requested)),'granted row not marked granted');}
  t.ok((await v.calls('list_requestable_roles')).length===0,'write reread catalog');
 });
 check('ac09.track-context','7.2 AC9, 6.14','successful write sends tool text as model context; track is a name-only message',async t=>{
@@ -123,6 +123,12 @@ check('ac09.entry-outcome','7.2 outcome mode, 3.3','agent request entry never wr
 });
 check('ac10.clamp','7.2 AC10, 6.12','two-line description has Show more/less and no kind label',async t=>{
  const v=await catalog(t,derive('catalog','long-description',M.long));const list=v.frame.getByRole('listitem').filter({has:v.button(S.requestLabel(rn))});t.ok(await v.waitFor(list.getByRole('button',{name:S.more,exact:true})),'no description expander');t.ok((await v.text(list)).includes('…'),'no ellipsis');await list.getByRole('button',{name:S.more,exact:true}).click();t.ok(await v.visible(list.getByRole('button',{name:S.less,exact:true})),'no Show less');t.ok(!(await v.text(list)).split('\n').includes('Role'),'kind label shown');
+});
+check('ac10.ledger','7.2 AC10, 6.13 (D39)','full screen lists one row per role with its risk and Request button, report heading names the person',async t=>{
+ const v=await catalog(t,'catalog',{context:{displayMode:'fullscreen'},width:860});const rows=v.frame.getByRole('listitem');t.ok(await rows.count()===2,'not one row per role');
+ const row=rows.filter({has:v.button(S.requestLabel(rn))});t.ok(await row.count()===1,'row lost its Request button');t.ok((await row.textContent()).includes(S.risk(role().riskLevel)),'risk words lost');t.ok(!(await v.text(row)).split('\n').includes('Role'),'kind label shown');
+ const report=fixture('report'),m=await catalog(t,'manager',{context:{displayMode:'fullscreen'},width:860,tools:listTools(report)});await sleep(150);await m.frame.getByRole('group',{name:S.target,exact:true}).getByRole('radio',{name:person(),exact:true}).check();
+ t.ok(await m.waitFor(m.frame.getByRole('heading',{name:S.listTitle(report.result.structuredContent.roles.length,person()),exact:true})),'report heading does not name the person');
 });
 check('ac11.limit','7.2 AC11','limitReached explains catalog cutoff',async t=>{const v=await catalog(t,'limited');t.ok(await v.hasText(S.limit(2)),'limit hint missing')});
 check('shared.header','shared, 6.2','resource-server has no identity line; personal mode explains account',async t=>{

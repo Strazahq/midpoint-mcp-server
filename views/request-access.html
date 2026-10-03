@@ -6,39 +6,49 @@
 <title></title>
 <style>
 /* Get access (docs/ui-contract.md 7.2).
-   Tokens are contract 6.9: midPoint's GUI palette, light and dark. */
+   Tokens are contract 6.9 (draft.11): midPoint blue, one tint for kinds, colour only for status. */
 :root{
   --mp-font-sans:var(--font-sans, "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   --mp-font-mono:var(--font-mono, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
-  --mp-canvas:#ffffff; --mp-canvas-subtle:#f4f6f9; --mp-stripe:#f9f9f9;
-  --mp-text:#495057; --mp-text-strong:#30353a; --mp-text-muted:#595959; --mp-label:#357da7; --mp-link:#206f9d;
-  --mp-border:#dee2e6; --mp-divider:#dddddd; --mp-control-border:#6c757d;
-  --mp-primary:#206f9d; --mp-on-primary:#ffffff; --mp-secondary:#627383;
-  --mp-success-fill:#198754; --mp-danger-fill:#dc3545; --mp-warning-fill:#ffc107; --mp-info-fill:#008099;
-  --mp-success-text:#198754; --mp-danger-text:#dc3545; --mp-warning-text:#856404;
+  --mp-canvas:#ffffff; --mp-card:#ffffff; --mp-canvas-subtle:#f5f7fa; --mp-stripe:#f8f9fb;
+  --mp-text:#465361; --mp-text-strong:#16202b; --mp-text-muted:#5b6673; --mp-label:#5b6673; --mp-link:#1f6fa3;
+  --mp-border:#e2e7ed; --mp-divider:#e2e7ed; --mp-control-border:#8a96a3;
+  --mp-primary:#1f6fa3; --mp-on-primary:#ffffff; --mp-primary-soft:#e6f1f8; --mp-secondary:#5b6673;
+  --mp-success-fill:#126b33; --mp-on-success:#ffffff; --mp-danger-fill:#b4232a; --mp-on-danger:#ffffff;
+  --mp-success-text:#126b33; --mp-danger-text:#b4232a; --mp-warning-text:#8a4b06; --mp-info-text:#1d4fc4; --mp-neutral-text:#4f5964;
+  --mp-success-soft:#e1f4e7; --mp-danger-soft:#fde6e6; --mp-warning-soft:#fdf0cf; --mp-info-soft:#e5ecfd; --mp-neutral-soft:#eceff2;
   --mp-success-panel:#d1e7dd; --mp-danger-panel:#f8d7da; --mp-warning-panel:#fff3cd; --mp-info-panel:#cce6eb;
-  --mp-focus:#ffa836; --mp-focus-inner:#30353a; --mp-on-dark-badge:#1f2d3d;
+  --mp-tile-bg:#e6f1f8; --mp-tile-fg:#1f6fa3; --mp-avatar-bg:#e7ebf0; --mp-avatar-fg:#3d4a58;
+  --mp-focus:#ffa836; --mp-focus-inner:#16202b;
   --mp-focus-shadow:0 0 0 2px var(--mp-canvas), 0 0 0 3px var(--mp-focus-inner);
   --mp-scrim:rgb(22 28 34 / .5);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
-    --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
-    --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
-    --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+    --mp-canvas:#1a1f25; --mp-card:#20262d; --mp-canvas-subtle:#272e36; --mp-stripe:#232a31;
+    --mp-text:#c0c9d2; --mp-text-strong:#edf1f5; --mp-text-muted:#97a3ae; --mp-label:#97a3ae; --mp-link:#5aa6dc;
+    --mp-border:#313942; --mp-divider:#313942; --mp-control-border:#6b7682;
+    --mp-primary:#5aa6dc; --mp-on-primary:#0b1a26; --mp-primary-soft:#1b3446; --mp-secondary:#97a3ae;
+    --mp-success-fill:#6fdc97; --mp-on-success:#0b1a26; --mp-danger-fill:#ff9b9b; --mp-on-danger:#2a0b0d;
+    --mp-success-text:#6fdc97; --mp-danger-text:#ff9b9b; --mp-warning-text:#f5c35b; --mp-info-text:#9cb8ff; --mp-neutral-text:#aeb7c0;
+    --mp-success-soft:#163b25; --mp-danger-soft:#4a1d20; --mp-warning-soft:#3f3013; --mp-info-soft:#1e2c52; --mp-neutral-soft:#2b3138;
     --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+    --mp-tile-bg:#1b3446; --mp-tile-fg:#8cc4ea; --mp-avatar-bg:#2f3740; --mp-avatar-fg:#d5dde5;
     --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
-  --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
-  --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
-  --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+  --mp-canvas:#1a1f25; --mp-card:#20262d; --mp-canvas-subtle:#272e36; --mp-stripe:#232a31;
+  --mp-text:#c0c9d2; --mp-text-strong:#edf1f5; --mp-text-muted:#97a3ae; --mp-label:#97a3ae; --mp-link:#5aa6dc;
+  --mp-border:#313942; --mp-divider:#313942; --mp-control-border:#6b7682;
+  --mp-primary:#5aa6dc; --mp-on-primary:#0b1a26; --mp-primary-soft:#1b3446; --mp-secondary:#97a3ae;
+  --mp-success-fill:#6fdc97; --mp-on-success:#0b1a26; --mp-danger-fill:#ff9b9b; --mp-on-danger:#2a0b0d;
+  --mp-success-text:#6fdc97; --mp-danger-text:#ff9b9b; --mp-warning-text:#f5c35b; --mp-info-text:#9cb8ff; --mp-neutral-text:#aeb7c0;
+  --mp-success-soft:#163b25; --mp-danger-soft:#4a1d20; --mp-warning-soft:#3f3013; --mp-info-soft:#1e2c52; --mp-neutral-soft:#2b3138;
   --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+  --mp-tile-bg:#1b3446; --mp-tile-fg:#8cc4ea; --mp-avatar-bg:#2f3740; --mp-avatar-fg:#d5dde5;
   --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
   color-scheme:dark;
 }
@@ -149,10 +159,6 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-field-foot{display:flex;justify-content:flex-end;gap:10px;align-items:flex-start;min-height:18px}
 .mp-counter{font-size:12px;color:var(--mp-text-muted)}
 
-.mp-rows{list-style:none;margin:0;padding:0;display:grid}
-.mp-rows>li{display:grid;gap:6px;padding:8px 0;border-bottom:1px solid var(--mp-divider);min-height:40px;min-width:0;align-content:center}
-.mp-rows>li:last-child{border-bottom:0}
-.mp-row-main{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;min-width:0}
 /* D33: clamped text is cut in script at a word boundary and ends with one "…" */
 .mp-clamp{overflow-wrap:anywhere}
 .mp-more{justify-self:start}
@@ -201,25 +207,185 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-dialog-body{display:grid;gap:6px}
 .mp-dialog .mp-actions{justify-content:flex-end}
 
-@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+/* ===== readability layer (contract 1.0-draft.11, D39): hierarchy, kind tiles, status pills, labelled facts ===== */
+.mp-title{font-size:17px;letter-spacing:-.005em}
+.mp-section-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mp-text)}
+.mp-note,.mp-muted,.mp-foot{color:var(--mp-text-muted)}
+.mp-btn{min-height:36px;border-radius:8px;font-weight:600}
+.mp-btn--tool{min-height:32px;border-radius:8px;background:var(--mp-card);color:var(--mp-text);border-color:var(--mp-control-border);font-weight:600}
+.mp-btn--secondary,.mp-btn--ghost{background:var(--mp-card);color:var(--mp-text-strong);border-color:var(--mp-control-border)}
+.mp-btn--secondary:hover:not(:disabled),.mp-btn--ghost:hover:not(:disabled){filter:none;background:var(--mp-canvas-subtle)}
+.mp-btn--approve{background:var(--mp-success-fill);color:var(--mp-on-success)}
+.mp-btn--reject{background:var(--mp-card);color:var(--mp-danger-text);border-color:currentColor}
+.mp-btn--approve:hover:not(:disabled){filter:brightness(.92)}
+.mp-btn--reject:hover:not(:disabled){background:var(--mp-danger-soft)}
+.mp-btn--link{min-height:32px;font-weight:600;text-decoration:none}
+.mp-btn--link:hover{text-decoration:underline}
 
-.mp-input,.mp-select{width:100%;min-width:0;min-height:32px;padding:5px 8px;border:1px solid var(--mp-control-border);border-radius:4px;background:var(--mp-canvas);color:var(--mp-text-strong);font:inherit}
+/* pills: a colour, a glyph and a word; red only means danger */
+.mp-chip{min-height:22px;padding:1px 9px;font-size:12px;font-weight:700;background:var(--mp-neutral-soft);color:var(--mp-neutral-text);border:0}
+.mp-chip--secondary,.mp-chip--meta,.mp-chip--outline{background:var(--mp-neutral-soft);color:var(--mp-neutral-text);border:0}
+.mp-chip--outline{font-weight:600}
+.mp-chip--success{background:var(--mp-success-soft);color:var(--mp-success-text)}
+.mp-chip--danger{background:var(--mp-danger-soft);color:var(--mp-danger-text)}
+.mp-chip--alarm{background:var(--mp-danger-fill);color:var(--mp-on-danger)}
+.mp-chip--warning{background:var(--mp-warning-soft);color:var(--mp-warning-text)}
+.mp-chip--info{background:var(--mp-info-soft);color:var(--mp-info-text)}
+.mp-step{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--mp-text);white-space:nowrap}
+
+/* kind tiles: a rounded square for a thing, a circle with initials for a person (shape says kind; one tint) */
+.mp-disc{width:32px;height:32px;border-radius:8px;background:var(--mp-tile-bg);color:var(--mp-tile-fg);box-shadow:none}
+.mp-disc--sm,.mp-inline .mp-disc{width:22px;height:22px;border-radius:6px}
+.mp-disc--lg{width:44px;height:44px}
+.mp-disc--person{border-radius:50%;background:var(--mp-avatar-bg);color:var(--mp-avatar-fg)}
+.mp-disc[data-initials]::before{content:attr(data-initials);font-size:12px;font-weight:700;letter-spacing:.02em;line-height:1}
+.mp-disc--sm[data-initials]::before,.mp-inline .mp-disc[data-initials]::before{font-size:9.5px}
+.mp-disc--lg[data-initials]::before{font-size:16px}
+.mp-tname{display:inline}
+.mp-tname > .mp-disc{vertical-align:-5px;margin-right:6px}
+.mp-badge-name{color:var(--mp-text-strong);font-weight:600}
+
+/* panels keep midPoint's alert tints; their text is the strong ink in both themes */
+.mp-panel,.mp-panel .mp-muted{color:var(--mp-text-strong)}
+
+/* cards (A): avatar | who → what; pills; labelled facts; foot with actions */
+.mp-card{border-radius:12px;background:var(--mp-card)}
+.mp-card-head{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:8px 12px;padding:14px 14px 0;background:none;border-bottom:0}
+.mp-card-title{gap:2px}
+.mp-card-title h2{font-size:16px;font-weight:700;line-height:1.35;color:var(--mp-text-strong)}
+.mp-card-title .mp-about-text{font-size:14px;color:var(--mp-text)}
+.mp-card-chips{grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.mp-card-body{gap:12px;padding:12px 14px 14px 58px}
+.mp-card-more{padding:12px 14px;background:var(--mp-canvas-subtle)}
+.mp-card-foot{padding:10px 14px;background:none}
+.mp-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:7px 16px;margin:0}
+.mp-facts dt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-text-muted);padding-top:3px;white-space:nowrap}
+.mp-facts dd{margin:0;color:var(--mp-text-strong);min-width:0;overflow-wrap:anywhere}
+.mp-quote{border-left:0;border-radius:8px;padding:10px 12px;background:var(--mp-canvas-subtle)}
+.mp-quote-lab{font-weight:600;color:var(--mp-text)}
+.mp-quote-text{font-size:15px}
+.mp-summary svg{color:var(--mp-primary)}
+
+/* ledger (B, full screen): one row per item, the open one shows its card */
+.mp-ledger{list-style:none;margin:0;padding:0;display:grid;border:1px solid var(--mp-border);border-radius:12px;overflow:hidden;background:var(--mp-card)}
+.mp-ledger > li + li{border-top:1px solid var(--mp-border)}
+.mp-lrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 12px;align-items:center;width:100%;min-height:52px;padding:10px 14px;background:none;border:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.mp-lrow:hover{background:var(--mp-canvas-subtle)}
+.mp-lrow[aria-expanded="true"]{background:var(--mp-primary-soft)}
+.mp-lrow[aria-expanded="true"] > svg{transform:rotate(90deg)}
+.mp-lrow-title{color:var(--mp-text-strong);font-weight:600;overflow-wrap:anywhere}
+.mp-lrow-meta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-top:4px}
+.mp-ledger .mp-card{border:0;border-radius:0}
+.mp-ledger .mp-card-body{padding-top:14px}
+
+@container (min-width:560px){
+  .mp-card-head,.mp-card-more,.mp-card-foot{padding-inline:16px}
+  .mp-card-body{padding-inline:60px 16px}
+}
+@container (max-width:469px){
+  .mp-card-body{padding-left:14px}
+  .mp-facts{grid-template-columns:minmax(0,1fr);gap:0}
+  .mp-facts dd{margin-bottom:8px}
+  .mp-btn{min-height:40px}
+  .mp-btn--link{min-height:32px}
+}
+
+/* get access (D39): "Request for" pills, search, role rows (A) and the ledger (B), the request dialog */
+.mp-controls{display:grid;gap:12px;min-width:0}
+/* 6.13: the root scrolls inside a sized host, and a sticky box stops at its content edge, so the full-screen header sits a padding higher */
+.mp.is-full .mp-head{top:-12px}
+@container (min-width:560px){.mp.is-full .mp-head{top:-16px}}
+.mp-input,.mp-select{width:100%;min-width:0;min-height:36px;padding:6px 10px;border:1px solid var(--mp-control-border);border-radius:8px;background:var(--mp-canvas);color:var(--mp-text-strong);font:inherit}
+.mp-input::placeholder{color:var(--mp-text-muted);opacity:1}
+.mp-textarea{padding:7px 10px;border-radius:8px}
 .mp-input[aria-invalid="true"],.mp-textarea[aria-invalid="true"],input[aria-invalid="true"]{border-color:var(--mp-danger-text);outline:1px solid var(--mp-danger-text)}
-.mp-choices,.mp-dialog-sec{display:grid;gap:8px;margin:0;padding:0;border:0;min-width:0}
-.mp-legend{font-weight:700;color:var(--mp-text-strong);padding:0;margin-bottom:8px}
-.mp-radio,.mp-checkbox{display:flex;align-items:center;gap:8px;min-height:24px;cursor:pointer}
-.mp-radio input,.mp-checkbox input{appearance:auto;width:18px;height:18px;margin:3px;accent-color:var(--mp-primary)}
+.mp-legend,.mp-field > label:not(.mp-checkbox){font-size:11px;font-weight:700;letter-spacing:.06em;line-height:1.4;text-transform:uppercase;color:var(--mp-text-muted);padding:0}
+.mp-legend{margin-bottom:6px}
+.mp-checkbox{display:flex;align-items:center;gap:8px;min-height:24px;cursor:pointer;color:var(--mp-text-strong)}
+.mp-checkbox input{appearance:auto;width:18px;height:18px;margin:3px;accent-color:var(--mp-primary)}
+.mp-inline .mp-disc--person,.mp-disc--sm.mp-disc--person{border-radius:50%}
+
+/* a choice as pills (who it is for, how many days) and as a segmented control (how long); the radio stays the control */
+.mp-picker,.mp-dialog-sec{display:grid;gap:8px;margin:0;padding:0;border:0;min-width:0}
+.mp-picker{gap:0}
 .mp-picks{display:flex;flex-wrap:wrap;gap:8px}
-.mp-subchoice{display:grid;gap:8px;margin-left:28px}
-.mp-dates{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
-.mp-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;margin:0}
-.mp-kv dt{color:var(--mp-label)}.mp-kv dd{margin:0;overflow-wrap:anywhere}
-.mp-dialog{max-width:520px}.mp-dialog .mp-kv{padding:10px 0;border-top:1px solid var(--mp-divider)}
-.mp-panel .mp-kv dt{color:var(--mp-text)}
-.mp-search{max-width:100%}.mp-filtered.is-busy{opacity:.45}.mp-filtered{min-width:0}
-.mp-controls{display:grid;gap:10px}.mp-controls .mp-select{max-width:360px}
-.mp-description{margin:0;padding:0;font-style:normal;min-width:0}
-.mp-target-pick{display:flex;align-items:center;gap:8px;padding:6px 10px;min-height:32px;max-width:100%;border:1px solid var(--mp-control-border);border-radius:4px;cursor:pointer}.mp-target-pick.is-on{background:var(--mp-canvas-subtle);box-shadow:inset 0 0 0 1px var(--mp-control-border)}.mp-target-pick input{width:18px;height:18px;flex:none;accent-color:var(--mp-primary)}
+.mp-pill{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:36px;max-width:100%;padding:3px 14px 3px 4px;border:1px solid var(--mp-control-border);border-radius:999px;background:var(--mp-card);color:var(--mp-text-strong);font-weight:600;cursor:pointer}
+.mp-pill--plain{min-height:32px;padding:3px 14px}
+.mp-pill > .mp-disc{width:28px;height:28px}
+.mp-pill > span:not(.mp-disc){min-width:0;overflow-wrap:anywhere}
+.mp-pill > svg{flex:none;color:var(--mp-primary)}
+.mp-pill:hover:not(.is-on){background:var(--mp-canvas-subtle)}
+.mp-pill.is-on{background:var(--mp-primary-soft);border-color:var(--mp-primary);box-shadow:inset 0 0 0 1px var(--mp-primary)}
+.mp-pill > input,.mp-seg > label > input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.mp-pill:has(> input:focus-visible){outline:2px solid var(--mp-focus);outline-offset:2px;box-shadow:var(--mp-focus-shadow)}
+.mp-pill:has(> input:disabled),.mp-seg > label:has(> input:disabled){cursor:not-allowed;opacity:.6}
+.mp-seg{display:flex;border:1px solid var(--mp-control-border);border-radius:8px;overflow:hidden;background:var(--mp-card)}
+.mp-seg > label{position:relative;flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;min-height:36px;padding:4px 10px;white-space:nowrap;text-align:center;font-weight:600;color:var(--mp-text);cursor:pointer}
+.mp-seg > label + label{border-left:1px solid var(--mp-control-border)}
+.mp-seg > label:hover:not(.is-on){background:var(--mp-canvas-subtle)}
+.mp-seg > label.is-on{background:var(--mp-primary);color:var(--mp-on-primary)}
+.mp-seg > label:has(> input:focus-visible){outline:2px solid var(--mp-focus);outline-offset:-4px}
+.mp-subchoice{display:grid;gap:10px;padding-top:2px}
+.mp-days{max-width:180px}
+.mp-dates{display:grid;gap:10px 12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+
+/* search: one box with a glyph; the label is for screen readers, the placeholder repeats it */
+.mp-search{position:relative;min-width:0}
+.mp-search > svg{position:absolute;left:11px;top:50%;margin-top:-8px;color:var(--mp-text-muted);pointer-events:none}
+.mp-search > .mp-input{padding-left:36px}
+
+/* the catalog: a heading with the count, a bordered list of rows, the approval hint under it */
+.mp-filtered{display:grid;gap:8px;min-width:0;transition:opacity .1s}
+.mp-filtered.is-busy{opacity:.45}
+.mp-section-title--plain{text-transform:none;letter-spacing:0;font-size:14px}
+.mp-role{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:6px 12px;align-items:start;padding:12px 14px;min-width:0}
+.mp-role-main{display:grid;gap:2px;min-width:0;padding-top:5px}
+.mp-role-title{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
+.mp-role-name{font-size:15px;font-weight:600;line-height:1.4;color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-role-desc{font-size:14px;line-height:1.45;color:var(--mp-text)}
+.mp-role .mp-more,.mp-role .mp-open{min-height:24px;justify-self:start}
+.mp-role-act{display:flex;align-items:center;min-height:36px;margin-top:-2px}
+.mp-role-out{grid-column:2/-1;min-width:0}
+.mp-chip-text{min-width:0}
+.mp-hint{font-size:13px}
+.mp-btn--ghost{padding-inline:14px}
+.mp-lhead{display:none}
+.mp-lc{min-width:0}
+.mp-lc-role{display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;align-items:start}
+@container (min-width:560px){
+  .mp-ltable{grid-template-columns:minmax(0,1fr) auto auto auto;column-gap:20px}
+  .mp-ltable > li{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:start;padding:12px 16px}
+  .mp-ltable > .mp-lhead{display:grid;padding-block:8px;background:var(--mp-canvas-subtle);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-text-muted)}
+  .mp-ltable .mp-lc-risk,.mp-ltable .mp-lc-status,.mp-ltable .mp-lc-act{display:flex;align-items:center;min-height:36px}
+  .mp-ltable .mp-role-out{grid-column:1/-1;padding-left:44px}
+  .mp-ltable .mp-risk-lab{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+@container (max-width:559px){
+  .mp-ltable > li{display:grid;grid-template-columns:max-content max-content minmax(0,1fr) auto;gap:6px 8px;align-items:start;padding:12px 14px}
+  .mp-ltable .mp-lc-role{grid-row:1;grid-column:1/4}
+  .mp-ltable .mp-lc-act{grid-row:1;grid-column:4;margin:3px 0 0 4px}
+  .mp-ltable .mp-lc-risk{grid-row:2;grid-column:1;margin-left:44px}
+  .mp-ltable .mp-lc-status{grid-row:2;grid-column:2}
+  .mp-ltable .mp-lc-risk:empty + .mp-lc-status{grid-column:1;margin-left:44px}
+  .mp-ltable > .mp-lhead,.mp-ltable .mp-lc:empty{display:none}
+  .mp-ltable .mp-role-out{grid-column:1/-1}
+}
+
+/* the request dialog */
+.mp-dialog{max-width:520px;border-radius:12px;background:var(--mp-card)}
+.mp-dialog .mp-facts{padding-top:12px;border-top:1px solid var(--mp-divider)}
+.mp-panel .mp-facts dt{color:var(--mp-text-strong)}
+.mp-panel .mp-facts{margin-top:4px}
+@container (max-width:469px){
+  .mp-role-out{grid-column:1/-1}
+  .mp-role-act{margin-top:-4px;min-height:40px}
+  .mp-pill{min-height:40px}
+  .mp-seg{flex-direction:column}
+  .mp-seg > label{flex:none;min-height:40px;white-space:normal}
+  .mp-seg > label + label{border-left:0;border-top:1px solid var(--mp-control-border)}
+}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -323,7 +489,6 @@ const CAT = {
   "requestAccess.loading": "Loading roles you can request…",
   "requestAccess.target.label": "Request for",
   "requestAccess.target.self": "Myself",
-  "requestAccess.target.selfOnly": "Roles you can request for yourself",
   "requestAccess.hint.self": "Requests are usually approved by your manager ({names}).",
   "requestAccess.hint.selfNoManager": "midPoint decides who approves your requests.",
   "requestAccess.hint.report": "Requests for {user} usually go to their manager. That may be you.",
@@ -331,6 +496,11 @@ const CAT = {
   "requestAccess.filter.noMatch": "No role matches \"{text}\".",
   "requestAccess.role.risk": "Risk: {level}",
   "requestAccess.role.requested": "Requested",
+  "requestAccess.role.granted": "Granted",
+  "requestAccess.list.title": "{target, select, self {Roles you can request for yourself} other {Roles you can request for {user}}} ({count})",
+  "requestAccess.column.role": "Role",
+  "requestAccess.column.risk": "Risk",
+  "requestAccess.column.status": "Status",
   "requestAccess.action.request": "Request",
   "requestAccess.action.requestLabel": "{target, select, self {Request {role} for yourself} other {Request {role} for {user}}}",
   "requestAccess.action.preview": "Preview request",
@@ -463,7 +633,8 @@ const STROKES = {
   lock:'M4.2 7.2h7.6v6.3H4.2zM5.7 7.2V5.3a2.3 2.3 0 0 1 4.6 0v1.9',
   layers:'M8 2.4l5.8 3-5.8 3-5.8-3zM2.2 8.2 8 11.2l5.8-3M2.2 10.9 8 13.9l5.8-3',
   external:'M9.2 2.6h4.2v4.2M13.4 2.6 7.6 8.4M11.6 9.6v3.8H2.6V4.4h3.8',
-  hourglass:'M4 2.2h8M4 13.8h8M5.3 2.2v2.2L8 8l2.7-3.6V2.2M5.3 13.8v-2.2L8 8l2.7 3.6v2.2'
+  hourglass:'M4 2.2h8M4 13.8h8M5.3 2.2v2.2L8 8l2.7-3.6V2.2M5.3 13.8v-2.2L8 8l2.7 3.6v2.2',
+  search:'M7 2.4a4.6 4.6 0 1 1 0 9.2 4.6 4.6 0 0 1 0-9.2zM10.4 10.4l3.3 3.3'
 };
 function svgEl(size){ const s = document.createElementNS(SVG_NS, 'svg'); s.setAttribute('viewBox', '0 0 16 16'); s.setAttribute('width', size); s.setAttribute('height', size); s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false'); return s; }
 function glyph(name, size){ const s = svgEl(size || 14), p = document.createElementNS(SVG_NS, 'path'); p.setAttribute('d', GLYPHS[name] || GLYPHS.dot); p.setAttribute('fill', 'currentColor'); p.setAttribute('fill-rule', 'evenodd'); s.append(p); return s; }
@@ -655,7 +826,17 @@ function requestValidity(v){
 }
 
 /* ================= small parts ================= */
-function disc(r, size){ const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : ''), 'aria-hidden':'true'}); el.append(glyph(r && Object.hasOwn(KIND_GLYPH,r.type) ? KIND_GLYPH[r.type] : 'dot', 14)); return el; }
+/* 6.4 (D39): a person is a circle with initials, a thing a rounded square with its kind's glyph; one tint for all kinds */
+function initials(r){
+  const w = String((r && (r.displayName || r.name)) || '').trim().split(/\s+/).filter(Boolean);
+  return w.length ? (Array.from(w[0])[0] + (w.length > 1 ? Array.from(w[w.length - 1])[0] : '')).toUpperCase() : '';
+}
+function disc(r, size){
+  const person = isPerson(r), ini = person && !hiddenRef(r) ? initials(r) : '';
+  const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : '') + (person ? ' mp-disc--person' : ''), 'aria-hidden':'true', 'data-initials':ini || null});
+  if (!ini) el.append(glyph(r && Object.hasOwn(KIND_GLYPH, r.type) ? KIND_GLYPH[r.type] : 'dot', size === 'sm' ? 12 : 16));
+  return el;
+}
 function badge(r, o){
   o = o || {};
   return h('span', {class:'mp-badge'}, disc(r, o.size), h('span', {class:'mp-badge-text'}, h('span', {class:'mp-badge-name'}, o.nameNode || dispName(r))));
@@ -664,8 +845,13 @@ const personStatus = r => r && r.status === 'disabled' ? h('span', {class:'mp-st
 /* a person inside a sentence: icon and name, no kind and no login (D15, D16) */
 const inlBadge = r => h('span', {class:'mp-inline'}, disc(r, 'sm'), h('span', null, dispName(r)), personStatus(r));
 const chip = (kind, ic, text) => h('span', {class:'mp-chip mp-chip--' + kind}, ic ? icon(ic, 12) : null, text);
-/* 6.4: risk chip only when riskLevel is set; danger fill for high and critical, the word carries the meaning */
-function riskChip(level){ const v = level.toLowerCase(); return chip(v === 'critical' || v === 'high' ? 'danger' : 'secondary', 'alert', t('requestAccess.role.risk', {level})); }
+/* 6.4 (D39): risk pill only when riskLevel is set; high and critical in danger with the alert glyph, any other value neutral.
+   The words around the level are their own span: in the ledger's Risk column they are kept for screen readers only. */
+function riskChip(level){
+  const v = level.toLowerCase(), hi = v === 'critical' || v === 'high';
+  const words = [...t('requestAccess.role.risk', {level:h('span', {class:'mp-risk-val'}, level)}).childNodes].map(n => n.nodeType === 3 ? h('span', {class:'mp-risk-lab'}, n.textContent) : n);
+  return h('span', {class:'mp-chip mp-chip--' + (hi ? 'danger' : 'secondary')}, hi ? icon('alert', 12) : null, h('span', {class:'mp-chip-text'}, words));
+}
 const line = (ic, node) => h('p', {class:'mp-line'}, ic, h('span', null, node));
 function slowNote(at){ return at && Date.now() - at >= SLOW_MS ? h('p', {class:'mp-note mp-note-row', role:'status'}, icon('clock', 12), t('state.slow')) : null; }
 function announce(text, assertive){
@@ -885,12 +1071,12 @@ function outcomeOf(d){
  if(d.outcome==='granted')return {requested:true,tone:'warning',key:'requestAccess.outcome.granted',p:{role:dispName(d.role),user:dispName(d.user)},data:d};
  return {requested:true,key:d.approvers.length?'requestAccess.outcome.pendingWith':'requestAccess.outcome.pending',p:{names:names(d.approvers)},track:true,data:d};
 }
-function summaryRows(role,user,validity){return h('dl',{class:'mp-kv'},h('dt',null,t('confirm.row.role')),h('dd',null,badge(role)),h('dt',null,t('confirm.row.for')),h('dd',null,badge(user)),h('dt',null,t('confirm.row.validity')),h('dd',{'data-validity-summary':''},validity));}
+function summaryRows(role,user,validity){return h('dl',{class:'mp-facts'},h('dt',null,t('confirm.row.role')),h('dd',null,badge(role,{size:'sm'})),h('dt',null,t('confirm.row.for')),h('dd',null,badge(user,{size:'sm'})),h('dt',null,t('confirm.row.validity')),h('dd',{'data-validity-summary':''},validity));}
 function requestNotice(row,k){
  const node=rowOutcome(k,row);
  if(row.preview)node.append(summaryRows(row.preview.role,row.preview.user,requestValidity(row.preview.validity)));
  if(row.data)node.append(line(icon('hourglass'),requestValidity(row.data.validity)));
- if(row.track&&isObj(S.caps.message))node.append(h('button',{type:'button',class:'mp-btn mp-btn--link','data-k':'track',onclick:()=>request('ui/message',{role:'user',content:[{type:'text',text:ts('requestAccess.handoff.showMyRequests')}]})},t('requestAccess.action.showMyRequests')));
+ if(row.track&&isObj(S.caps.message))node.append(h('div',{class:'mp-actions'},h('button',{type:'button',class:'mp-btn mp-btn--ghost','data-k':'track',onclick:()=>request('ui/message',{role:'user',content:[{type:'text',text:ts('requestAccess.handoff.showMyRequests')}]})},t('requestAccess.action.showMyRequests'))));
  if(row.followup)node.append(row.followup.slot?slotPanel(row.followup.slot):errorBlock(row.followup.error,'case',false));
  return node;
 }
@@ -935,38 +1121,54 @@ function askWhoami(){
  S.whoamiAsked=true;
  readAux('whoami','whoami',{},res=>{const sc=res.structuredContent;if(sc?.tool!=='whoami')return;S.acting=normActing(sc.acting);if(!S.server)S.server=normServer(sc.server);if(S.phase==='loaded')loadHints()});
 }
-function hintEl(){
- if(S.target)return h('p',{class:'mp-note'},t('requestAccess.hint.report',{user:dispName(targetRef())}));
- return h('p',{class:'mp-note'},S.managers.length?t('requestAccess.hint.self',{names:names(S.managers)}):t('requestAccess.hint.selfNoManager'));
+function hintEl(cls){
+ const c='mp-note'+(cls?' '+cls:'');
+ if(S.target)return h('p',{class:c},t('requestAccess.hint.report',{user:dispName(targetRef())}));
+ return h('p',{class:c},S.managers.length?t('requestAccess.hint.self',{names:names(S.managers)}):t('requestAccess.hint.selfNoManager'));
+}
+/* D39: who it is for as pills with initials ("Myself" first); the radio stays the control. Without a picker the list heading names the target. */
+function pickerEl(){
+ if(!(isManager()&&canCall()))return null;
+ const users=[...S.team];
+ if(S.target&&!users.some(u=>u.oid===S.target))users.push(targetRef());
+ const pick=(oid,who,label)=>{const on=oid===S.target;return h('label',{class:'mp-pill'+(on?' is-on':'')},h('input',{type:'radio',name:'request-target',value:oid,checked:on||null,'data-k':'target:'+oid,onchange:()=>switchTarget(oid)}),disc(who),h('span',null,label),on?icon('check',13):null)};
+ return h('fieldset',{class:'mp-picker'},h('legend',{class:'mp-legend'},t('requestAccess.target.label')),h('div',{class:'mp-picks'},pick('',ownRef(),t('requestAccess.target.self')),users.map(u=>pick(u.oid,u,dispName(u)))));
 }
 function controlsEl(){
- let target;
- if(isManager()&&canCall()){
-  const users=[...S.team];
-  if(S.target&&!users.some(u=>u.oid===S.target))users.push(targetRef());
-  const pick=(oid,label)=>h('label',{class:'mp-target-pick'+(oid===S.target?' is-on':'')},h('input',{type:'radio',name:'request-target',value:oid,checked:oid===S.target||null,'data-k':'target:'+oid,onchange:()=>switchTarget(oid)}),label);
-  target=h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.target.label')),h('div',{class:'mp-picks'},pick('',t('requestAccess.target.self')),users.map(u=>pick(u.oid,badge(u)))));
- }else target=h('p',null,S.target?t('requestAccess.target.label') :t('requestAccess.target.selfOnly'),S.target?[' ',badge(targetRef())]:null);
- const input=h('input',{class:'mp-input',id:'filter',type:'search',maxlength:'100','data-k':'filter',oninput:e=>filterChanged(e.target.value),onkeydown:e=>{if(e.key==='Enter')e.preventDefault()}});input.value=S.filter;
- return h('div',{class:'mp-controls'},target,hintEl(),h('div',{class:'mp-field mp-search'},h('label',{for:'filter'},t('requestAccess.filter.label')),input));
+ const input=h('input',{class:'mp-input',id:'filter',type:'search',maxlength:'100',placeholder:ts('requestAccess.filter.label'),'data-k':'filter',oninput:e=>filterChanged(e.target.value),onkeydown:e=>{if(e.key==='Enter')e.preventDefault()}});input.value=S.filter;
+ return h('div',{class:'mp-controls'},pickerEl(),h('div',{class:'mp-search'},h('label',{class:'mp-sr',for:'filter'},t('requestAccess.filter.label')),icon('search',16),input));
 }
 const matches=(items,q)=>{q=q.trim().toLocaleLowerCase('en');return !q?items:items.filter(r=>[r.name,r.displayName,r.description].some(v=>v.toLocaleLowerCase('en').includes(q)))};
-function roleEl(r){
- const row=S.rows[r.oid],dry=S.server&&!S.server.writesEnabled;
- const p={target:S.target?'other':'self',role:dispName(r),user:dispName(targetRef())};
- const action=row?.requested?chip('success','check',t('requestAccess.role.requested')):canCall()?h('button',{type:'button',class:'mp-btn mp-btn--primary',disabled:S.busy||S.loadedTarget!==S.target||null,'data-k':'req:'+r.oid,'aria-label':ts(dry?'requestAccess.action.previewLabel':'requestAccess.action.requestLabel',p),onclick:()=>openRequest(r)},t(dry?'requestAccess.action.preview':'requestAccess.action.request')):null;
- return h('li',null,h('div',{class:'mp-row-main'},badge(r),action),r.description?h('blockquote',{class:'mp-description'},clampText('description:'+r.oid,r.description,2)):null,
- h('div',{class:'mp-actions'},r.riskLevel?riskChip(r.riskLevel):null,openLink(r.oid,'Role',ts('common.openInMidpoint'))),
- row&&!row.requested?requestNotice(row,r.oid):null);
+/* D39: a status from this session replaces the button: waiting for approval in warning with the clock, granted at once in success */
+function statusPill(row){
+ if(!row||!row.requested)return null;
+ return row.data&&row.data.outcome==='granted'?chip('success','check',t('requestAccess.role.granted')):chip('warning','clock',t('requestAccess.role.requested'));
 }
+function requestButton(r){
+ if(!canCall())return null;
+ const dry=S.server&&!S.server.writesEnabled,p={target:S.target?'other':'self',role:dispName(r),user:dispName(targetRef())};
+ return h('button',{type:'button',class:'mp-btn mp-btn--ghost',disabled:S.busy||S.loadedTarget!==S.target||null,'data-k':'req:'+r.oid,'aria-label':ts(dry?'requestAccess.action.previewLabel':'requestAccess.action.requestLabel',p),onclick:()=>openRequest(r)},t(dry?'requestAccess.action.preview':'requestAccess.action.request'));
+}
+/* A: tile | name, risk, description | Request or status. B (full screen): Role | Risk | Status | action, labelled inline under 560 px. */
+function roleEl(r){
+ const row=S.rows[r.oid],pill=statusPill(row),risk=r.riskLevel?riskChip(r.riskLevel):null;
+ const main=h('div',{class:'mp-role-main'},h('div',{class:'mp-role-title'},h('span',{class:'mp-role-name'},dispName(r)),isFull()?null:risk),
+  r.description?clampText('description:'+r.oid,r.description,2,'mp-role-desc'):null,openLink(r.oid,'Role',ts('common.openInMidpoint')));
+ const out=row&&!row.requested?h('div',{class:'mp-role-out'},requestNotice(row,r.oid)):null;
+ if(!isFull()){const act=pill||requestButton(r);return h('li',{class:'mp-role'},disc(r),main,act?h('div',{class:'mp-role-act'},act):null,out);}
+ return h('li',null,h('div',{class:'mp-lc mp-lc-role'},disc(r),main),h('div',{class:'mp-lc mp-lc-risk'},risk),h('div',{class:'mp-lc mp-lc-status'},pill),h('div',{class:'mp-lc mp-lc-act'},pill?null:requestButton(r)),out);
+}
+const ledgerHead=()=>h('li',{class:'mp-lhead','aria-hidden':'true'},['requestAccess.column.role','requestAccess.column.risk','requestAccess.column.status'].map(k=>h('span',null,t(k))),h('span'));
 function catalogEl(){
  const items=S.items||[],shown=matches(items,S.filter),body=[];
- if(S.query)body.push(h('h2',{class:'mp-section-title'},t('requestAccess.search.resultsFor',{text:S.query})));
+ if(S.query)body.push(h('h2',{class:'mp-section-title mp-section-title--plain'},t('requestAccess.search.resultsFor',{text:S.query})));
+ else if(shown.length)body.push(h('h2',{class:'mp-section-title'},t('requestAccess.list.title',{target:S.target?'other':'self',user:dispName(targetRef()),count:shown.length})));
  if(S.searching)body.push(h('p',{role:'status',class:'mp-note'},t('requestAccess.search.searching',{text:S.searching})));
  if(!items.length&&!S.query&&!S.filter&&!S.busy)body.push(h('div',{class:'mp-panel mp-panel--info',role:'status'},h('p',{class:'mp-panel-title'},icon('info'),S.target?t('requestAccess.empty.report',{user:dispName(targetRef())}):t('requestAccess.empty.self')),h('p',null,t('requestAccess.empty.why'))));
- else if(shown.length){body.push(h('ul',{class:'mp-rows'},shown.slice(0,S.shown).map(roleEl)));if(shown.length>S.shown)body.push(h('button',{type:'button',class:'mp-btn mp-btn--tool','data-k':'more',onclick:()=>{S.shown+=PAGE;render({focus:'more'})}},t('common.showMore')));}
+ else if(shown.length){body.push(h('ul',{class:'mp-ledger'+(isFull()?' mp-ltable':'')},isFull()?ledgerHead():null,shown.slice(0,S.shown).map(roleEl)));if(shown.length>S.shown)body.push(h('button',{type:'button',class:'mp-btn mp-btn--tool mp-more','data-k':'more',onclick:()=>{S.shown+=PAGE;render({focus:'more'})}},t('common.showMore')));}
  else if(!S.searching)body.push(h('p',{class:'mp-note',role:'status'},t('requestAccess.filter.noMatch',{text:S.filter.trim()||S.query})));
  if(S.limitReached)body.push(h('p',{class:'mp-note'},t('requestAccess.limitReached',{count:items.length})));
+ body.push(hintEl('mp-hint'));
  return h('div',{class:'mp-filtered'+(S.busy?' is-busy':''),'aria-busy':S.busy?'true':null},body);
 }
 function contentEl(){
@@ -1120,19 +1322,19 @@ function dialogInputs(d){
  const fieldErr=(key,id)=>d.errors[key]?h('p',{class:'mp-field-error',id},icon('alert',12),d.errors[key]):null;
  const clearError=(key,inp)=>{delete d.errors[key];if(d.state.mark===key.slice(2))d.state.mark='';inp.removeAttribute('aria-invalid');const el=document.getElementById('error-'+idOf(key));if(el)el.remove();inp.removeAttribute('aria-describedby')};
  const refreshSummary=()=>{const x=validityOf(v);$root.querySelectorAll('[data-validity-summary]').forEach(el=>el.replaceChildren(x.error?'–':requestValidity(x)))};
- const radio=(mode,key)=>h('label',{class:'mp-radio'},h('input',{type:'radio',name:'validity',value:mode,checked:v.mode===mode||null,disabled:dis,'data-k':'valid:'+mode,onchange:()=>{v.mode=mode;d.errors={};render({focus:'valid:'+mode})}}),t(key));
- const opts=[radio('permanent','validity.permanent'),radio('days','requestAccess.validity.forDays')];
+ /* D39: how long as an equal-width segmented control of the three radios (stacked under 470 px); its sub-choice below it */
+ const radio=(mode,key)=>h('label',{class:v.mode===mode?'is-on':null},h('input',{type:'radio',name:'validity',value:mode,checked:v.mode===mode||null,disabled:dis,'data-k':'valid:'+mode,onchange:()=>{v.mode=mode;d.errors={};render({focus:'valid:'+mode})}}),h('span',null,t(key)));
+ const opts=[h('div',{class:'mp-seg'},radio('permanent','validity.permanent'),radio('days','requestAccess.validity.forDays'),radio('custom','requestAccess.validity.custom'))];
  if(v.mode==='days'){
-  const picks=['7','30','90','other'].map(n=>h('label',{class:'mp-radio'},h('input',{type:'radio',name:'days',value:n,checked:v.days===n||null,disabled:dis,'data-k':'days:'+n,onchange:()=>{v.days=n;delete d.errors.days;render({focus:'days:'+n})}}),n==='other'?t('requestAccess.validity.otherDays'):t('requestAccess.validity.days',{count:Number(n)})));
+  const picks=['7','30','90','other'].map(n=>h('label',{class:'mp-pill mp-pill--plain'+(v.days===n?' is-on':'')},h('input',{type:'radio',name:'days',value:n,checked:v.days===n||null,disabled:dis,'data-k':'days:'+n,onchange:()=>{v.days=n;delete d.errors.days;render({focus:'days:'+n})}}),h('span',null,n==='other'?t('requestAccess.validity.otherDays'):t('requestAccess.validity.days',{count:Number(n)}))));
   let other=null;
   if(v.days==='other'){
-   const input=h('input',{class:'mp-input',id:'days',type:'number',min:'1',max:String(MAX_DAYS),step:'1',inputmode:'numeric',disabled:dis,'data-k':'days','aria-invalid':d.errors.days?'true':null,'aria-describedby':d.errors.days?'error-'+idOf('days'):null});input.value=v.other;
+   const input=h('input',{class:'mp-input mp-days',id:'days',type:'number',min:'1',max:String(MAX_DAYS),step:'1',inputmode:'numeric',disabled:dis,'data-k':'days','aria-invalid':d.errors.days?'true':null,'aria-describedby':d.errors.days?'error-'+idOf('days'):null});input.value=v.other;
    input.addEventListener('input',()=>{v.other=input.value;clearError('days',input);refreshSummary()});
    other=h('div',{class:'mp-field'},h('label',{for:'days'},t('requestAccess.validity.daysLabel')),input,fieldErr('days','error-'+idOf('days')));
   }
   opts.push(h('div',{class:'mp-subchoice'},h('div',{class:'mp-picks',role:'radiogroup','aria-label':ts('requestAccess.validity.forDays')},picks),other));
  }
- opts.push(radio('custom','requestAccess.validity.custom'));
  if(v.mode==='custom'){
   const date=key=>{
    const input=h('input',{class:'mp-input',id:'date-'+key,type:'date',disabled:dis,'data-k':key,'aria-invalid':d.errors[key]?'true':null,'aria-describedby':d.errors[key]?'error-'+idOf(key):null});input.value=v[key];
@@ -1141,7 +1343,7 @@ function dialogInputs(d){
   };
   opts.push(h('div',{class:'mp-subchoice mp-dates'},date('from'),date('to')));
  }
- const out=[h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.validity.legend')),h('div',{class:'mp-choices'},opts))];
+ const out=[h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.validity.legend')),opts)];
  if(S.form.length){
   const fields=S.form.map(it=>{
    const k='f:'+it.name,id='field-'+idOf(k),eid='error-'+idOf(k),hid=id+'-help',bad=d.errors[k]||d.state.mark===it.name;
@@ -1161,7 +1363,7 @@ function dialogEl(){
  const box=h('div',{class:'mp-dialog',role:'dialog','aria-modal':'true','aria-labelledby':'dlg-t','aria-describedby':'dlg-d',tabindex:'-1','data-k':'dlg-box',onkeydown:dialogKeys},
  h('h2',{id:'dlg-t'},t('confirm.request.title',p)),h('div',{id:'dlg-d',class:'mp-dialog-body'},h('p',null,t(S.target?'confirm.request.bodyReport':'confirm.request.bodySelf',p)),h('p',null,t('confirm.request.policy')),hintEl()),
  dialogInputs(d),summaryRows(d.role,d.user,v.error?'–':requestValidity(v)),d.working?slowNote(d.at):null,
- h('div',{class:'mp-actions'},h('button',{type:'button',class:'mp-btn mp-btn--tool','data-k':'dlg-cancel',disabled:d.working||null,onclick:closeDialog},t('common.cancel')),
+ h('div',{class:'mp-actions'},h('button',{type:'button',class:'mp-btn mp-btn--ghost','data-k':'dlg-cancel',disabled:d.working||null,onclick:closeDialog},t('common.cancel')),
  h('button',{type:'button',class:'mp-btn mp-btn--primary','data-k':'dlg-submit',disabled:d.working||null,onclick:submitDialog},t(d.working?'confirm.working':dry?'dryrun.submit':'confirm.request.submit'))));
  return h('div',{class:'mp-overlay'},box);
 }
