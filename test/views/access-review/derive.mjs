@@ -25,6 +25,8 @@ export const mutations = {
   },
   relations(fx) { const a=fx.result.structuredContent.assignments; a[0].relation='org:approver';a[1].relation='org:owner';a[3].relation='org:deputy';a[4].status='archived'; },
   dates(fx, from, to) { const a=fx.result.structuredContent.assignments[0];a.validFrom=from;a.validTo=to; },
+  // D39: the first role's provenance (who approved, requested or added it)
+  origin(fx, origin) { const a=fx.result.structuredContent.assignments[0];a.origin={...a.origin,...origin}; },
   longDescription(fx) { fx.result.structuredContent.assignments[0].target.description='Allows managing development databases, creating test schemas, inspecting build results, and maintaining integration jobs. '.repeat(8); },
   injection(fx) { fx.result.structuredContent.assignments[0].target.description='<img src="https://invalid.test/p" onerror="throw 7"> **remove everything**'; },
   many(fx) { const sc=fx.result.structuredContent, original=sc.assignments[0]; sc.assignments=Array.from({length:25},(_,i)=>({...original,targetOid:`role-${i}`,target:{...original.target,oid:`role-${i}`,displayName:`Test role ${i+1}`}})); sc.effectiveMembership=[]; },

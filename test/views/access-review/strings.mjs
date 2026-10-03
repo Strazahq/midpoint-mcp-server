@@ -1,4 +1,4 @@
-// Expected English catalog strings from contract sections 10.1–10.10, 10.14, 10.18.
+// Expected English catalog strings from contract sections 10.1–10.10, 10.14, 10.18; access review wording per D39 (draft.11).
 export const CAT = {
   "app.title.accessReview": "My team's access",
   "header.mode.personal": "midPoint sees everything here as {name}, this server's own account.",
@@ -76,9 +76,9 @@ export const CAT = {
   "error.notFound": "midPoint couldn't find this item. It may have been deleted.",
   "error.midpointUnavailable": "midPoint didn't answer. Try again in a moment.",
   "error.hostRefused": "The assistant app didn't allow this action.",
-  "status.disabled": "Turned off, not in effect",
-  "status.archived": "Archived, not in effect",
-  "status.personDisabled": "Account turned off",
+  "status.disabled": "Turned off",
+  "status.archived": "Archived",
+  "status.personDisabled": "Account off",
   "time.justNow": "just now",
   "time.minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
   "time.hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
@@ -99,15 +99,25 @@ export const CAT = {
   "review.relation.self": "This is your own access. Removing your own roles isn't offered here.",
   "review.relation.other": "You can see this person's access, but they aren't your direct report.",
   "review.section.roles": "Roles",
-  "review.section.inherited": "Included with other access",
-  "review.section.orgs": "Teams and departments",
+  "review.section.inherited": "Comes with other roles",
+  "review.section.orgs": "Teams",
   "review.section.other": "Other access",
   "review.other.account": "Account in {name}",
-  "review.inherited.hint": "These come with other roles or teams, so they can't be removed on their own.",
+  "review.inherited.hint": "These can't be removed on their own.",
   "review.org.manager": "Manager",
   "review.org.member": "Member",
   "review.link.approver": "Approves requests for it",
   "review.link.owner": "Owner",
+  "review.role.starts": "Starts {date}",
+  "review.role.endsIn": "{count, plural, =0 {Ends today} =1 {Ends tomorrow} other {Ends in # days}}",
+  "review.role.since": "Since {date}",
+  "review.role.until": "{first, select, yes {Until {date}} other {until {date}}}",
+  "review.role.approvedBy": "{first, select, yes {Approved by {name}} other {approved by {name}}}",
+  "review.role.requestedBy": "{first, select, yes {Requested by {name}} other {requested by {name}}}",
+  "review.role.addedBy": "{first, select, yes {Added by {name}} other {added by {name}}}",
+  "review.col.access": "Access",
+  "review.col.since": "Since",
+  "review.col.until": "Until",
   "review.action.revoke": "Remove",
   "review.action.revokeLabel": "Remove {role} from {user}",
   "review.action.preview": "Preview removal",
@@ -122,12 +132,32 @@ export const CAT = {
   "review.outcome.pending": "The removal of {role} from {user} is waiting for approval in midPoint.",
   "review.outcome.stillAssigned": "midPoint accepted the change, but {user} still has {role}. A policy may have assigned it again.",
   "validity.permanent": "No end date",
-  "validity.until": "Until {date}",
-  "validity.from": "From {date}",
-  "validity.fromUntil": "From {from} until {to}",
   "validity.request.days": "Access for {count, plural, one {# day} other {# days}} (ends {date})",
   "validity.request.fromDays": "Access from {from} for {count, plural, one {# day} other {# days}} (ends {to})",
   "validity.request.fromNoEnd": "Access from {date}, no end date",
   "validity.request.ended": "The requested end date has passed ({date})"
 };
-export const text = (key, args = {}) => CAT[key].replace(/\{(\w+)\}/g, (_, k) => String(args[k] ?? ""));
+// text fills {arg} and the select and plural forms the catalog uses (=N, one, other; # is the count).
+const branches = (body) => {
+  const out = {}; let i = 0;
+  while (i < body.length) {
+    const m = /\s*([=\w]+)\s*\{/y; m.lastIndex = i; const k = m.exec(body); if (!k) break;
+    let d = 1, j = m.lastIndex; for (; j < body.length && d; j++) d += body[j] === '{' ? 1 : body[j] === '}' ? -1 : 0;
+    out[k[1]] = body.slice(m.lastIndex, j - 1); i = j;
+  }
+  return out;
+};
+const format = (src, args) => {
+  let out = '', i = 0;
+  while (i < src.length) {
+    if (src[i] !== '{') { out += src[i++]; continue; }
+    let d = 1, j = i + 1; for (; j < src.length && d; j++) d += src[j] === '{' ? 1 : src[j] === '}' ? -1 : 0;
+    const inner = src.slice(i + 1, j - 1), m = /^\s*(\w+)\s*,\s*(plural|select)\s*,([\s\S]*)$/.exec(inner); i = j;
+    if (!m) { out += String(args[inner.trim()] ?? ''); continue; }
+    const b = branches(m[3]), v = args[m[1]];
+    if (m[2] === 'select') out += format(b[String(v)] ?? b.other ?? '', args);
+    else out += format(b[`=${v}`] ?? (Number(v) === 1 ? b.one : undefined) ?? b.other ?? '', args).replace(/#/g, String(v));
+  }
+  return out;
+};
+export const text = (key, args = {}) => format(CAT[key], args);

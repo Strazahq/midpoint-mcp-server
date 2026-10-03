@@ -6,39 +6,49 @@
 <title></title>
 <style>
 /* My team's access (docs/ui-contract.md 7.4). Shared parts follow the inbox.
-   Tokens are contract 6.9: midPoint's GUI palette, light and dark. */
+   Tokens are contract 6.9 (draft.11): midPoint blue, one tint for kinds, colour only for status. */
 :root{
   --mp-font-sans:var(--font-sans, "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   --mp-font-mono:var(--font-mono, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
-  --mp-canvas:#ffffff; --mp-canvas-subtle:#f4f6f9; --mp-stripe:#f9f9f9;
-  --mp-text:#495057; --mp-text-strong:#30353a; --mp-text-muted:#595959; --mp-label:#357da7; --mp-link:#206f9d;
-  --mp-border:#dee2e6; --mp-divider:#dddddd; --mp-control-border:#6c757d;
-  --mp-primary:#206f9d; --mp-on-primary:#ffffff; --mp-secondary:#627383;
-  --mp-success-fill:#198754; --mp-danger-fill:#dc3545; --mp-warning-fill:#ffc107; --mp-info-fill:#008099;
-  --mp-success-text:#198754; --mp-danger-text:#dc3545; --mp-warning-text:#856404;
+  --mp-canvas:#ffffff; --mp-card:#ffffff; --mp-canvas-subtle:#f5f7fa; --mp-stripe:#f8f9fb;
+  --mp-text:#465361; --mp-text-strong:#16202b; --mp-text-muted:#5b6673; --mp-label:#5b6673; --mp-link:#1f6fa3;
+  --mp-border:#e2e7ed; --mp-divider:#e2e7ed; --mp-control-border:#8a96a3;
+  --mp-primary:#1f6fa3; --mp-on-primary:#ffffff; --mp-primary-soft:#e6f1f8; --mp-secondary:#5b6673;
+  --mp-success-fill:#126b33; --mp-on-success:#ffffff; --mp-danger-fill:#b4232a; --mp-on-danger:#ffffff;
+  --mp-success-text:#126b33; --mp-danger-text:#b4232a; --mp-warning-text:#8a4b06; --mp-info-text:#1d4fc4; --mp-neutral-text:#4f5964;
+  --mp-success-soft:#e1f4e7; --mp-danger-soft:#fde6e6; --mp-warning-soft:#fdf0cf; --mp-info-soft:#e5ecfd; --mp-neutral-soft:#eceff2;
   --mp-success-panel:#d1e7dd; --mp-danger-panel:#f8d7da; --mp-warning-panel:#fff3cd; --mp-info-panel:#cce6eb;
-  --mp-focus:#ffa836; --mp-focus-inner:#30353a; --mp-on-dark-badge:#1f2d3d;
+  --mp-tile-bg:#e6f1f8; --mp-tile-fg:#1f6fa3; --mp-avatar-bg:#e7ebf0; --mp-avatar-fg:#3d4a58;
+  --mp-focus:#ffa836; --mp-focus-inner:#16202b;
   --mp-focus-shadow:0 0 0 2px var(--mp-canvas), 0 0 0 3px var(--mp-focus-inner);
   --mp-scrim:rgb(22 28 34 / .5);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
-    --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
-    --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
-    --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+    --mp-canvas:#1a1f25; --mp-card:#20262d; --mp-canvas-subtle:#272e36; --mp-stripe:#232a31;
+    --mp-text:#c0c9d2; --mp-text-strong:#edf1f5; --mp-text-muted:#97a3ae; --mp-label:#97a3ae; --mp-link:#5aa6dc;
+    --mp-border:#313942; --mp-divider:#313942; --mp-control-border:#6b7682;
+    --mp-primary:#5aa6dc; --mp-on-primary:#0b1a26; --mp-primary-soft:#1b3446; --mp-secondary:#97a3ae;
+    --mp-success-fill:#6fdc97; --mp-on-success:#0b1a26; --mp-danger-fill:#ff9b9b; --mp-on-danger:#2a0b0d;
+    --mp-success-text:#6fdc97; --mp-danger-text:#ff9b9b; --mp-warning-text:#f5c35b; --mp-info-text:#9cb8ff; --mp-neutral-text:#aeb7c0;
+    --mp-success-soft:#163b25; --mp-danger-soft:#4a1d20; --mp-warning-soft:#3f3013; --mp-info-soft:#1e2c52; --mp-neutral-soft:#2b3138;
     --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+    --mp-tile-bg:#1b3446; --mp-tile-fg:#8cc4ea; --mp-avatar-bg:#2f3740; --mp-avatar-fg:#d5dde5;
     --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
-  --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
-  --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
-  --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+  --mp-canvas:#1a1f25; --mp-card:#20262d; --mp-canvas-subtle:#272e36; --mp-stripe:#232a31;
+  --mp-text:#c0c9d2; --mp-text-strong:#edf1f5; --mp-text-muted:#97a3ae; --mp-label:#97a3ae; --mp-link:#5aa6dc;
+  --mp-border:#313942; --mp-divider:#313942; --mp-control-border:#6b7682;
+  --mp-primary:#5aa6dc; --mp-on-primary:#0b1a26; --mp-primary-soft:#1b3446; --mp-secondary:#97a3ae;
+  --mp-success-fill:#6fdc97; --mp-on-success:#0b1a26; --mp-danger-fill:#ff9b9b; --mp-on-danger:#2a0b0d;
+  --mp-success-text:#6fdc97; --mp-danger-text:#ff9b9b; --mp-warning-text:#f5c35b; --mp-info-text:#9cb8ff; --mp-neutral-text:#aeb7c0;
+  --mp-success-soft:#163b25; --mp-danger-soft:#4a1d20; --mp-warning-soft:#3f3013; --mp-info-soft:#1e2c52; --mp-neutral-soft:#2b3138;
   --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+  --mp-tile-bg:#1b3446; --mp-tile-fg:#8cc4ea; --mp-avatar-bg:#2f3740; --mp-avatar-fg:#d5dde5;
   --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
   color-scheme:dark;
 }
@@ -95,7 +105,7 @@ button,input,textarea{font:inherit;color:inherit}
   background:var(--mp-secondary);color:var(--mp-on-primary)}
 .mp-chip--success{background:var(--mp-success-fill)}
 .mp-chip--danger{background:var(--mp-danger-fill)}
-.mp-chip--warning{background:var(--mp-warning-fill);color:var(--mp-on-dark-badge)}
+.mp-chip--warning{background:var(--mp-warning-soft);color:var(--mp-warning-text)}
 .mp-chip--outline{background:transparent;color:var(--mp-text-strong);border:1px solid var(--mp-control-border);font-weight:400;white-space:normal}
 .mp-chip--meta{background:var(--mp-canvas-subtle);color:var(--mp-text-strong);border:1px solid var(--mp-border);font-weight:400}
 
@@ -149,10 +159,6 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-field-foot{display:flex;justify-content:flex-end;gap:10px;align-items:flex-start;min-height:18px}
 .mp-counter{font-size:12px;color:var(--mp-text-muted)}
 
-.mp-rows{list-style:none;margin:0;padding:0;display:grid}
-.mp-rows>li{display:grid;gap:6px;padding:8px 0;border-bottom:1px solid var(--mp-divider);min-height:40px;min-width:0;align-content:center}
-.mp-rows>li:last-child{border-bottom:0}
-.mp-row-main{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;min-width:0}
 /* D33: clamped text is cut in script at a word boundary and ends with one "…" */
 .mp-clamp{overflow-wrap:anywhere}
 .mp-more{justify-self:start}
@@ -201,26 +207,176 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-dialog-body{display:grid;gap:6px}
 .mp-dialog .mp-actions{justify-content:flex-end}
 
-@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-/* Team and access rows, following the reviewed manager view. */
+
+/* ===== readability layer (contract 1.0-draft.11, D39): hierarchy, kind tiles, status pills, labelled facts ===== */
+.mp-title{font-size:17px;letter-spacing:-.005em}
+.mp-section-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mp-text)}
+.mp-note,.mp-muted,.mp-foot{color:var(--mp-text-muted)}
+.mp-btn{min-height:36px;border-radius:8px;font-weight:600}
+.mp-btn--tool{min-height:32px;border-radius:8px;background:var(--mp-card);color:var(--mp-text);border-color:var(--mp-control-border);font-weight:600}
+.mp-btn--secondary,.mp-btn--ghost{background:var(--mp-card);color:var(--mp-text-strong);border-color:var(--mp-control-border)}
+.mp-btn--secondary:hover:not(:disabled),.mp-btn--ghost:hover:not(:disabled){filter:none;background:var(--mp-canvas-subtle)}
+.mp-btn--approve{background:var(--mp-success-fill);color:var(--mp-on-success)}
+.mp-btn--reject{background:var(--mp-card);color:var(--mp-danger-text);border-color:currentColor}
+.mp-btn--approve:hover:not(:disabled){filter:brightness(.92)}
+.mp-btn--reject:hover:not(:disabled){background:var(--mp-danger-soft)}
+.mp-btn--link{min-height:32px;font-weight:600;text-decoration:none}
+.mp-btn--link:hover{text-decoration:underline}
+
+/* pills: a colour, a glyph and a word; red only means danger */
+.mp-chip{min-height:22px;padding:1px 9px;font-size:12px;font-weight:700;background:var(--mp-neutral-soft);color:var(--mp-neutral-text);border:0}
+.mp-chip--secondary,.mp-chip--meta,.mp-chip--outline{background:var(--mp-neutral-soft);color:var(--mp-neutral-text);border:0}
+.mp-chip--outline{font-weight:600}
+.mp-chip--success{background:var(--mp-success-soft);color:var(--mp-success-text)}
+.mp-chip--danger{background:var(--mp-danger-soft);color:var(--mp-danger-text)}
+.mp-chip--alarm{background:var(--mp-danger-fill);color:var(--mp-on-danger)}
+.mp-chip--warning{background:var(--mp-warning-soft);color:var(--mp-warning-text)}
+.mp-chip--info{background:var(--mp-info-soft);color:var(--mp-info-text)}
+.mp-step{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--mp-text);white-space:nowrap}
+
+/* kind tiles: a rounded square for a thing, a circle with initials for a person (shape says kind; one tint) */
+.mp-disc{width:32px;height:32px;border-radius:8px;background:var(--mp-tile-bg);color:var(--mp-tile-fg);box-shadow:none}
+.mp-disc--sm,.mp-inline .mp-disc{width:22px;height:22px;border-radius:6px}
+.mp-disc--lg{width:44px;height:44px}
+.mp-disc--person{border-radius:50%;background:var(--mp-avatar-bg);color:var(--mp-avatar-fg)}
+.mp-disc[data-initials]::before{content:attr(data-initials);font-size:12px;font-weight:700;letter-spacing:.02em;line-height:1}
+.mp-disc--sm[data-initials]::before,.mp-inline .mp-disc[data-initials]::before{font-size:9.5px}
+.mp-disc--lg[data-initials]::before{font-size:16px}
+.mp-tname{display:inline}
+.mp-tname > .mp-disc{vertical-align:-5px;margin-right:6px}
+.mp-badge-name{color:var(--mp-text-strong);font-weight:600}
+
+/* panels keep midPoint's alert tints; their text is the strong ink in both themes */
+.mp-panel,.mp-panel .mp-muted{color:var(--mp-text-strong)}
+
+/* cards (A): avatar | who → what; pills; labelled facts; foot with actions */
+.mp-card{border-radius:12px;background:var(--mp-card)}
+.mp-card-head{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:8px 12px;padding:14px 14px 0;background:none;border-bottom:0}
+.mp-card-title{gap:2px}
+.mp-card-title h2{font-size:16px;font-weight:700;line-height:1.35;color:var(--mp-text-strong)}
+.mp-card-title .mp-about-text{font-size:14px;color:var(--mp-text)}
+.mp-card-chips{grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.mp-card-body{gap:12px;padding:12px 14px 14px 58px}
+.mp-card-more{padding:12px 14px;background:var(--mp-canvas-subtle)}
+.mp-card-foot{padding:10px 14px;background:none}
+.mp-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:7px 16px;margin:0}
+.mp-facts dt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-text-muted);padding-top:3px;white-space:nowrap}
+.mp-facts dd{margin:0;color:var(--mp-text-strong);min-width:0;overflow-wrap:anywhere}
+.mp-quote{border-left:0;border-radius:8px;padding:10px 12px;background:var(--mp-canvas-subtle)}
+.mp-quote-lab{font-weight:600;color:var(--mp-text)}
+.mp-quote-text{font-size:15px}
+.mp-summary svg{color:var(--mp-primary)}
+
+/* ledger (B, full screen): one row per item, the open one shows its card */
+.mp-ledger{list-style:none;margin:0;padding:0;display:grid;border:1px solid var(--mp-border);border-radius:12px;overflow:hidden;background:var(--mp-card)}
+.mp-ledger > li + li{border-top:1px solid var(--mp-border)}
+.mp-lrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 12px;align-items:center;width:100%;min-height:52px;padding:10px 14px;background:none;border:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.mp-lrow:hover{background:var(--mp-canvas-subtle)}
+.mp-lrow[aria-expanded="true"]{background:var(--mp-primary-soft)}
+.mp-lrow[aria-expanded="true"] > svg{transform:rotate(90deg)}
+.mp-lrow-title{color:var(--mp-text-strong);font-weight:600;overflow-wrap:anywhere}
+.mp-lrow-meta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-top:4px}
+.mp-ledger .mp-card{border:0;border-radius:0}
+.mp-ledger .mp-card-body{padding-top:14px}
+
+@container (min-width:560px){
+  .mp-card-head,.mp-card-more,.mp-card-foot{padding-inline:16px}
+  .mp-card-body{padding-inline:60px 16px}
+}
+@container (max-width:469px){
+  .mp-card-body{padding-left:14px}
+  .mp-facts{grid-template-columns:minmax(0,1fr);gap:0}
+  .mp-facts dd{margin-bottom:8px}
+  .mp-btn{min-height:40px}
+  .mp-btn--link{min-height:32px}
+}
+
+/* ===== access review (D39): picker chips, person card, bordered lists of rows; a ledger table in full screen ===== */
 fieldset{border:0;padding:0;margin:0;min-width:0}
-.mp-legend{font-weight:700;color:var(--mp-text-strong);padding:0;margin-bottom:6px}
-.mp-picks{display:flex;flex-wrap:wrap;gap:6px}
-.mp-pick{display:flex;align-items:center;gap:6px;min-height:32px;padding:4px 8px;border:1px solid var(--mp-control-border);border-radius:4px;cursor:pointer;min-width:0;overflow-wrap:anywhere}
-.mp-pick:has(input:checked){background:var(--mp-canvas-subtle)}
-.mp-pick input{width:16px;height:16px;accent-color:var(--mp-primary);flex:none}
-.mp-idcard{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--mp-border);border-radius:8px;padding:12px;min-width:0}
-.mp-person-body,.mp-group{display:grid;gap:8px;min-width:0}
-.mp-idcard h2{margin:0;font-size:16px;font-weight:700;color:var(--mp-text-strong);overflow-wrap:anywhere}
-.mp-row-labels{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+.mp-legend{padding:0;margin-bottom:8px}
+.mp-picks{display:flex;flex-wrap:wrap;gap:8px}
+/* the radio stays the control: it covers its chip, invisible, so a click or a tap anywhere on the chip picks it */
+.mp-pick{position:relative;display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:4px 12px 4px 5px;border:1px solid var(--mp-control-border);border-radius:999px;
+  background:var(--mp-card);color:var(--mp-text-strong);font-weight:600;line-height:1.25;cursor:pointer;min-width:0;overflow-wrap:anywhere}
+.mp-pick input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:inherit;z-index:1}
+.mp-pick:hover{background:var(--mp-canvas-subtle)}
+.mp-pick:has(input:checked){background:var(--mp-primary-soft);border-color:var(--mp-primary);box-shadow:inset 0 0 0 1px var(--mp-primary)}
+.mp-pick:has(input:focus-visible){outline:2px solid var(--mp-focus);outline-offset:2px}
+.mp-pick .mp-disc{width:26px;height:26px}
+.mp-pick .mp-disc[data-initials]::before{font-size:10.5px}
+.mp-pick-check{display:none;color:var(--mp-primary)}
+.mp-pick:has(input:checked) .mp-pick-check{display:inline-flex}
+fieldset:disabled .mp-pick{cursor:not-allowed}
+
+.mp-idcard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px 14px;padding:14px 16px;border:1px solid var(--mp-border);border-radius:12px;background:var(--mp-card);min-width:0}
+.mp-person-body{display:grid;gap:2px;min-width:0}
+.mp-person-name{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0}
+.mp-idcard h2{margin:0;font-size:18px;font-weight:700;line-height:1.3;color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-person-rel{display:flex;flex-wrap:wrap;align-items:center;gap:0 12px;font-size:13px;color:var(--mp-text-muted)}
+
+.mp-group{display:grid;gap:8px;min-width:0}
+.mp-section-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px}
+.mp-count{color:var(--mp-text-muted);letter-spacing:.02em}
+.mp-group > .mp-note{margin-top:-4px}
+.mp-alist,.mp-lrows{list-style:none;margin:0;padding:0;display:grid;min-width:0}
+.mp-alist{border:1px solid var(--mp-border);border-radius:12px;background:var(--mp-card)}
+.mp-alist > li + li,.mp-lrows > li + li{border-top:1px solid var(--mp-border)}
+.mp-arow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:4px 12px;padding:12px 14px;min-width:0}
+.mp-arow-main{display:grid;gap:3px;min-width:0;justify-items:start}
+.mp-arow-head{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-width:0}
+.mp-row-name{font-size:15px;font-weight:600;line-height:1.4;color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-btn.mp-row-name{min-height:0;padding:0;font-size:15px;color:var(--mp-text-strong);text-align:left}
+.mp-arow-desc{font-size:13px;line-height:1.45;color:var(--mp-text)}
+.mp-arow-meta{font-size:13px;line-height:1.45;color:var(--mp-text-muted);overflow-wrap:anywhere}
+.mp-meta-part{display:inline-block;max-width:100%}
+.mp-arow-main .mp-more{min-height:24px;font-size:13px}
+.mp-arow > .mp-btn,.mp-lact > .mp-btn{min-width:84px}
+
+/* B: one table; column headers for the roles, a band per section */
+.mp-ltable{display:grid;border:1px solid var(--mp-border);border-radius:12px;background:var(--mp-card);min-width:0;overflow:clip}
+.mp-lhead,.mp-lrole{display:grid;grid-template-columns:minmax(0,1fr) 116px 116px 150px;gap:4px 16px;align-items:start}
+.mp-lhead{padding:8px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-text-muted)}
+.mp-band{display:grid;gap:0;padding:8px 16px;background:var(--mp-canvas-subtle);border-top:1px solid var(--mp-border);border-bottom:1px solid var(--mp-border)}
+.mp-ltable > .mp-lsec:first-child .mp-band{border-top:0}
+.mp-lrole,.mp-lplain{padding:12px 16px;min-width:0}
+.mp-lname,.mp-lplain{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:start;min-width:0}
+.mp-ldates{display:contents}
+.mp-lcell{padding-top:6px;font-size:14px;line-height:1.4;color:var(--mp-text-strong)}
+.mp-lact{display:flex;justify-content:flex-end}
+.mp-lprov{grid-column:1;grid-row:2;padding:0 0 0 44px;font-size:13px;color:var(--mp-text-muted)}
+@container (min-width:560px){
+  .mp-lcell-lab{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+}
+@container (max-width:559px){
+  .mp-lhead{display:none}
+  .mp-lrole{grid-template-columns:minmax(0,1fr) auto;padding-inline:14px}
+  .mp-lname{grid-column:1;grid-row:1}
+  .mp-lact{grid-column:2;grid-row:1}
+  .mp-ldates{display:flex;flex-wrap:wrap;gap:0 6px;grid-column:1 / -1;padding-left:44px;font-size:13px;color:var(--mp-text-muted)}
+  .mp-lcell{padding-top:0;font-size:13px;color:var(--mp-text-muted)}
+  .mp-lcell:empty{display:none}
+  .mp-lprov{padding-left:0}
+  .mp-lcell:not(:empty) ~ .mp-lcell:not(:empty)::before{content:"\00b7";margin-right:6px}
+  .mp-lplain,.mp-band{padding-inline:14px}
+}
+@container (max-width:469px){
+  .mp-idcard{grid-template-columns:auto minmax(0,1fr)}
+  .mp-idcard > .mp-btn{grid-column:1 / -1;justify-self:start}
+}
+
 .mp-kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;margin:0}
 .mp-kv dt{font-size:12px;color:var(--mp-text)}
 .mp-kv dd{margin:0;min-width:0}
+.mp-btn--danger{color:var(--mp-on-danger)}
 .mp-dialog{max-height:calc(100% - 24px);overflow:auto}
 .mp.is-constrained{display:flex;flex-direction:column;overflow:hidden}
 .mp.is-constrained > header,.mp.is-constrained > footer{flex:none}
 .mp.is-constrained > main{min-height:0;overflow:auto}
+/* a fixed height scrolls main, so the header needn't stick (sticking inside .mp's padding pushed it over the content) */
+.mp.is-full.is-constrained .mp-head{position:static;margin-top:0;padding-top:0}
 .mp-btn{white-space:normal;overflow-wrap:anywhere}
+
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -311,9 +467,9 @@ const CAT = {
 'error.notFound':`midPoint couldn't find this item. It may have been deleted.`,
 'error.midpointUnavailable':`midPoint didn't answer. Try again in a moment.`,
 'error.hostRefused':`The assistant app didn't allow this action.`,
-'status.disabled':`Turned off, not in effect`,
-'status.archived':`Archived, not in effect`,
-'status.personDisabled':`Account turned off`,
+'status.disabled':`Turned off`,
+'status.archived':`Archived`,
+'status.personDisabled':`Account off`,
 'time.justNow':`just now`,
 'time.minutesAgo':`{count, plural, one {# minute ago} other {# minutes ago}}`,
 'time.hoursAgo':`{count, plural, one {# hour ago} other {# hours ago}}`,
@@ -334,15 +490,25 @@ const CAT = {
 'review.relation.self':`This is your own access. Removing your own roles isn't offered here.`,
 'review.relation.other':`You can see this person's access, but they aren't your direct report.`,
 'review.section.roles':`Roles`,
-'review.section.inherited':`Included with other access`,
-'review.section.orgs':`Teams and departments`,
+'review.section.inherited':`Comes with other roles`,
+'review.section.orgs':`Teams`,
 'review.section.other':`Other access`,
 'review.other.account':`Account in {name}`,
-'review.inherited.hint':`These come with other roles or teams, so they can't be removed on their own.`,
+'review.inherited.hint':`These can't be removed on their own.`,
 'review.org.manager':`Manager`,
 'review.org.member':`Member`,
 'review.link.approver':`Approves requests for it`,
 'review.link.owner':`Owner`,
+'review.role.starts':`Starts {date}`,
+'review.role.endsIn':`{count, plural, =0 {Ends today} =1 {Ends tomorrow} other {Ends in # days}}`,
+'review.role.since':`Since {date}`,
+'review.role.until':`{first, select, yes {Until {date}} other {until {date}}}`,
+'review.role.approvedBy':`{first, select, yes {Approved by {name}} other {approved by {name}}}`,
+'review.role.requestedBy':`{first, select, yes {Requested by {name}} other {requested by {name}}}`,
+'review.role.addedBy':`{first, select, yes {Added by {name}} other {added by {name}}}`,
+'review.col.access':`Access`,
+'review.col.since':`Since`,
+'review.col.until':`Until`,
 'review.action.revoke':`Remove`,
 'review.action.revokeLabel':`Remove {role} from {user}`,
 'review.action.preview':`Preview removal`,
@@ -357,9 +523,6 @@ const CAT = {
 'review.outcome.pending':`The removal of {role} from {user} is waiting for approval in midPoint.`,
 'review.outcome.stillAssigned':`midPoint accepted the change, but {user} still has {role}. A policy may have assigned it again.`,
 'validity.permanent':`No end date`,
-'validity.until':`Until {date}`,
-'validity.from':`From {date}`,
-'validity.fromUntil':`From {from} until {to}`,
 'validity.request.days':`Access for {count, plural, one {# day} other {# days}} (ends {date})`,
 'validity.request.fromDays':`Access from {from} for {count, plural, one {# day} other {# days}} (ends {to})`,
 'validity.request.fromNoEnd':`Access from {date}, no end date`,
@@ -510,12 +673,18 @@ function normMembership(v){
   return r;
 }
 function userRef(u){ return ref({...u, type:'User', displayName:str(u.fullName) || str(u.displayName)}); }
+/* where an assignment came from (get_user_assignments origin): people as refs; the approvers' comments are not shown */
+function normOrigin(o){
+  if (!isObj(o)) return null;
+  const who = v => isObj(v) && str(v.oid) ? ref({...v, type:str(v.type) || 'User'}) : null;
+  return {createdAt:str(o.createdAt), createdBy:who(o.createdBy), requestedBy:who(o.requestedBy), approvedBy:arr(o.approvedBy).map(who).filter(Boolean)};
+}
 function normAccess(sc){
   if (!isObj(sc) || sc.tool !== 'get_user_assignments' || !isObj(sc.user) || !str(sc.user.oid) || !Array.isArray(sc.assignments) || !Array.isArray(sc.effectiveMembership)) return null;
   if (!normActing(sc.acting) || !normServer(sc.server) || !['self', 'direct-report', 'other'].includes(sc.subjectRelation)) return null;
   return {user:userRef(sc.user), relation:sc.subjectRelation,
     assignments:sc.assignments.filter(isObj).map(a => ({target:ref(a.target || {oid:a.targetOid, name:a.targetName, type:a.targetType}),
-      type:str(a.targetType), oid:str(a.targetOid), relation:str(a.relation).split(/[:#\/}]/).pop(), status:str(a.status), validFrom:str(a.validFrom), validTo:str(a.validTo)})),
+      type:str(a.targetType), oid:str(a.targetOid), relation:str(a.relation).split(/[:#\/}]/).pop(), status:str(a.status), validFrom:str(a.validFrom), validTo:str(a.validTo), origin:normOrigin(a.origin)})),
     memberships:sc.effectiveMembership.map(normMembership).filter(Boolean)};
 }
 function normTeam(sc){
@@ -687,15 +856,27 @@ function requestValidity(v){
 }
 
 /* ================= small parts ================= */
-function disc(r, size){ const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : ''), 'aria-hidden':'true'}); el.append(glyph(KIND_GLYPH[r && r.type] || 'dot', 14)); return el; }
+/* 6.4 (D39): a person is a circle with initials, a thing a rounded square with its kind's glyph; one tint for all kinds */
+function initials(r){
+  const w = String((r && (r.displayName || r.name)) || '').trim().split(/\s+/).filter(Boolean);
+  return w.length ? (Array.from(w[0])[0] + (w.length > 1 ? Array.from(w[w.length - 1])[0] : '')).toUpperCase() : '';
+}
+function disc(r, size){
+  const person = isPerson(r), ini = person && !hiddenRef(r) ? initials(r) : '';
+  const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : '') + (person ? ' mp-disc--person' : ''), 'aria-hidden':'true', 'data-initials':ini || null});
+  if (!ini) el.append(glyph(KIND_GLYPH[r && r.type] || 'dot', size === 'sm' ? 12 : 16));
+  return el;
+}
 function badge(r, o){
   o = o || {};
   return h('span', {class:'mp-badge'}, disc(r, o.size), h('span', {class:'mp-badge-text'}, h('span', {class:'mp-badge-name'}, o.nameNode || dispName(r))));
 }
-const personStatus = r => r && r.status === 'disabled' ? h('span', {class:'mp-status-note'}, t('status.personDisabled')) : null;
+/* D39: a status is a pill with a glyph and a word; turned off is neutral */
+const personStatus = (r, id) => r && r.status === 'disabled' ? h('span', {class:'mp-chip mp-chip--meta', id:id || null}, icon('ban', 12), t('status.personDisabled')) : null;
 /* a person inside a sentence: icon and name, no kind and no login (D15, D16) */
 const inlBadge = r => h('span', {class:'mp-inline'}, disc(r, 'sm'), h('span', null, dispName(r)), personStatus(r));
-const chip = (kind, ic, text) => h('span', {class:'mp-chip mp-chip--' + kind}, ic ? icon(ic, 12) : null, text);
+/* the words are one flex item, so a date inside them stays in the sentence */
+const chip = (kind, ic, text) => h('span', {class:'mp-chip mp-chip--' + kind}, ic ? icon(ic, 12) : null, h('span', null, text));
 /* 6.4: risk chip only when riskLevel is set; danger fill for high and critical, the word carries the meaning */
 const line = (ic, node) => h('p', {class:'mp-line'}, ic, h('span', null, node));
 function slowNote(at){ return at && Date.now() - at >= SLOW_MS ? h('p', {class:'mp-note mp-note-row', role:'status'}, icon('clock', 12), t('state.slow')) : null; }
@@ -718,13 +899,15 @@ function gui(){
   if (!S.init || !isObj(S.caps.openLinks) || !g || typeof g.baseUrl !== 'string' || !BASE_URL.test(g.baseUrl) || !isObj(g.paths)) return null;
   return g;
 }
-function openLink(oid, type, text){
+/* o.text: what the link shows (default the name); o.cls: extra classes, e.g. a row's name */
+function openLink(oid, type, text, o){
+  o = o || {};
   const g = gui(), tpl = g && g.paths[type];
   if (!g || typeof tpl !== 'string' || !PATH_TPL.test(tpl) || !UUID.test(oid)) return null;
   LINKED = true;
   const url = g.baseUrl.replace(/\/+$/, '') + tpl.replace('{oid}', oid); /* never shown as text; the host opens it */
-  return h('button', {type:'button', class:'mp-btn mp-btn--link mp-open', 'aria-label':ts('common.openInMidpointLabel', {name:text}),
-    onclick:() => { request('ui/open-link', {url}); }}, text, icon('external', 11));
+  return h('button', {type:'button', class:'mp-btn mp-btn--link mp-open' + (o.cls ? ' ' + o.cls : ''), 'aria-label':ts('common.openInMidpointLabel', {name:text}),
+    onclick:() => { request('ui/open-link', {url}); }}, o.text || text, icon('external', 11));
 }
 
 /* ================= errors (6.8): by code first, then by text ================= */
@@ -874,12 +1057,6 @@ function names(list){
   if (values.length > 3) shown.push(ts('common.andMore', {count:values.length - 3}));
   return new Intl.ListFormat('en', {type:'conjunction'}).format(shown);
 }
-function existingValidity(a){
-  const from = a.validFrom && (isNaN(Date.parse(a.validFrom)) || Date.parse(a.validFrom) > Date.now()) ? a.validFrom : '';
-  if (from && a.validTo) return t('validity.fromUntil', {from:dateEl(from), to:dateEl(a.validTo)});
-  if (a.validTo) return t('validity.until', {date:dateEl(a.validTo)});
-  return from ? t('validity.from', {date:dateEl(from)}) : null;
-}
 function summaryRows(d){
   return h('dl', {class:'mp-kv'}, h('dt', null, t('confirm.row.role')), h('dd', null, badge(d.role)),
     h('dt', null, t('confirm.row.from')), h('dd', null, badge(d.user)));
@@ -929,41 +1106,92 @@ function pickerEl(){
   const extra = current && !users.some(u => u.oid === current.oid) ? current : null;
   if (extra) users.unshift(extra);
   if (!users.length) return null;
-  return h('fieldset', {disabled:S.busy || null, 'aria-busy':S.busy ? 'true' : null}, h('legend', {class:'mp-legend'}, t('review.person.label')),
+  /* D39: each option is a chip with the person's initials; the radio's name is the person, their status its description */
+  return h('fieldset', {disabled:S.busy || null, 'aria-busy':S.busy ? 'true' : null}, h('legend', {class:'mp-legend mp-section-title'}, t('review.person.label')),
     h('div', {class:'mp-picks'}, users.map(u => {
       const label = u === extra ? ts(u.oid === S.acting.oid ? 'review.person.selfOption' : 'review.person.otherOption', {name:dispName(u)}) : dispName(u);
+      const id = idOf('pick:' + u.oid), st = personStatus(u, id + 's');
       return h('label', {class:'mp-pick'}, h('input', {type:'radio', name:'team-person', value:u.oid, checked:u.oid === S.selected || null, 'data-k':'person:' + idOf(u.oid),
-        onchange:() => switchPerson(u.oid)}), disc(u, 'sm'), h('span', null, label));
+        'aria-labelledby':id + 'n', 'aria-describedby':st ? id + 's' : null, onchange:() => switchPerson(u.oid)}),
+        disc(u, 'sm'), h('span', {id:id + 'n'}, label), st, h('span', {class:'mp-pick-check'}, icon('check', 13)));
     })));
 }
 function personEl(d){
-  const u = d.user;
-  return h('section', {class:'mp-idcard', 'aria-label':dispName(u)}, disc(u), h('div', {class:'mp-person-body'},
-    h('h2', null, dispName(u)), h('div', {class:'mp-actions'}, personStatus(u), h('p', {class:'mp-note'}, t('review.relation.' + (d.relation === 'direct-report' ? 'directReport' : d.relation))), openLink(u.oid, 'User', dispName(u))),
-    d.relation === 'direct-report' && isObj(S.caps.message) ? h('button', {type:'button', class:'mp-btn mp-btn--tool', 'data-k':'handoff', disabled:S.busy || null,
-      onclick:() => handoff(u)}, t('review.action.requestFor', {name:dispName(u)})) : null));
+  const u = d.user, link = openLink(u.oid, 'User', dispName(u), {text:ts('common.openInMidpoint')});
+  return h('section', {class:'mp-idcard', 'aria-label':dispName(u)}, disc(u, 'lg'),
+    h('div', {class:'mp-person-body'},
+      h('div', {class:'mp-person-name'}, h('h2', null, dispName(u)), personStatus(u)),
+      h('p', {class:'mp-person-rel'}, h('span', null, t('review.relation.' + (d.relation === 'direct-report' ? 'directReport' : d.relation))), link)),
+    d.relation === 'direct-report' && isObj(S.caps.message) ? h('button', {type:'button', class:'mp-btn mp-btn--primary', 'data-k':'handoff', disabled:S.busy || null,
+      onclick:() => handoff(u)}, t('review.action.requestFor', {name:dispName(u)})) : null);
 }
-function sectionEl(key, items, renderRow, hint){
+/* D39: an uppercase heading with a count; A is a bordered list of rows, B (led) a band in the one ledger table */
+function sectionEl(key, items, renderRow, hint, led){
   if (!items.length) return null;
-  const shown = isFull() ? items.length : S.shown[key] || PAGE;
-  const heading = ts(key), id = 'section-' + idOf(key);
-  return h('section', {class:'mp-group', 'aria-labelledby':id}, h('h2', {class:'mp-section-title', id}, heading),
-    hint ? h('p', {class:'mp-note'}, t(hint)) : null,
-    h('ul', {class:'mp-rows'}, items.slice(0, shown).map(renderRow)),
+  const shown = isFull() ? items.length : S.shown[key] || PAGE, id = 'section-' + idOf(key);
+  const title = h('h2', {class:'mp-section-title'}, h('span', {id}, t(key)), h('span', {class:'mp-count'}, String(items.length)));
+  const note = hint ? h('p', {class:'mp-note'}, t(hint)) : null;
+  return h('section', {class:led ? 'mp-lsec' : 'mp-group', 'aria-labelledby':id}, led ? h('div', {class:'mp-band'}, title, note) : [title, note],
+    h('ul', {class:led ? 'mp-lrows' : 'mp-alist'}, items.slice(0, shown).map(x => renderRow(x, led))),
     shown < items.length ? h('button', {type:'button', class:'mp-btn mp-btn--tool mp-more', 'data-k':'list-more:' + key,
       onclick:() => { S.shown[key] = shown + PAGE; render({focus:'list-more:' + key}); }}, t('common.showMore')) : null);
 }
-function roleRow(a, d){
-  const dry = S.server && !S.server.writesEnabled;
-  const validity = existingValidity(a), relation = {approver:'review.link.approver', owner:'review.link.owner'}[a.relation];
-  const status = {disabled:'status.disabled', archived:'status.archived'}[a.status];
-  return h('li', null, h('div', {class:'mp-row-main'}, h('div', {class:'mp-row-labels'}, badge(a.target),
-    relation ? chip('outline', null, t(relation)) : null, validity ? h('span', {class:'mp-note'}, validity) : null,
-    status ? h('span', {class:'mp-status-note'}, t(status)) : null, openLink(a.oid, 'Role', dispName(a.target))),
-    d.relation === 'direct-report' && canCall() && a.oid ? h('button', {type:'button', class:'mp-btn mp-btn--tool', 'data-k':actionKey(a),
-      disabled:S.busy || S.disabled.has(a.oid) || null, 'aria-label':ts(dry ? 'review.action.previewLabel' : 'review.action.revokeLabel', {role:dispName(a.target), user:dispName(d.user)}),
-      onclick:() => openRevoke(a, d.user)}, t(dry ? 'review.action.preview' : 'review.action.revoke')) : null),
-    a.target.description ? h('blockquote', {class:'mp-quote', 'aria-label':dispName(a.target)}, clampText('description:' + idOf(a.oid), a.target.description, 2, 'mp-quote-text')) : null);
+/* a row's name: the link into midPoint when there is one (4.9), else text */
+const rowName = (r, type, text) => (type && openLink(r.oid, type, dispName(r), {text, cls:'mp-row-name'})) || h('span', {class:'mp-row-name'}, text || dispName(r));
+/* a row without dates or actions: tile, name, and its one fact (a pill or a muted line) beside the name in A, under it in B */
+function plainRow(r, name, fact, led){
+  const pill = !!fact && !!fact.classList && fact.classList.contains('mp-chip');
+  return h('li', {class:led ? 'mp-lplain' : 'mp-arow'}, disc(r), h('div', {class:'mp-arow-main'},
+    pill && !led ? h('div', {class:'mp-arow-head'}, name, fact) : name,
+    fact && (led || !pill) ? (pill ? h('div', {class:'mp-arow-head'}, fact) : h('p', {class:'mp-arow-meta'}, fact)) : null));
+}
+const DAY = 86400000;
+const startsLater = a => !!a.validFrom && (isNaN(Date.parse(a.validFrom)) || Date.parse(a.validFrom) > Date.now());
+/* D39: one status pill; a future start wins (midPoint reports such an assignment as disabled), then turned off, then an end within 30 days */
+function roleStatus(a){
+  if (startsLater(a)) return chip('info', 'clock', t('review.role.starts', {date:dateEl(a.validFrom)}));
+  const st = {disabled:'status.disabled', archived:'status.archived'}[a.status];
+  if (st) return chip('meta', 'ban', t(st));
+  const now = Date.now(), end = Date.parse(a.validTo);
+  if (!isNaN(end) && end > now && end - now <= 30 * DAY) return chip('warning', 'hourglass', t('review.role.endsIn', {count:dayNo(ymdOf(end)) - dayNo(ymdOf(now))}));
+  return null;
+}
+/* since: when midPoint created the assignment; not shown while it hasn't started */
+const sinceOf = a => a.origin && a.origin.createdAt && !isNaN(Date.parse(a.origin.createdAt)) && !startsLater(a) ? a.origin.createdAt : '';
+/* who it came from: approved by, else requested by someone other than the person, else added by; nobody unreadable is named */
+function provenance(a, d){
+  const o = a.origin; if (!o) return null;
+  const me = S.acting && S.acting.oid, ok = r => !!r && !!r.oid && !hiddenRef(r);
+  const who = list => new Intl.ListFormat('en', {type:'conjunction'}).format(list.map(r => r.oid === me ? ts('common.you') : dispName(r)));
+  const appr = o.approvedBy.filter(ok);
+  if (appr.length) return ['review.role.approvedBy', who(appr)];
+  if (ok(o.requestedBy) && o.requestedBy.oid !== d.user.oid) return ['review.role.requestedBy', who([o.requestedBy])];
+  return ok(o.createdBy) ? ['review.role.addedBy', who([o.createdBy])] : null;
+}
+/* D39: one meta line, "Since 12 Sep 2026 · until 31 Dec 2027 · approved by you"; empty parts are left out */
+function metaLine(parts){
+  const out = [];
+  parts.filter(Boolean).forEach(([k, p], i) => { if (i) out.push(' · '); out.push(h('span', {class:'mp-meta-part'}, t(k, {...p, first:i ? 'no' : 'yes'}))); });
+  return out.length ? h('p', {class:'mp-arow-meta'}, out) : null;
+}
+function roleRow(a, d, led){
+  const dry = S.server && !S.server.writesEnabled, relation = {approver:'review.link.approver', owner:'review.link.owner'}[a.relation];
+  const pills = [roleStatus(a), relation ? chip('outline', null, t(relation)) : null].filter(Boolean);
+  const name = rowName(a.target, 'Role'), since = sinceOf(a), prov = provenance(a, d);
+  const desc = a.target.description ? clampText('description:' + idOf(a.oid), a.target.description, 2, 'mp-arow-desc') : null;
+  const action = d.relation === 'direct-report' && canCall() && a.oid ? h('button', {type:'button', class:'mp-btn mp-btn--ghost', 'data-k':actionKey(a),
+    disabled:S.busy || S.disabled.has(a.oid) || null, 'aria-label':ts(dry ? 'review.action.previewLabel' : 'review.action.revokeLabel', {role:dispName(a.target), user:dispName(d.user)}),
+    onclick:() => openRevoke(a, d.user)}, t(dry ? 'review.action.preview' : 'review.action.revoke')) : null;
+  if (!led) return h('li', {class:'mp-arow'}, disc(a.target), h('div', {class:'mp-arow-main'}, h('div', {class:'mp-arow-head'}, name, pills), desc,
+    metaLine([since && ['review.role.since', {date:dateEl(since)}], a.validTo && ['review.role.until', {date:dateEl(a.validTo)}], prov && [prov[0], {name:prov[1]}]])), action);
+  /* B: Access | Since | Until | action; each date carries its label, read aloud and shown inline under 560 px, where who it came from
+     follows the dates on their line; from 560 px that sits under the name */
+  const cell = (lab, iso) => h('span', {class:'mp-lcell'}, iso ? [h('span', {class:'mp-lcell-lab'}, t(lab)), ' ', dateEl(iso)] : null);
+  return h('li', {class:'mp-lrole'},
+    h('div', {class:'mp-lname'}, disc(a.target), h('div', {class:'mp-arow-main'}, name, pills.length ? h('div', {class:'mp-arow-head'}, pills) : null, desc)),
+    h('div', {class:'mp-ldates'}, cell('review.col.since', since), cell('review.col.until', a.validTo),
+      prov ? h('span', {class:'mp-lcell mp-lprov'}, t(prov[0], {name:prov[1], first:'yes'})) : null),
+    h('div', {class:'mp-lact'}, action));
 }
 function reviewEl(){
   const out = [pickerEl()];
@@ -982,21 +1210,24 @@ function reviewEl(){
   if (!d){
     if (S.notice) out.push(outcomeEl(S.notice));
     if (S.busy) out.push(skeletonRows());
-    if (!canCall() && S.team && S.team.users.length) out.push(sectionEl('review.person.label', S.team.users, u => h('li', null, badge(u), personStatus(u))));
+    if (!canCall() && S.team && S.team.users.length) out.push(sectionEl('review.person.label', S.team.users, u => plainRow(u, rowName(u), personStatus(u), false)));
     return out;
   }
   out.push(personEl(d));
   if (S.notice) out.push(outcomeEl(S.notice));
-  const visible = d.assignments.filter(a => a.type !== 'Archetype');
+  const visible = d.assignments.filter(a => a.type !== 'Archetype'), led = isFull(), roles = visible.filter(a => a.type === 'Role');
   if (!visible.length) out.push(h('p', {class:'mp-panel mp-panel--info', role:'status'}, t('review.empty', {user:dispName(d.user)})));
-  out.push(sectionEl('review.section.roles', visible.filter(a => a.type === 'Role'), a => roleRow(a, d)));
-  out.push(sectionEl('review.section.inherited', d.memberships.filter(m => !m.direct && m.type !== 'Archetype'), m => h('li', null,
-    h('div', {class:'mp-row-main'}, badge(m, {size:'sm'}), h('span', {class:'mp-note'}, m.via ? t('common.inheritedVia', {source:dispName(m.via)}) : t('common.inherited')))), 'review.inherited.hint'));
-  out.push(sectionEl('review.section.orgs', visible.filter(a => a.type === 'Org'), a => h('li', null, h('div', {class:'mp-row-main'},
-    h('div', {class:'mp-row-labels'}, badge(a.target), openLink(a.oid, 'Org', dispName(a.target))),
-    ['manager', 'default', ''].includes(a.relation) ? h('span', {class:'mp-note'}, t(a.relation === 'manager' ? 'review.org.manager' : 'review.org.member')) : null))));
-  out.push(sectionEl('review.section.other', visible.filter(a => !['Role', 'Org'].includes(a.type)), a => h('li', null,
-    badge(a.target, a.type === 'Resource' ? {nameNode:t('review.other.account', {name:dispName(a.target)})} : {}))));
+  const secs = [
+    sectionEl('review.section.roles', roles, (a, l) => roleRow(a, d, l), null, led),
+    sectionEl('review.section.inherited', d.memberships.filter(m => !m.direct && m.type !== 'Archetype'), (m, l) => plainRow(m, rowName(m),
+      m.via ? t('common.inheritedVia', {source:dispName(m.via)}) : t('common.inherited'), l), 'review.inherited.hint', led),
+    sectionEl('review.section.orgs', visible.filter(a => a.type === 'Org'), (a, l) => plainRow(a.target, rowName(a.target, 'Org'),
+      ['manager', 'default', ''].includes(a.relation) ? chip('meta', null, t(a.relation === 'manager' ? 'review.org.manager' : 'review.org.member')) : null, l), null, led),
+    sectionEl('review.section.other', visible.filter(a => !['Role', 'Org'].includes(a.type)), (a, l) => plainRow(a.target,
+      rowName(a.target, null, a.type === 'Resource' ? ts('review.other.account', {name:dispName(a.target)}) : null), null, l), null, led)].filter(Boolean);
+  if (led && secs.length) out.push(h('div', {class:'mp-ltable'}, roles.length ? h('div', {class:'mp-lhead', 'aria-hidden':'true'},
+    h('span', null, t('review.col.access')), h('span', null, t('review.col.since')), h('span', null, t('review.col.until')), h('span')) : null, secs));
+  else out.push(...secs);
   return out;
 }
 function contentEl(){

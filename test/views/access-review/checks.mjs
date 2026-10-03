@@ -30,7 +30,14 @@ async function person(t,entry='person',opts={}) {
  await sleep(100); return v;
 }
 const section=(v,key)=>v.frame.getByRole('region',{name:s(key),exact:true});
-const roleRow=v=>section(v,'review.section.roles').getByRole('listitem').filter({hasText:role});
+const rowOf=(v,name)=>section(v,'review.section.roles').getByRole('listitem').filter({hasText:name});
+const roleRow=v=>rowOf(v,role);
+// D39: the picker chips carry "Account off" too, so a person's own status is looked up on their card
+const card=(v,name)=>v.frame.getByRole('region',{name,exact:true});
+const offOn=(v,name)=>card(v,name).getByText(s('status.personDisabled'),{exact:true});
+// D39 pill fills (light): neutral, warning, info
+const FILL={neutral:'rgb(236, 239, 242)',warning:'rgb(253, 240, 207)',info:'rgb(229, 236, 253)'};
+const fillOf=loc=>loc.first().evaluate(el=>getComputedStyle(el.closest('span[class*="chip"]')||el).backgroundColor);
 async function confirm(t,v,label=remove){
  const b=v.button(label); if(!t.ok(await v.waitFor(b),`missing ${label}`)) return null;
  await b.click(); const d=v.dialog(); t.ok(await v.waitFor(d),'missing dialog'); return d;
@@ -57,7 +64,7 @@ check('ac02.switch','7.4 AC2','one assignment read per person switch and no repe
  const v=await person(t); const b=v.frame.getByRole('radio',{name:secondUser,exact:true});
  t.ok(await v.waitFor(b),'no team picker');await b.check();
  t.ok(await v.waitFor(v.frame.getByRole('heading',{name:secondUser,exact:true})),'second person not shown');
- t.ok(await v.hasText(s('status.personDisabled')),'disabled person missing note');
+ t.ok(await v.waitFor(offOn(v,secondUser)),'disabled person missing note');
  t.ok((await v.calls('get_user_assignments')).length===1,'switch did not read once');
  await v.frame.getByRole('radio',{name:user,exact:true}).check();await v.waitFor(v.button(remove));
  t.ok((await v.calls('get_user_assignments')).length===2,'switch back did not read once');
@@ -76,8 +83,16 @@ for(const relation of ['self','other']) {
 check('ac03.person','7.4 AC3, D16','names are display names, normal person has no status note or email',async t=>{
  const v=await person(t);const txt=await v.surfaceStrings();
  for(const bad of ['bstone','jdoe','mkovac','@example.com',userOid,'build-runner'])t.ok(!txt.includes(bad),`surface leaked ${bad}`);
- t.ok(!await v.hasText(s('status.personDisabled')),'enabled person shows disabled');
+ t.ok(await v.waitFor(card(v,user))&&!await v.hasText(s('status.personDisabled'),{within:card(v,user)}),'enabled person shows disabled');
  t.ok(await v.hasText(sourceName),'display name missing');
+});
+check('d39.picker','7.4 AC2, D39','team picker: a radio per person named by the person; a turned-off person is described "Account off"',async t=>{
+ const v=await person(t);const radios=v.frame.getByRole('radio');t.ok(await radios.count()===2,'not one radio per person');
+ const mia=v.frame.getByRole('radio',{name:secondUser,exact:true});t.ok(await v.waitFor(mia),'radio not named by the person alone');
+ const desc=await mia.evaluate(el=>(el.getAttribute('aria-describedby')||'').split(/\s+/).map(id=>document.getElementById(id)?.textContent||'').join(' ').trim());
+ t.ok(desc===s('status.personDisabled'),`turned-off person described "${desc}"`);
+ const bob=v.frame.getByRole('radio',{name:user,exact:true});t.ok(!await bob.getAttribute('aria-describedby'),'enabled person carries a status');
+ t.ok(await fillOf(v.frame.getByText(s('status.personDisabled'),{exact:true}))===FILL.neutral,'"Account off" is not a neutral pill');
 });
 check('ac03.handoff','7.4 AC3, 6.14','handoff sends name and OID as context before the name-only chat message',async t=>{
  const v=await person(t);await v.button(s('review.action.requestFor',{name:user})).click();await sleep(150);
@@ -118,11 +133,21 @@ check('ac05.keyboard','6.5, 6.12','modal traps Tab, Esc and Cancel restore opene
  d=await confirm(t,v);await d.getByRole('button',{name:s('common.cancel'),exact:true}).click();t.ok(await v.isFocused(v.button(remove)),'Cancel did not restore focus');
  t.ok((await v.calls('unassign_role')).length===0,'cancel wrote');
 });
-check('ac06.role-words','7.4 AC6','role descriptions, plain governance relations and disabled/archived wording',async t=>{
+check('ac06.role-words','7.4 AC6, D39','role descriptions, plain governance relations and the Archived pill',async t=>{
  const v=await person(t,derive('person','relations'));
- for(const key of ['review.link.approver','review.link.owner','status.disabled','status.archived'])t.ok(await v.hasText(s(key)),`missing ${key}`);
+ for(const key of ['review.link.approver','review.link.owner','status.archived'])t.ok(await v.hasText(s(key)),`missing ${key}`);
  t.ok(await v.hasText(sc.assignments[0].target.description),'description missing');
  const txt=await v.text();for(const raw of ['org:','deputy','RoleType','ResourceType','Archetype','employee'])t.ok(!txt.includes(raw),`raw vocabulary ${raw}`);
+});
+check('d39.status-pills','7.4 AC6, D39','turned off is a neutral "Turned off" pill without strikethrough; a future start is "Starts …", not turned off',async t=>{
+ const v=await person(t),off=rowOf(v,roleName(sc.assignments[4])),later=rowOf(v,roleName(sc.assignments[5]));
+ t.ok(await v.hasText(s('status.disabled'),{within:off}),'turned-off role has no "Turned off" pill');
+ t.ok(await fillOf(off.getByText(s('status.disabled'),{exact:true}))===FILL.neutral,'"Turned off" is not neutral');
+ const struck=await section(v,'review.section.roles').evaluate(el=>[...el.querySelectorAll('*')].some(n=>getComputedStyle(n).textDecorationLine.includes('line-through')));
+ t.ok(!struck,'a role is struck through');
+ const txt=await later.innerText();t.ok(txt.includes(s('review.role.starts',{date:''}).trim()),'future start has no "Starts" pill');
+ t.ok(!txt.includes(s('status.disabled')),'future start also reads "Turned off"');
+ t.ok(await fillOf(later.getByText(/^Starts /))===FILL.info,'"Starts" is not an info pill');
 });
 check('ac06.description','7.4 AC6, 6.12','description clamps to two lines with one ellipsis and expands without a read',async t=>{
  const entry=derive('person','longDescription'),v=await person(t,entry,{width:320});const row=roleRow(v);
@@ -132,17 +157,39 @@ check('ac06.description','7.4 AC6, 6.12','description clamps to two lines with o
  t.ok(await v.hasText(entry.result.structuredContent.assignments[0].target.description,{within:row}),'full text not shown');
  await row.getByRole('button',{name:s('common.showLess'),exact:true}).click();t.ok((await v.calls()).length===before.length,'clamp called tool');
 });
-for(const kind of ['until','fromUntil','from','unlimited','past-start','invalid']){
- check(`ac06.validity.${kind}`,'7.4 AC6, 4.5, 6.11','existing access dates use host calendar dates and no unlimited note',async t=>{
+// D39: the end date is "until …" in the row's one meta line (after "Since …"); a future start is an info pill
+// "Starts …"; an end within 30 days a warning pill "Ends …"; nothing for unlimited access.
+for(const kind of ['until','fromUntil','from','unlimited','past-start','invalid','ends-soon','ends-later']){
+ check(`ac06.validity.${kind}`,'7.4 AC6, 4.5, 6.11, D39','existing access dates use host calendar dates: until, Starts and Ends pills; nothing when unlimited',async t=>{
   const zone=hostZone(),today=endOfDayIn(0,zone),tomorrow=endOfDayIn(1,zone),past=endOfDayIn(-5,zone);
-  const from={fromUntil:tomorrow,from:tomorrow,'past-start':past,invalid:'invalid date'}[kind]||'',to=['until','fromUntil','past-start'].includes(kind)?(kind==='fromUntil'?endOfDayIn(2,zone):today):'';
-  const v=await person(t,derive('person','dates',from,to),{zone});const txt=await roleRow(v).innerText();
-  if(kind==='until'||kind==='past-start')t.ok(txt.includes(s('validity.until',{date:s('time.today')})),'end date not today');
-  if(kind==='from'||kind==='fromUntil')t.ok(txt.includes(s('validity.from',{date:s('time.tomorrow')})),'start date not tomorrow');
+  const from={fromUntil:tomorrow,from:tomorrow,'past-start':past,invalid:'invalid date'}[kind]||'';
+  const to={until:today,'past-start':today,fromUntil:endOfDayIn(2,zone),'ends-soon':endOfDayIn(12,zone),'ends-later':endOfDayIn(45,zone)}[kind]||'';
+  const v=await person(t,derive('person','dates',from,to),{zone});const row=roleRow(v),txt=await row.innerText();
+  if(kind==='until'||kind==='past-start'){
+   t.ok(txt.includes(s('review.role.until',{first:'no',date:s('time.today')})),'end date not "until today"');
+   t.ok(txt.includes(s('review.role.endsIn',{count:0})),'no "Ends today" pill');
+  }
+  if(kind==='from'||kind==='fromUntil')t.ok(txt.includes(s('review.role.starts',{date:s('time.tomorrow')})),'start date not "Starts tomorrow": '+JSON.stringify(txt));
   if(kind==='invalid')t.ok(txt.includes('invalid date'),'unparseable date lost');
-  if(kind==='unlimited')t.ok(!/Until|From|No end date/.test(txt),'unlimited access has a validity label');
+  if(kind==='unlimited')t.ok(!/\b[Uu]ntil\b|Starts|Ends |No end date/.test(txt),'unlimited access has a validity label');
+  if(kind==='ends-soon'){
+   const pill=s('review.role.endsIn',{count:12});t.ok(txt.includes(pill),`no "${pill}" pill`);
+   t.ok(await fillOf(row.getByText(pill,{exact:true}))===FILL.warning,'"Ends in" is not a warning pill');
+  }
+  if(kind==='ends-later')t.ok(!/Ends /.test(txt)&&/ · until /.test(txt),'an end 45 days away has a pill or no "until"');
  });
 }
+check('d39.meta-line','7.4 AC6, D39','one meta line: since, until and who approved, "you" for the acting identity; unreadable people and comments are left out',async t=>{
+ const v=await person(t),txt=await roleRow(v).innerText();
+ t.ok(/^Since .+ · until .+ · approved by you$/m.test(txt),`db-admin meta line: ${JSON.stringify(txt)}`);
+ const plain=await rowOf(v,roleName(sc.assignments[1])).innerText();
+ t.ok(/^Since [^·]+$/m.test(plain)&&!/requested by|added by|approved by/i.test(plain),`unreadable creator named: ${JSON.stringify(plain)}`);
+ t.ok(!(await v.surfaceStrings()).includes(sc.assignments[0].origin.approvalComments[0]),'approval comment on the surface');
+ for(const [origin,want] of [[{approvedBy:[],requestedBy:sc.acting,createdBy:sc.user},'requested by you'],[{approvedBy:[],requestedBy:sc.user,createdBy:sc.acting},'added by you'],
+  [{approvedBy:[{...sc.acting,oid:'10000000-0000-0000-0000-000000000099',displayName:'Alex Rivera',name:'arivera'},sc.acting]},'approved by Alex Rivera and you']]){
+  const w=await person(t,derive('person','origin',origin)),got=await roleRow(w).innerText();t.ok(got.includes(want),`want "${want}": ${JSON.stringify(got)}`);
+ }
+});
 check('ac07.included-account','7.4 AC7','included access names its source and account names its resource',async t=>{
  const v=await person(t);t.ok(await section(v,'review.section.inherited').getByText(s('common.inheritedVia',{source:sourceName}),{exact:true}).count()===1,'source missing');
  t.ok(await v.hasText(s('review.other.account',{name:resourceName})),'account wording missing');
@@ -155,7 +202,8 @@ for(const [name,key] of [['removed','review.outcome.removed'],['pending','review
   t.ok(await v.hasText(expected),'outcome lost after read');t.ok((await v.calls('get_user_assignments')).length===1,'wrong read-back count');
   t.ok((await v.sent('ui/update-model-context')).length===1,'write context missing or repeated');
   t.ok(await inLiveRegion(v.frame,expected,'polite'),'outcome not announced');
-  const body=await v.text();t.ok(body.indexOf(expected)<body.indexOf('\nRoles'),'outcome below roles');
+  // D39: section headings are uppercase on screen, so the order is compared without case
+  const body=(await v.text()).toLowerCase();t.ok(body.indexOf(expected.toLowerCase())<body.indexOf('\n'+s('review.section.roles').toLowerCase()),'outcome below roles');
   if(name==='removed')t.ok(await v.button(remove).count()===0,'removed row retained');
   else t.ok(await v.button(remove).count()===1,'still assigned row disappeared');
  });
@@ -246,7 +294,7 @@ check('shared.switch-working','7.4 switching state','person switch dims prior sn
  const v=await person(t,'person',{tools:{get_user_assignments:[{result:fixture('second-person').result,hold:true}]}});
  await v.frame.getByRole('radio',{name:secondUser,exact:true}).check();
  t.ok(await v.frame.getByRole('main').getAttribute('aria-busy')==='true','switch lacks busy state');t.ok(await v.button(remove).isDisabled(),'stale person writable during switch');
- await v.release();t.ok(await v.waitFor(s('status.personDisabled')),'switch did not finish');
+ await v.release();t.ok(await v.waitFor(offOn(v,secondUser)),'switch did not finish');
 });
 check('shared.slow-read','6.5, 6.7','slow read waits past eight seconds without retry or timeout',async t=>{
  const v=await person(t,'person',{tools:{get_user_assignments:[{result:fx.result,hold:true}]}});await v.button(s('common.refresh')).click();
@@ -288,7 +336,7 @@ check('shared.host-error','6.8','JSON-RPC refusal is shown without hiding row',a
 });
 check('shared.empty','7.4 states','no direct assignments gives named empty state and included access stays',async t=>{
  const v=await person(t,derive('person','includedOnly'));t.ok(await v.hasText(s('review.empty',{user})),'empty message missing');
- t.ok(await v.hasText(s('review.section.inherited')),'included access hidden by empty direct list');
+ t.ok(await section(v,'review.section.inherited').count()===1,'included access hidden by empty direct list');
 });
 check('shared.names-fallback','4.5, D16','missing names use catalog fallback, never OIDs',async t=>{
  const v=await person(t,derive('person','missingNames'));const txt=await v.text();t.ok(txt.includes(s('common.personHidden')),'hidden person not named');
@@ -311,6 +359,25 @@ check('shared.expand-size','6.13','Expand follows returned mode and reports chan
  const m=await v.frame.getByRole('main').evaluate(el=>({client:el.clientHeight,scroll:el.scrollHeight}));t.ok(m.scroll>m.client,'fixed-height content not scrollable');
  await v.button(s('common.collapse')).click();t.ok(await v.waitFor(v.button(s('common.expand'))),'inline not restored');
 });
+for(const width of [720,480]){
+ check(`d39.ledger.${width}`,'6.13, D39','full screen is a ledger: column headers from 560 px, inline date labels below it; no empty cells or dashes',async t=>{
+  const v=await person(t,'person',{width,context:{displayMode:'fullscreen',availableDisplayModes:['inline','fullscreen'],containerDimensions:{width,maxHeight:3000}}});
+  t.ok(await v.waitFor(v.button(s('common.collapse'))),'not in full screen');
+  const reg=section(v,'review.section.roles'),n=sc.assignments.filter(a=>a.targetType==='Role').length;
+  t.ok(await reg.getByRole('listitem').count()===n,'roles are not one row each');
+  t.ok(await v.frame.getByRole('button',{name:/^Remove .* from /}).count()===n,'ledger lost the Remove buttons');
+  const m=await reg.evaluate((sec,since)=>{
+   const labs=[...document.querySelectorAll('span')].filter(e=>e.textContent===since),w=e=>e.getBoundingClientRect().width;
+   return {head:labs.filter(e=>!sec.contains(e)).map(w),inRow:labs.filter(e=>sec.contains(e)).map(w),dash:/[–—]/.test(sec.innerText)};
+  },s('review.col.since'));
+  if(width>=560){t.ok(m.head.length===1&&m.head[0]>1,'no column header');t.ok(m.inRow.length>0&&m.inRow.every(x=>x<=1),'inline labels shown under a header');}
+  else{t.ok(m.head.every(x=>x===0),'column header shown under 560 px');t.ok(m.inRow.length>0&&m.inRow.every(x=>x>1),'dates lost their inline labels');}
+  t.ok(!m.dash,'an empty cell shows a dash');
+  t.ok(!/Since|Until/.test(await rowOf(v,roleName(sc.assignments[5])).innerText()),'a row without dates shows date labels');
+  for(const key of ['review.section.inherited','review.section.orgs','review.section.other'])t.ok(await section(v,key).count()===1,`${key} missing in full screen`);
+  await t.shot(v,`ledger-${width}`);
+ });
+}
 check('shared.no-expand','6.13','no Expand without host mode',async t=>{
  const v=await person(t,'person',{context:{availableDisplayModes:['inline']}});t.ok(await v.button(s('common.expand')).count()===0,'Expand without mode');
 });
@@ -449,6 +516,6 @@ check('shared.outcome-lifetime','7.4 AC8','next action, person switch and Refres
  const v=await person(t,'person',{tools:{unassign_role:answers('pending')}});await submit(t,v);const notice=s('review.outcome.pending',{user,role});await v.waitFor(notice);await sleep(120);
  await confirm(t,v);t.ok(!await v.hasText(notice),'next confirmation retained notice');await v.dialog().getByRole('button',{name:s('common.cancel'),exact:true}).click();
  await submit(t,v);await v.waitFor(notice);await sleep(120);await v.frame.getByRole('radio',{name:secondUser,exact:true}).check();t.ok(!await v.hasText(notice),'person switch retained notice');
- await v.waitFor(s('status.personDisabled'));await v.frame.getByRole('radio',{name:user,exact:true}).check();await v.waitFor(v.button(remove));
+ await v.waitFor(offOn(v,secondUser));await v.frame.getByRole('radio',{name:user,exact:true}).check();await v.waitFor(v.button(remove));
  await submit(t,v);await v.waitFor(notice);await sleep(120);await v.button(s('common.refresh')).click();t.ok(!await v.hasText(notice),'Refresh retained notice');
 });
