@@ -516,6 +516,7 @@ midPoint's usual answer is an authorization whose object selector uses
 | --- | --- |
 | `search_objects` | Searches users, roles, orgs, services, shadows or resources with a midPoint query-language filter, for ad hoc reports such as orphaned accounts. |
 | `search_audit` | Queries the audit trail over a time range, the last 30 days by default, by initiator, target, event type, outcome or channel. midPoint 4.10 has no REST audit endpoint, so this runs a server-side script. It needs script-execution authorization and does not work in shared mode. |
+| `list_recent_errors` | What failed in the last hours (default 24, at most 168). It checks failed tasks, accounts with failed operations, dead accounts and accounts with pending operations, systems that aren't up, and audit errors. Each source answers on its own, and the audit part is skipped without script access. |
 
 ### Administration
 

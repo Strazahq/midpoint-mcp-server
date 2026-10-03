@@ -8,6 +8,19 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- `list_recent_errors` answers "what failed in the last hours?" (24 by
+  default, at most 168). It checks five sources, and each answers on its own:
+  - failed tasks;
+  - accounts with failed operation records;
+  - dead accounts and accounts with pending operations;
+  - systems that aren't up;
+  - audit errors of the execution stage.
+
+  A source midPoint refuses shows as refused in its own section, with the
+  coded error, and the others still answer. The audit part uses the existing
+  script route; when midPoint refuses it (as under OIDC impersonation) it is
+  skipped, not failed. It uses plain REST and the caller's own rights, scans
+  at most 20 systems, and adds no dependencies.
 - `get_my_access` lists the caller's own access, with where each assignment
   came from. `list_expiring_access` lists the assignments of the caller and
   their direct reports that end within the next days (30 by default, at most
