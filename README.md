@@ -532,6 +532,15 @@ doesn't match its OID before writing.
 | `assign_role`, `unassign_role` | Adds or removes a user's role assignment. Use `assign_role` for a deliberate grant. Write gate. |
 | `recompute_user` | Makes midPoint recompute a user, so it applies its policies again and propagates the changes. Write gate. |
 
+### Tasks and systems
+
+| Tool | What it does |
+| --- | --- |
+| `list_tasks` | Lists the server tasks the caller may see, by name, execution state, result status or finish time (`finishedSince`, e.g. `24h`). |
+| `get_task` | Reads one task: its state, result message, item counts by outcome and the last failed item. |
+| `run_task`, `suspend_task`, `resume_task` | Runs, suspends or resumes a task named by `taskOid` and `taskName`. They refuse a run or resume that midPoint would ignore or reject for the task's state, and report the state read back afterwards. Write gate. |
+| `test_resource` | Tests a system's connection (`resourceOid`, `resourceName`) and reports the failed checks. Write gate, because midPoint contacts the system and stores the outcome. |
+
 ## Build and test
 
 - `go test ./...` runs the unit tests against recorded REST responses. It needs no

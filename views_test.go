@@ -222,6 +222,8 @@ func TestUISessionToolLinkage(t *testing.T) {
 		"assign_role": modelOnly, "recompute_user": modelOnly, "search_objects": modelOnly,
 		"list_my_teammates": modelOnly, "search_audit": modelOnly,
 		"get_my_access": modelOnly, "list_expiring_access": modelOnly, "list_recent_errors": modelOnly,
+		"list_tasks": modelOnly, "get_task": modelOnly, "run_task": modelOnly, "suspend_task": modelOnly,
+		"resume_task": modelOnly, "test_resource": modelOnly,
 	}
 	seen := map[string]bool{}
 	for _, tool := range res.Tools {

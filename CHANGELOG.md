@@ -8,6 +8,21 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- Operator tools for server tasks and resource tests:
+  - `list_tasks` and `get_task` read midPoint tasks as the caller. Filters
+    are name, execution state, result status and `finishedSince`. For one
+    task they add the result message, item counts by outcome and the last
+    failed item.
+  - `run_task`, `suspend_task` and `resume_task` need the task's midPoint
+    name next to its OID. They refuse a run or resume that midPoint would
+    ignore or reject for the task's state, and report the state read back
+    afterwards.
+  - `test_resource` tests a resource's connection and reports the failed
+    checks. It sits behind `MIDPOINT_MCP_ALLOW_WRITES`, because midPoint
+    contacts the target system and stores the outcome on the resource.
+
+  midPoint messages are marked untrusted. Verified live on midPoint 4.10.3. No
+  new dependencies.
 - `list_recent_errors` answers "what failed in the last hours?" (24 by
   default, at most 168). It checks five sources, and each answers on its own:
   - failed tasks;
