@@ -175,6 +175,8 @@ export const mutations = {
   markupJustification: onItem((c) => {
     c.justification = '<b>urgent</b> <img src=x onerror="document.title=\'owned\'"> please';
   }),
+  // Q4: an offered item whose group the server could not name.
+  offeredUnnamed: onItem((c, wi) => { delete wi.offeredTo; }),
   // A server whose contract MAJOR differs.
   versionMismatch: (r) => { r.structuredContent.server.uiContract = '2.0'; },
   // A result without structuredContent and without an error.

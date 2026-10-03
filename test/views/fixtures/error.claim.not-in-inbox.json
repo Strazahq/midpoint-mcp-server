@@ -1,0 +1,27 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000004",
+      "roleName": "finance-reports",
+      "userName": "bstone",
+      "workItemId": "5"
+    },
+    "name": "claim_work_item"
+  },
+  "about": "the item was claimed by someone else meanwhile (recording modified: assignee mkovac)",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-in-inbox",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "refused: work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004) is assigned to mkovac, not to dlee, so it can't be claimed"
+      }
+    ],
+    "isError": true
+  }
+}

@@ -658,6 +658,9 @@ const hygieneScenarios = () => [
   { fx: fixture('inbox.manager'), tools: { get_case: [{ when: { oid: '40000000-0000-0000-0000-000000000001' }, result: fixture('case.manager-delegated').result }, { result: fixture('case.manager-step').result }] } },
   { fx: fixture('inbox.removal'), tools: caseTools('case.removal') },
   { fx: fixture('inbox.approver-unreadable'), tools: caseTools('case.approver') },
+  // Q4
+  { fx: fixture('inbox.offered'), tools: caseTools('case.offered') },
+  { fx: fixture('inbox.claimed'), tools: caseTools('case.offered') },
 ];
 
 check('ac04.no-oids', '7.1 AC4 (D16)', 'no OID on the surface or in Details (text and accessible names)', async (t) => {
@@ -1556,6 +1559,224 @@ check('shared.narrow', '6.1', 'no horizontal scrolling at 320 px', async (t) => 
   const m = await v.frame.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
   t.ok(m.sw <= m.cw + 1, `content is ${m.sw} px wide in a ${m.cw} px frame`);
   await t.shot(v, 'narrow');
+});
+
+// ===================================================================
+// Q4: requests offered to a group (claim before deciding, release)
+// ===================================================================
+
+const GROUP = 'Access approvers';
+const groupArgs = (wi) => ({ caseOid: wi.caseOid, userName: wi.context.requestee.name, roleName: wi.context.target.name, workItemId: wi.id });
+const listTools = (name) => ({ list_work_items: [{ result: fixture(name).result }] });
+
+// groupDialog clicks a card's Claim or Release, checks the dialog and submits.
+async function groupDialog(t, v, card, buttonName, { title, body, submit }) {
+  const d = await openDialog(t, v, card, buttonName);
+  if (!d) return null;
+  t.ok(await v.waitFor(d.dlg.getByRole('heading', { name: title, exact: true })), `the dialog is not titled "${title}"`);
+  t.ok(await v.hasText(body, { within: d.dlg }), `the dialog does not say "${body}"`);
+  t.ok((await d.dlg.getByRole('textbox').count()) === 0, 'the dialog asks for a comment');
+  const sub = d.dlg.getByRole('button', { name: submit, exact: true });
+  if (!t.ok(await v.visible(sub), `the dialog has no "${submit}" button`)) return null;
+  await sub.first().click();
+  return d;
+}
+
+check('q4.offered.card', 'Q4, 7.1 AC3, 6.4', 'an offered item: the neutral "Offered to" pill, why you, Claim instead of Approve and Reject', async (t) => {
+  const { v, e, card } = await inbox(t, 'inbox.offered');
+  if (!card) return;
+  const pill = card.getByText(S.group.offered(GROUP), { exact: true });
+  if (t.ok(await v.visible(pill), `no "${S.group.offered(GROUP)}"`)) {
+    const colours = await colorsOf(pill);
+    t.ok(colours.includes(RGB.secondary[0]) && colours.includes(RGB.secondary[1]), `the pill is not neutral: ${colours.slice(0, 2)}`);
+    for (const c of [...RGB.danger, ...RGB.warning]) t.ok(!colours.slice(0, 2).includes(c), `the pill paints a status colour ${c}`);
+  }
+  t.ok(await v.hasText(S.group.whyGroup(GROUP), { within: card }), `no "${S.group.whyGroup(GROUP)}"`);
+  t.ok(await v.hasText(S.group.offeredHelp(GROUP), { within: card }), 'no offered help line');
+  for (const name of [e.approveLabel, e.rejectLabel]) {
+    t.ok(!(await v.visible(card.getByRole('button', { name, exact: true }))), `"${name}" on an item nobody has claimed`);
+  }
+  const claim = card.getByRole('button', { name: S.group.claimLabel(e.target, e.requestee), exact: true });
+  if (t.ok(await v.visible(claim), `no button named "${S.group.claimLabel(e.target, e.requestee)}"`)) {
+    t.ok(norm(await claim.first().innerText()) === S.group.claim, `Claim reads "${norm(await claim.first().innerText())}"`);
+  }
+  t.ok(!(await v.visible(card.getByRole('button', { name: S.group.releaseLabel(e.target, e.requestee), exact: true }))), 'Release on an item nobody has claimed');
+  // The ledger row (full screen) carries the pill too.
+  const full = await t.open({ entry: fixture('inbox.offered'), context: { displayMode: 'fullscreen' } });
+  t.ok(await full.waitFor(full.frame.getByRole('button', { name: new RegExp(S.group.offered(GROUP)) })), 'the full-screen row has no "Offered to" pill');
+});
+
+check('q4.offered.unnamed-group', 'Q4, 4.5', 'a group without a name is said in words', async (t) => {
+  const { v, card } = await inbox(t, derive('inbox.offered', 'offered-unnamed', M.offeredUnnamed));
+  if (card) t.ok(await v.hasText(S.group.offered(S.group.unnamed), { within: card }), `no "${S.group.offered(S.group.unnamed)}"`);
+});
+
+check('q4.claim.flow', 'Q4, 6.5, 6.14', 'Claim: confirm, one claim_work_item with the names, one list read; the card turns into a normal one with Release', async (t) => {
+  const fx = fixture('claim.claimed');
+  const { v, e, card, wi } = await inbox(t, 'inbox.offered', { tools: { claim_work_item: [{ result: fx.result }], ...listTools('inbox.claimed') } });
+  if (!card) return;
+  const d = await groupDialog(t, v, card, S.group.claimLabel(e.target, e.requestee),
+    { title: S.group.claimTitle(e.target, e.requestee), body: S.group.claimBody(GROUP), submit: S.group.claimSubmit });
+  if (!d) return;
+  if (!t.ok(await v.waitFor(S.group.claimed, 3000), `no "${S.group.claimed}"`)) return;
+  await settle(400);
+  const claims = await v.calls('claim_work_item');
+  t.ok(claims.length === 1 && JSON.stringify(claims[0].args) === JSON.stringify(groupArgs(wi)),
+    `claim_work_item calls ${JSON.stringify(claims.map((c) => c.args))}, want one with ${JSON.stringify(groupArgs(wi))}`);
+  const lists = await v.calls('list_work_items');
+  t.ok(lists.length === 1 && lists[0].seq > claims[0]?.seq, `${lists.length} list_work_items after the claim, want one`);
+  t.ok(await inLiveRegion(v.frame, S.group.claimed, 'polite'), 'the claim is not announced politely');
+  const now = await v.card(e);
+  if (!t.ok(now, 'no card after the list read')) return;
+  t.ok(await v.hasText(S.group.claimed, { within: now }), 'the outcome is not on the card after the list read');
+  t.ok(!(await v.visible(now.getByText(S.group.offered(GROUP), { exact: true }))), 'the "Offered to" pill stays after the claim');
+  for (const name of [e.approveLabel, e.rejectLabel, S.group.releaseLabel(e.target, e.requestee)]) {
+    t.ok(await v.visible(now.getByRole('button', { name, exact: true })), `no "${name}" after the claim`);
+  }
+  t.ok(!(await v.visible(now.getByRole('button', { name: S.group.claimLabel(e.target, e.requestee), exact: true }))), 'Claim stays after the claim');
+  t.ok(await v.hasText(S.group.whyClaimed(GROUP), { within: now }), `no "${S.group.whyClaimed(GROUP)}"`);
+  const sent = await v.sent('ui/update-model-context');
+  t.ok(sent.length === 1 && JSON.stringify(sent[0].params?.content) === JSON.stringify(fx.result.content), 'the model context is not the claim result\'s text');
+});
+
+check('q4.claim.cancel', 'Q4, 6.5', 'Cancel closes the claim dialog, returns focus to Claim and sends nothing', async (t) => {
+  const { v, e, card } = await inbox(t, 'inbox.offered');
+  if (!card) return;
+  const d = await openDialog(t, v, card, S.group.claimLabel(e.target, e.requestee));
+  if (!d) return;
+  await d.dlg.getByRole('button', { name: S.cancel, exact: true }).first().click();
+  t.ok(await v.waitGone(d.dlg), 'the dialog stays open after Cancel');
+  t.ok(await v.isFocused(d.btn), 'focus did not return to Claim');
+  await settle();
+  t.ok((await v.calls('claim_work_item')).length === 0, 'Cancel sent a claim');
+});
+
+check('q4.claim.unconfirmed', 'Q4, 7.1 AC11', 'a claim midPoint does not show yet: a warning, and the list read shows the item still offered', async (t) => {
+  const { v, e, card } = await inbox(t, 'inbox.offered', { tools: { claim_work_item: [{ result: fixture('claim.unconfirmed').result }], ...listTools('inbox.offered') } });
+  if (!card) return;
+  await groupDialog(t, v, card, S.group.claimLabel(e.target, e.requestee),
+    { title: S.group.claimTitle(e.target, e.requestee), body: S.group.claimBody(GROUP), submit: S.group.claimSubmit });
+  const msg = v.frame.getByText(S.group.claimUnconfirmed);
+  if (!t.ok(await v.waitFor(msg, 3000), `no "${S.group.claimUnconfirmed}"`)) return;
+  const colours = await colorsOf(msg);
+  t.ok(colours.some((c) => RGB.warning.includes(c)), 'the unconfirmed claim is not a warning');
+  t.ok(!(await v.hasText(S.group.claimed)), 'an unconfirmed claim says it is claimed');
+  const now = await v.card(e);
+  t.ok(now && (await v.visible(now.getByRole('button', { name: S.group.claimLabel(e.target, e.requestee), exact: true }))), 'Claim is gone although the item is still offered');
+});
+
+check('q4.claim.dry-run', 'Q4, 7.1 AC12, 6.7 Dry run', 'writes off: "Preview claim", the preview, no list read, no claim claimed', async (t) => {
+  const { v, e, card } = await inbox(t, 'inbox.offered-dry-run', { tools: { claim_work_item: [{ result: fixture('claim.dry-run').result }] } });
+  if (!card) return;
+  const b = card.getByRole('button', { name: S.group.previewClaimLabel(e.target, e.requestee), exact: true });
+  if (t.ok(await v.visible(b), `no button named "${S.group.previewClaimLabel(e.target, e.requestee)}"`)) {
+    t.ok(norm(await b.first().innerText()) === S.group.previewClaim, `the button reads "${norm(await b.first().innerText())}"`);
+  }
+  await groupDialog(t, v, card, S.group.previewClaimLabel(e.target, e.requestee),
+    { title: S.group.claimTitle(e.target, e.requestee), body: S.group.claimBody(GROUP), submit: S.dryrun.submit });
+  t.ok(await v.waitFor(S.dryrun.resultTitle, 3000), `no "${S.dryrun.resultTitle}"`);
+  await settle(400);
+  t.ok(!(await v.hasText(S.group.claimed)), 'a preview says the request was claimed');
+  t.ok((await v.calls('list_work_items')).length === 0, 'a preview re-read the list');
+});
+
+check('q4.claim.error', 'Q4, 7.1 Errors, 6.8', 'claimed by someone else meanwhile: not-in-inbox, Claim disabled, Refresh suggested, no retry', async (t) => {
+  const { v, e, card } = await inbox(t, 'inbox.offered', { tools: { claim_work_item: [{ result: fixture('error.claim.not-in-inbox').result }] } });
+  if (!card) return;
+  await groupDialog(t, v, card, S.group.claimLabel(e.target, e.requestee),
+    { title: S.group.claimTitle(e.target, e.requestee), body: S.group.claimBody(GROUP), submit: S.group.claimSubmit });
+  const code = 'not-in-inbox';
+  if (!t.ok(await v.waitFor(card.getByText(S.errorByCode[code]), 3000), `no "${S.errorByCode[code]}" in the card`)) return;
+  t.ok(await inLiveRegion(v.frame, S.errorByCode[code], 'assertive'), 'the error is not announced assertively');
+  const claim = card.getByRole('button', { name: S.group.claimLabel(e.target, e.requestee), exact: true });
+  t.ok(!(await v.visible(claim)) || !(await claim.first().isEnabled()), 'Claim stays usable after the item was claimed by someone else');
+  t.ok(await v.visible(v.button(S.refresh)), 'Refresh is not suggested');
+  await settle(1000);
+  t.ok((await v.calls('claim_work_item')).length === 1, 'the failed claim was retried');
+  t.ok((await v.calls('list_work_items')).length === 0, 'a refused claim re-read the list on its own');
+});
+
+check('q4.release.flow', 'Q4, 6.5', 'a claimed item: Release in the footer, confirm, one release_work_item, one list read; offered again', async (t) => {
+  const { v, e, card, wi } = await inbox(t, 'inbox.claimed', { tools: { release_work_item: [{ result: fixture('release.released').result }], ...listTools('inbox.offered') } });
+  if (!card) return;
+  t.ok(await v.hasText(S.group.whyClaimed(GROUP), { within: card }), `no "${S.group.whyClaimed(GROUP)}"`);
+  t.ok(!(await v.visible(card.getByText(S.group.offered(GROUP), { exact: true }))), 'a claimed item shows the "Offered to" pill');
+  const rel = card.getByRole('button', { name: S.group.releaseLabel(e.target, e.requestee), exact: true });
+  if (!t.ok(await v.visible(rel), `no button named "${S.group.releaseLabel(e.target, e.requestee)}"`)) return;
+  t.ok(norm(await rel.first().innerText()) === S.group.release, `Release reads "${norm(await rel.first().innerText())}"`);
+  await groupDialog(t, v, card, S.group.releaseLabel(e.target, e.requestee),
+    { title: S.group.releaseTitle(e.target, e.requestee), body: S.group.releaseBody(GROUP), submit: S.group.releaseSubmit });
+  if (!t.ok(await v.waitFor(S.group.released(GROUP), 3000), `no "${S.group.released(GROUP)}"`)) return;
+  await settle(400);
+  const rels = await v.calls('release_work_item');
+  t.ok(rels.length === 1 && JSON.stringify(rels[0].args) === JSON.stringify(groupArgs(wi)), `release_work_item calls ${JSON.stringify(rels.map((c) => c.args))}`);
+  t.ok((await v.calls('list_work_items')).length === 1, 'no single list read after the release');
+  const now = await v.card(e);
+  t.ok(now && (await v.visible(now.getByRole('button', { name: S.group.claimLabel(e.target, e.requestee), exact: true }))), 'no Claim after the release');
+  t.ok(now && (await v.visible(now.getByText(S.group.offered(GROUP), { exact: true }))), 'no "Offered to" pill after the release');
+});
+
+check('q4.release.dry-run', 'Q4, 7.1 AC12', 'writes off: "Preview release" and the preview', async (t) => {
+  const { v, e, card } = await inbox(t, derive('inbox.claimed', 'writes-off', (r) => { r.structuredContent.server.writesEnabled = false; }),
+    { tools: { release_work_item: [{ result: fixture('release.dry-run').result }] } });
+  if (!card) return;
+  const name = S.group.previewReleaseLabel(e.target, e.requestee);
+  const b = card.getByRole('button', { name, exact: true });
+  if (!t.ok(await v.visible(b), `no button named "${name}"`)) return;
+  t.ok(norm(await b.first().innerText()) === S.group.previewRelease, `the button reads "${norm(await b.first().innerText())}"`);
+  await groupDialog(t, v, card, name, { title: S.group.releaseTitle(e.target, e.requestee), body: S.group.releaseBody(GROUP), submit: S.dryrun.submit });
+  t.ok(await v.waitFor(S.dryrun.resultTitle, 3000), `no "${S.dryrun.resultTitle}"`);
+  t.ok((await v.calls('list_work_items')).length === 0, 'a preview re-read the list');
+});
+
+check('q4.decide.not-claimed', 'Q4, 6.8, 7.1 States Outcome mode', 'an agent decides an unclaimed item: error.notClaimed, then the inbox with Claim', async (t) => {
+  const v = await t.open({ entry: fixture('error.decide.not-claimed'), tools: listTools('inbox.offered') });
+  t.ok(await v.waitFor(S.errorByCode['not-claimed'], 3000), `no "${S.errorByCode['not-claimed']}"`);
+  const e = expectItem(items(fixture('inbox.offered').result)[0]);
+  const card = await v.card(e, 3000);
+  t.ok(card && (await v.visible(card.getByRole('button', { name: S.group.claimLabel(e.target, e.requestee), exact: true }))), 'the inbox read after the error has no Claim');
+  // An older server without the code: the text says the same.
+  const v2 = await t.open({ entry: derive('error.decide.not-claimed', 'no-code', M.errorWithoutCode), tools: listTools('inbox.offered') });
+  t.ok(await v2.waitFor(S.errorByCode['not-claimed'], 3000), 'the text fallback does not find error.notClaimed');
+});
+
+check('q4.read-only-host', 'Q4, 6.6', 'a read-only host: the pill, no Claim, no Release', async (t) => {
+  for (const name of ['inbox.offered', 'inbox.claimed']) {
+    const { v, e, card } = await inbox(t, name, { caps: NO_TOOLS });
+    if (!card) continue;
+    for (const b of [S.group.claimLabel(e.target, e.requestee), S.group.releaseLabel(e.target, e.requestee)]) {
+      t.ok(!(await v.visible(card.getByRole('button', { name: b, exact: true }))), `${name}: "${b}" without serverTools`);
+    }
+    if (name === 'inbox.offered') t.ok(await v.hasText(S.group.offered(GROUP), { within: card }), 'no pill on a read-only host');
+  }
+});
+
+check('q4.button-names', 'Q4, 7.1 AC14, 6.12', 'Claim and Release: every accessible name starts with the visible text', async (t) => {
+  for (const name of ['inbox.offered', 'inbox.claimed', 'inbox.offered-dry-run']) {
+    const v = await t.open({ entry: fixture(name) });
+    if (!(await v.card(expectItem(items(fixture(name).result)[0])))) { t.fail(`${name}: no card`); continue; }
+    for (const b of await v.frame.getByRole('button').all()) {
+      if (!(await b.isVisible())) continue;
+      const shown = norm(await b.innerText());
+      const acc = await v.accessibleName(b);
+      if (shown && !acc.startsWith(shown)) t.fail(`${name}: button "${shown}" is named "${acc}" (label in name, WCAG 2.5.3)`);
+    }
+  }
+});
+
+check('q4.keyboard', 'Q4, 7.1 AC17, 6.12', 'claim with the keyboard alone', async (t) => {
+  const { v, e, card } = await inbox(t, 'inbox.offered', { tools: { claim_work_item: [{ result: fixture('claim.claimed').result }], ...listTools('inbox.claimed') } });
+  if (!card) return;
+  const claim = card.getByRole('button', { name: S.group.claimLabel(e.target, e.requestee), exact: true });
+  await claim.first().focus();
+  await v.page.keyboard.press('Enter');
+  const dlg = v.dialog();
+  if (!t.ok(await v.waitFor(dlg), 'Enter on Claim opened no dialog')) return;
+  const submit = dlg.getByRole('button', { name: S.group.claimSubmit, exact: true });
+  for (let i = 0; i < 4 && !(await v.isFocused(submit)); i++) await v.page.keyboard.press('Tab');
+  if (!t.ok(await v.isFocused(submit), 'Tab never reached the Claim button in the dialog')) return;
+  await v.page.keyboard.press('Enter');
+  t.ok(await v.waitFor(S.group.claimed, 3000), 'the keyboard claim did not go through');
 });
 
 // ===================================================================

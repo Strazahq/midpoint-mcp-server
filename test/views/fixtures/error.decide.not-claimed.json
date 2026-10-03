@@ -1,0 +1,28 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000004",
+      "decision": "approve",
+      "roleName": "finance-reports",
+      "userName": "bstone",
+      "workItemId": "5"
+    },
+    "name": "decide_work_item"
+  },
+  "about": "an agent decides an offered item nobody has claimed: claim it first",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-claimed",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "refused: work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004) is offered to access-approvers and nobody has claimed it yet; claim it first (claim_work_item), then decide it"
+      }
+    ],
+    "isError": true
+  }
+}

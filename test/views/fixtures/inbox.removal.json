@@ -40,6 +40,7 @@
           "assignee": "mkovac",
           "case": "Unassigning role \"Database admin\" from user \"Bob Stone (bstone)\"",
           "caseOid": "40000000-0000-0000-0000-000000000003",
+          "claimed": false,
           "context": {
             "change": "delete",
             "coAssignees": [],
@@ -111,6 +112,7 @@
           },
           "id": "5",
           "object": "bstone",
+          "offered": false,
           "requestor": "administrator",
           "stage": 1,
           "target": "db-admin"

@@ -1,0 +1,61 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000004",
+      "roleName": "finance-reports",
+      "userName": "bstone",
+      "workItemId": "5"
+    },
+    "name": "release_work_item"
+  },
+  "about": "writes disabled: the release previewed",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "DRY RUN — writes disabled. Would release work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004) — finance-reports for bstone as dlee (resource-server mode) via POST /ws/rest/cases/40000000-0000-0000-0000-000000000004/workItems/5/release.\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Dana Lee",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "applied": false,
+      "case": "Assigning role \"Finance reports\" to user \"Bob Stone (bstone)\"",
+      "caseOid": "40000000-0000-0000-0000-000000000004",
+      "confirmed": false,
+      "dryRun": true,
+      "endpoint": "/ws/rest/cases/40000000-0000-0000-0000-000000000004/workItems/5/release",
+      "method": "POST",
+      "object": "bstone",
+      "offeredTo": {
+        "displayName": "Access approvers",
+        "name": "access-approvers",
+        "oid": "30000000-0000-0000-0000-000000000002",
+        "type": "Org"
+      },
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": false
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1"
+      },
+      "summary": "Release work item 5 in case 40000000-0000-0000-0000-000000000004",
+      "target": "finance-reports",
+      "tool": "release_work_item",
+      "workItemId": "5"
+    }
+  }
+}

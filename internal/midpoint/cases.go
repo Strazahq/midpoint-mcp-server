@@ -85,7 +85,13 @@ type workItemJSON struct {
 	ID flexID `json:"@id"`
 	// assigneeRef is multi-valued: delegation and escalation add assignees, and
 	// midPoint serializes a single value as a bare object.
-	AssigneeRef     flexSlice `json:"assigneeRef"`
+	AssigneeRef flexSlice `json:"assigneeRef"`
+	// candidateRef names the groups (roles, orgs, services) a work item is
+	// offered to. midPoint sets it when a step's approver is a group and the
+	// step's groupExpansion is byClaimingWorkItem, its default: the item then
+	// has no assignee until a member claims it, and keeps candidateRef after
+	// the claim (live on 4.10.3).
+	CandidateRef    flexSlice `json:"candidateRef"`
 	StageNumber     int       `json:"stageNumber"`
 	CreateTimestamp string    `json:"createTimestamp"`
 	Deadline        string    `json:"deadline"`
@@ -135,10 +141,55 @@ func (wi workItemJSON) open() bool {
 	return wi.Output == nil && wi.CloseTimestamp == ""
 }
 
-// inInbox is the approval-inbox rule list_work_items applies and
-// decide_work_item enforces: an open work item assigned to the subject.
+// inInbox is the approval-inbox rule decide_work_item enforces: an open work
+// item assigned to the subject. list_work_items also lists the items offered
+// to the subject (offeredTo).
 func (wi workItemJSON) inInbox(subjectOID string) bool {
 	return wi.open() && wi.assignedTo(subjectOID) != nil
+}
+
+// candidates decodes the work item's candidateRef values.
+func (wi workItemJSON) candidates() []refJSON {
+	return decodeRefs(wi.CandidateRef)
+}
+
+// candidateIn returns the first candidate in mine, else nil.
+func (wi workItemJSON) candidateIn(mine candidateSet) *refJSON {
+	for _, r := range wi.candidates() {
+		if mine[r.OID] {
+			return &r
+		}
+	}
+	return nil
+}
+
+// offeredTo returns the group through which an open, unclaimed work item is
+// offered to the subject whose candidate set is mine, or nil when it is not:
+// it is closed, has an assignee, or none of its candidates is the subject or
+// one of the subject's groups.
+func (wi workItemJSON) offeredTo(mine candidateSet) *refJSON {
+	if !wi.open() || len(wi.assignees()) > 0 {
+		return nil
+	}
+	return wi.candidateIn(mine)
+}
+
+// claimedFrom returns the group an open work item was claimed from when the
+// subject is its only assignee, or nil: what release gives the item back to.
+// midPoint releases only an item with one assignee, the releasing user, and
+// candidates to give it back to (ReleaseWorkItemsAction).
+func (wi workItemJSON) claimedFrom(subjectOID string, mine candidateSet) *refJSON {
+	a := wi.assignees()
+	if !wi.open() || len(a) != 1 || a[0].OID != subjectOID {
+		return nil
+	}
+	if r := wi.candidateIn(mine); r != nil {
+		return r
+	}
+	if c := wi.candidates(); len(c) > 0 {
+		return &c[0]
+	}
+	return nil
 }
 
 func (cj caseJSON) summary() CaseSummary {
@@ -211,7 +262,12 @@ func (c *Client) ListMyRequests(ctx context.Context, limit int) (RequestsResult,
 }
 
 // ListWorkItems returns the authenticated user's approval inbox: open work items
-// assigned to them and not yet completed.
+// assigned to them and not yet completed, and open work items offered to a
+// group they belong to that nobody has claimed (Offered). midPoint shows a
+// person an offered item only when they may read it: its stock Approver role
+// reads only work items assigned to the reader (live on 4.10.3), so offered
+// items need a read authorization with a candidateAssignee clause, as
+// midPoint's own Claimable work items page does.
 func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, error) {
 	subj, self, err := c.subjectUser(ctx)
 	if err != nil {
@@ -219,8 +275,8 @@ func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, err
 	}
 	res := InboxResult{Subject: subj, WorkItems: []InboxWorkItem{}}
 
-	filter := fmt.Sprintf(`state = "open" and workItem/assigneeRef matches (oid = %s)`, quoteQueryString(subj.OID))
-	raws, err := c.searchRawOpts(ctx, collCases, filter, limit, true)
+	mine := candidatesOf(self)
+	raws, err := c.searchRawOpts(ctx, collCases, inboxFilter(subj.OID, mine), limit, true)
 	if err != nil {
 		return InboxResult{}, err
 	}
@@ -234,14 +290,16 @@ func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, err
 		a := cj.approval()
 		items := cj.items()
 		for _, wi := range items {
-			// Only the caller's still-open work items belong in the inbox.
-			if !wi.inInbox(subj.OID) {
+			// Only the caller's still-open work items, and the open items
+			// offered to the caller, belong in the inbox.
+			offered := wi.offeredTo(mine)
+			if !wi.inInbox(subj.OID) && offered == nil {
 				continue
 			}
 			// Past the cap, an item's context uses only what earlier items
 			// already read.
 			e.reader.closed = len(res.WorkItems) >= inboxEnrichLimit
-			res.WorkItems = append(res.WorkItems, InboxWorkItem{
+			item := InboxWorkItem{
 				WorkItem: WorkItem{
 					CaseOID:   cj.OID,
 					ID:        wi.ID.s,
@@ -252,8 +310,19 @@ func (c *Client) ListWorkItems(ctx context.Context, limit int) (InboxResult, err
 					Target:    s.Target,
 					Requestor: s.Requestor,
 				},
-				Context: e.workItemContext(ctx, cj, a, items, wi),
-			})
+			}
+			group := offered
+			if group != nil {
+				item.Offered = true
+			} else if group = wi.claimedFrom(subj.OID, mine); group != nil {
+				item.Claimed = true
+			}
+			if group != nil {
+				g := e.reader.objectRef(ctx, *group, false)
+				item.OfferedTo = &g
+			}
+			item.Context = e.workItemContext(ctx, cj, a, items, wi, group != nil)
+			res.WorkItems = append(res.WorkItems, item)
 		}
 	}
 	return res, nil
@@ -308,38 +377,41 @@ type DecidableWorkItem struct {
 	Object, Target ObjectRef
 }
 
-// CheckDecidable resolves the subject the way ListWorkItems does and reads the
-// case as that subject, refusing a work item the subject's inbox would not
-// list: the case is not open, the work item is closed, or it is not assigned to
-// the subject. It only reads, so a refusal happens before anything is written.
-//
-// The check matters beyond politeness: midPoint answers a completion of an
-// already-closed work item with a warning and HTTP 204, so without it a stale
-// decision would look like a successful one.
-func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string) (DecidableWorkItem, error) {
+// openWorkItem is one open work item of an open case, read as the subject.
+type openWorkItem struct {
+	subj  Subject
+	mine  candidateSet
+	cj    caseJSON
+	wi    workItemJSON
+	label string
+}
+
+// readOpenWorkItem resolves the subject the way ListWorkItems does and reads
+// the case as that subject, refusing a case that is not open, a work item that
+// is closed, and one the subject can't see. It only reads, so a refusal
+// happens before anything is written.
+func (c *Client) readOpenWorkItem(ctx context.Context, caseOID, workItemID string) (openWorkItem, error) {
 	if err := requireOID(caseOID); err != nil {
-		return DecidableWorkItem{}, fmt.Errorf("case %w", err)
+		return openWorkItem{}, fmt.Errorf("case %w", err)
 	}
 	workItemID = strings.TrimSpace(workItemID)
 	if workItemID == "" {
-		return DecidableWorkItem{}, fmt.Errorf("workItemId is required")
+		return openWorkItem{}, fmt.Errorf("workItemId is required")
 	}
-	subj, err := c.subject(ctx)
+	subj, self, err := c.subjectUser(ctx)
 	if err != nil {
-		return DecidableWorkItem{}, err
+		return openWorkItem{}, err
 	}
 
 	var cj caseJSON
 	if err := c.getObject(ctx, collCases, caseOID, true, &cj); err != nil {
-		return DecidableWorkItem{}, fmt.Errorf("reading case %s as %s: %w", caseOID, subj.Name, err)
+		return openWorkItem{}, fmt.Errorf("reading case %s as %s: %w", caseOID, subj.Name, err)
 	}
-	s := cj.summary()
-	label := caseLabel(s)
+	label := caseLabel(cj.summary())
 	if cj.State != "open" {
-		return DecidableWorkItem{}, &CodedError{Code: CodeRequestClosed, Err: fmt.Errorf("refused: case %s is %s, not open, so work item %s has nothing left to decide",
+		return openWorkItem{}, &CodedError{Code: CodeRequestClosed, Err: fmt.Errorf("refused: case %s is %s, not open, so work item %s has nothing left to decide",
 			label, orUnknown(cj.State), workItemID)}
 	}
-
 	for _, wi := range cj.items() {
 		if wi.ID.s != workItemID {
 			continue
@@ -349,46 +421,91 @@ func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string)
 			if wi.Output != nil && wi.Output.Outcome != "" {
 				how = "closed with outcome " + shortURI(wi.Output.Outcome)
 			}
-			return DecidableWorkItem{}, &CodedError{Code: CodeAlreadyDecided, Err: fmt.Errorf("refused: work item %s in case %s is already %s; there is nothing left to decide",
+			return openWorkItem{}, &CodedError{Code: CodeAlreadyDecided, Err: fmt.Errorf("refused: work item %s in case %s is already %s; there is nothing left to decide",
 				workItemID, label, how)}
 		}
-		mine := wi.assignedTo(subj.OID)
-		if mine == nil {
-			assigned := "no one"
-			if n := wi.assigneeNames(); n != "" {
-				assigned = n
-			}
-			return DecidableWorkItem{}, &CodedError{Code: CodeNotInInbox, Err: fmt.Errorf("refused: work item %s in case %s is assigned to %s, not to %s "+
-				"(the identity this server acts as, %s mode); only work items in that identity's approval inbox "+
-				"(list_work_items) can be decided", workItemID, label, assigned, subj.Name, subj.Mode)}
-		}
-		r := newRefReader(c)
-		var object, target ObjectRef
-		if cj.ObjectRef != nil {
-			object = r.objectRef(ctx, *cj.ObjectRef, true)
-		}
-		if cj.TargetRef != nil {
-			target = r.objectRef(ctx, *cj.TargetRef, false)
-		}
-		return DecidableWorkItem{
-			Subject: subj,
-			Case:    s,
-			Object:  object,
-			Target:  target,
-			WorkItem: WorkItem{
-				CaseOID:   cj.OID,
-				ID:        wi.ID.s,
-				Stage:     wi.StageNumber,
-				Assignee:  refName(mine),
-				Case:      s.Name,
-				Object:    s.Object,
-				Target:    s.Target,
-				Requestor: s.Requestor,
-			},
-		}, nil
+		return openWorkItem{subj: subj, mine: candidatesOf(self), cj: cj, wi: wi, label: label}, nil
 	}
-	return DecidableWorkItem{}, &CodedError{Code: CodeNotInInbox, Err: fmt.Errorf("refused: case %s has no work item %s; list_work_items shows the work items %s can decide",
+	return openWorkItem{}, &CodedError{Code: CodeNotInInbox, Err: fmt.Errorf("refused: case %s has no work item %s; list_work_items shows the work items %s can decide",
 		label, workItemID, subj.Name)}
+}
+
+// names reads the case's objectRef and targetRef as the subject, the way the
+// inbox names them.
+func (o openWorkItem) names(ctx context.Context, c *Client) (object, target ObjectRef) {
+	r := newRefReader(c)
+	if o.cj.ObjectRef != nil {
+		object = r.objectRef(ctx, *o.cj.ObjectRef, true)
+	}
+	if o.cj.TargetRef != nil {
+		target = r.objectRef(ctx, *o.cj.TargetRef, false)
+	}
+	return object, target
+}
+
+// workItem is the item in the inbox's shape, with assignee for its Assignee.
+func (o openWorkItem) workItem(assignee *refJSON) WorkItem {
+	s := o.cj.summary()
+	return WorkItem{
+		CaseOID:   o.cj.OID,
+		ID:        o.wi.ID.s,
+		Stage:     o.wi.StageNumber,
+		Assignee:  refName(assignee),
+		Case:      s.Name,
+		Object:    s.Object,
+		Target:    s.Target,
+		Requestor: s.Requestor,
+	}
+}
+
+// groupName names a candidate group for a message.
+func groupName(r *refJSON) string {
+	if n := refName(r); n != "" {
+		return n
+	}
+	if r != nil {
+		return r.OID
+	}
+	return "a group"
+}
+
+// CheckDecidable reads the case as the subject and refuses a work item the
+// subject's inbox would not let them decide: the case is not open, the work
+// item is closed, it is offered to the subject's group but not claimed yet, or
+// it is not assigned to the subject. It only reads, so a refusal happens
+// before anything is written.
+//
+// The check matters beyond politeness: midPoint answers a completion of an
+// already-closed work item with a warning and HTTP 204, so without it a stale
+// decision would look like a successful one.
+func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string) (DecidableWorkItem, error) {
+	o, err := c.readOpenWorkItem(ctx, caseOID, workItemID)
+	if err != nil {
+		return DecidableWorkItem{}, err
+	}
+	wi, subj := o.wi, o.subj
+	mine := wi.assignedTo(subj.OID)
+	if mine == nil {
+		if g := wi.offeredTo(o.mine); g != nil {
+			return DecidableWorkItem{}, &CodedError{Code: CodeNotClaimed, Err: fmt.Errorf("refused: work item %s in case %s is offered to %s "+
+				"and nobody has claimed it yet; claim it first (claim_work_item), then decide it", wi.ID.s, o.label, groupName(g))}
+		}
+		assigned := "no one"
+		if n := wi.assigneeNames(); n != "" {
+			assigned = n
+		}
+		return DecidableWorkItem{}, &CodedError{Code: CodeNotInInbox, Err: fmt.Errorf("refused: work item %s in case %s is assigned to %s, not to %s "+
+			"(the identity this server acts as, %s mode); only work items in that identity's approval inbox "+
+			"(list_work_items) can be decided", wi.ID.s, o.label, assigned, subj.Name, subj.Mode)}
+	}
+	object, target := o.names(ctx, c)
+	return DecidableWorkItem{
+		Subject:  subj,
+		Case:     o.cj.summary(),
+		Object:   object,
+		Target:   target,
+		WorkItem: o.workItem(mine),
+	}, nil
 }
 
 // caseLabel names a case as `"<name>" (<oid>)`, or just the oid when unnamed.

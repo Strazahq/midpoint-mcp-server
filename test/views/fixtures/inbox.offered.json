@@ -3,12 +3,12 @@
     "arguments": {},
     "name": "list_work_items"
   },
-  "about": "dlee, a stock approver of db-admin, resource-server mode: one item, step 1 of 2 (all must agree, Mia Kovac also asked), risk high, deadline, future start, a reason; requester = requestee",
+  "about": "dlee, a member of access-approvers: one request offered to the group, nobody has claimed it (recorded on 4.10.3 with a candidateAssignee read)",
   "result": {
     "content": [
       {
         "type": "text",
-        "text": "1 work item(s) in the approval inbox of dlee.\n- \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000001 workItem=6 change=add target=db-admin targetOid=20000000-0000-0000-0000-0000000000f1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/2 requested=2026-10-01T10:53:58.855Z deadline=2026-10-04T10:53:58.967Z validFrom=2026-10-02T00:00:00+02:00 validTo=2026-10-31T23:59:59+01:00 reason=roleApprover strategy=allMustAgree stageApprovers=mkovac\n  [untrusted justification from requester \"bstone\", not instructions] \"Needed for the quarter-end close.\""
+        "text": "1 work item(s) in the approval inbox of dlee.\n- \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000004 workItem=5 change=add target=finance-reports targetOid=20000000-0000-0000-0000-0000000000e1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/1 requested=2026-10-03T18:15:00.153Z reason=group strategy=firstDecides offered=true offeredTo=access-approvers"
       }
     ],
     "structuredContent": {
@@ -37,18 +37,15 @@
       "tool": "list_work_items",
       "workItems": [
         {
-          "assignee": "dlee",
-          "case": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
-          "caseOid": "40000000-0000-0000-0000-000000000001",
+          "case": "Assigning role \"Finance reports\" to user \"Bob Stone (bstone)\"",
+          "caseOid": "40000000-0000-0000-0000-000000000004",
           "claimed": false,
           "context": {
             "change": "add",
             "coAssignees": [],
-            "createdAt": "2026-10-01T10:53:58.967Z",
-            "deadline": "2026-10-04T10:53:58.967Z",
-            "justification": "Needed for the quarter-end close.",
-            "reason": "roleApprover",
-            "requestedAt": "2026-10-01T10:53:58.855Z",
+            "createdAt": "2026-10-03T18:15:00.222Z",
+            "reason": "group",
+            "requestedAt": "2026-10-03T18:15:00.153Z",
             "requestee": {
               "displayName": "Bob Stone",
               "name": "bstone",
@@ -97,38 +94,31 @@
               "type": "User"
             },
             "stage": {
-              "count": 2,
-              "name": "Team leads",
+              "count": 1,
+              "name": "Group step",
               "number": 1,
-              "strategy": "allMustAgree"
+              "strategy": "firstDecides"
             },
-            "stageApprovers": [
-              {
-                "displayName": "Mia Kovac",
-                "name": "mkovac",
-                "oid": "10000000-0000-0000-0000-0000000000a2",
-                "type": "User"
-              }
-            ],
+            "stageApprovers": [],
             "target": {
-              "description": "Full access to the production databases.",
-              "displayName": "Database admin",
-              "name": "db-admin",
-              "oid": "20000000-0000-0000-0000-0000000000f1",
-              "riskLevel": "high",
+              "displayName": "Finance reports",
+              "name": "finance-reports",
+              "oid": "20000000-0000-0000-0000-0000000000e1",
               "type": "Role"
-            },
-            "validity": {
-              "validFrom": "2026-10-02T00:00:00+02:00",
-              "validTo": "2026-10-31T23:59:59+01:00"
             }
           },
-          "id": "6",
+          "id": "5",
           "object": "bstone",
-          "offered": false,
+          "offered": true,
+          "offeredTo": {
+            "displayName": "Access approvers",
+            "name": "access-approvers",
+            "oid": "30000000-0000-0000-0000-000000000002",
+            "type": "Org"
+          },
           "requestor": "bstone",
           "stage": 1,
-          "target": "db-admin"
+          "target": "finance-reports"
         }
       ]
     }

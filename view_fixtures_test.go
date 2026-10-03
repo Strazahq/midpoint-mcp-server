@@ -52,6 +52,8 @@ const (
 	fxCaseTwoStep  = "40000000-0000-0000-0000-000000000001" // db-admin for bstone, two steps
 	fxCaseManagers = "40000000-0000-0000-0000-000000000002" // finance-reports, the requestee's managers
 	fxCaseRemoval  = "40000000-0000-0000-0000-000000000003" // removing db-admin from bstone
+	// fxApprovers and fxCaseOffered (claim_tools_test.go): finance-reports
+	// for bstone, offered to the org access-approvers (Q4).
 )
 
 // fixtureMidpoint is a fake midPoint for one persona. A case answers its
@@ -64,6 +66,11 @@ type fixtureMidpoint struct {
 	after  map[string]string // GET /cases/{oid} after one
 	users  map[string]string // GET /users/{oid}
 	roles  map[string]string // GET /roles/{oid}
+	orgs   map[string]string // GET /orgs/{oid}
+	// claimed and released answer GET /cases/{oid} after a claim or a
+	// release of one of its work items (Q4).
+	claimed  map[string]string
+	released map[string]string
 	// readStatus answers user and role reads not in the maps (default 404).
 	readStatus int
 	// fail answers "METHOD /ws/rest/path" with a status before anything else.
@@ -71,11 +78,13 @@ type fixtureMidpoint struct {
 
 	mu        sync.Mutex
 	completed map[string]bool
+	held      map[string]string // the last claim or release per case
 }
 
 func (f *fixtureMidpoint) start(t *testing.T) string {
 	t.Helper()
 	f.completed = map[string]bool{}
+	f.held = map[string]string{}
 	srv := httptest.NewServer(http.HandlerFunc(f.serve))
 	t.Cleanup(srv.Close)
 	return srv.URL
@@ -111,9 +120,17 @@ func (f *fixtureMidpoint) serve(w http.ResponseWriter, r *http.Request) {
 		oid := strings.Split(strings.TrimPrefix(path, "/cases/"), "/")[0]
 		f.completed[oid] = true
 		w.WriteHeader(http.StatusNoContent)
+	case r.Method == http.MethodPost && (strings.HasSuffix(path, "/claim") || strings.HasSuffix(path, "/release")):
+		parts := strings.Split(strings.TrimPrefix(path, "/cases/"), "/")
+		f.held[parts[0]] = parts[len(parts)-1]
+		w.WriteHeader(http.StatusNoContent)
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/cases/"):
 		oid := strings.TrimPrefix(path, "/cases/")
 		if body, ok := f.after[oid]; ok && f.completed[oid] {
+			reply(body, true, 0)
+			return
+		}
+		if body, ok := map[string]map[string]string{"claim": f.claimed, "release": f.released}[f.held[oid]][oid]; ok {
 			reply(body, true, 0)
 			return
 		}
@@ -128,6 +145,9 @@ func (f *fixtureMidpoint) serve(w http.ResponseWriter, r *http.Request) {
 		reply(f.self, strings.Contains(f.self, `"`+oid+`"`) && oid != "", readStatus)
 	case r.Method == http.MethodGet && strings.HasPrefix(path, "/roles/"):
 		body, ok := f.roles[strings.TrimPrefix(path, "/roles/")]
+		reply(body, ok, readStatus)
+	case r.Method == http.MethodGet && strings.HasPrefix(path, "/orgs/"):
+		body, ok := f.orgs[strings.TrimPrefix(path, "/orgs/")]
 		reply(body, ok, readStatus)
 	default:
 		w.WriteHeader(http.StatusNotFound)
@@ -264,6 +284,34 @@ func removalPersona(t *testing.T) *fixtureMidpoint {
 	}
 }
 
+// groupPersona is dlee as a member of the org access-approvers, which a
+// step of finance-reports for bstone names as its approver (Q4): the work
+// item is offered to the org, with no assignee. GET /cases answers the
+// recording before any call, the claimed recording after a claim and the
+// offered one again after a release.
+func groupPersona(t *testing.T) *fixtureMidpoint {
+	offered := testdataFile(t, "cases_search_offered.json")
+	claimed := testdataFile(t, "cases_search_claimed.json")
+	return &fixtureMidpoint{
+		self:     groupSelf,
+		search:   offered,
+		cases:    map[string]string{fxCaseOffered: caseFromSearch(t, offered, fxCaseOffered)},
+		claimed:  map[string]string{fxCaseOffered: caseFromSearch(t, claimed, fxCaseOffered)},
+		released: map[string]string{fxCaseOffered: caseFromSearch(t, offered, fxCaseOffered)},
+		users:    map[string]string{fxBstone: testdataFile(t, "user_requestee.json")},
+		roles:    map[string]string{fxFinance: `{"role":{"oid":"` + fxFinance + `","name":"finance-reports","displayName":"Finance reports"}}`},
+		orgs:     map[string]string{fxApprovers: `{"org":{"oid":"` + fxApprovers + `","name":"access-approvers","displayName":"Access approvers"}}`},
+	}
+}
+
+// claimedPersona is groupPersona after dlee claimed the item: it is hers alone.
+func claimedPersona(t *testing.T) *fixtureMidpoint {
+	m := groupPersona(t)
+	m.search = testdataFile(t, "cases_search_claimed.json")
+	m.cases = m.claimed
+	return m
+}
+
 // sharedPersona is a service account the deployment declared shared
 // (identity.credentialIsShared), seen in personal mode.
 func sharedPersona(t *testing.T) *fixtureMidpoint {
@@ -293,7 +341,11 @@ func (s fixtureSession) connect(t *testing.T, mp *fixtureMidpoint) *mcp.ClientSe
 		cfg.File.Requests.JustificationItem = fixtureJustificationItem
 	}
 	cfg.File.Identity.CredentialIsShared = s.shared
-	server := newMCPServerWithViews(midpoint.NewClient(cfg), cfg, testViews())
+	client := midpoint.NewClient(cfg)
+	server := newMCPServerWithViews(client, cfg, testViews())
+	// The inbox calls claim_work_item and release_work_item (Q4). Registering
+	// them again once main does replaces them with the same tools.
+	registerClaimTools(server, client, cfg.AllowWrites, newServerInfo(cfg))
 	if s.principal != "" {
 		oid := s.principal
 		server.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
@@ -321,7 +373,7 @@ func viewFixtures() []viewFixture {
 		return fixtureSession{principal: oid, writes: true, reasonField: true}
 	}
 	decide := func(caseOID, id, decision string, comment ...string) map[string]any {
-		names := map[string][2]string{fxCaseTwoStep: {"bstone", "db-admin"}, fxCaseManagers: {"bstone", "finance-reports"}}[caseOID]
+		names := map[string][2]string{fxCaseTwoStep: {"bstone", "db-admin"}, fxCaseManagers: {"bstone", "finance-reports"}, fxCaseOffered: {"bstone", "finance-reports"}}[caseOID]
 		args := map[string]any{"caseOid": caseOID, "userName": names[0], "roleName": names[1], "workItemId": id, "decision": decision}
 		if len(comment) > 0 {
 			args["comment"] = comment[0]
@@ -456,6 +508,41 @@ func viewFixtures() []viewFixture {
 		{name: "decide.dry-run-reject", tool: "decide_work_item", args: decide(fxCaseTwoStep, "6", "reject", "Not needed for this project."),
 			mp: approverPersona, session: dryRun, about: "writes disabled: the rejection previewed, with its reason"},
 
+		// --- items offered to a group (Q4) ---
+		{name: "inbox.offered", tool: "list_work_items", args: map[string]any{}, mp: groupPersona, session: rs(fxDlee),
+			about: "dlee, a member of access-approvers: one request offered to the group, nobody has claimed it (recorded on 4.10.3 with a candidateAssignee read)"},
+		{name: "inbox.offered-dry-run", tool: "list_work_items", args: map[string]any{}, mp: groupPersona, session: dryRun,
+			about: "the same inbox with writes disabled"},
+		{name: "inbox.claimed", tool: "list_work_items", args: map[string]any{}, mp: claimedPersona, session: rs(fxDlee),
+			about: "the same request after dlee claimed it: hers to decide, and to release (recorded after the claim)"},
+		{name: "claim.claimed", tool: "claim_work_item", args: groupArgs(nil), mp: groupPersona, session: rs(fxDlee),
+			about: "claimed; read back: the item is dlee's alone"},
+		{name: "claim.unconfirmed", tool: "claim_work_item", args: groupArgs(nil),
+			mp: func(t *testing.T) *fixtureMidpoint { m := groupPersona(t); m.claimed = nil; return m }, session: rs(fxDlee),
+			about: "claimed; the read-back still shows the item offered to the group (no claimed answer served): not confirmed"},
+		{name: "claim.dry-run", tool: "claim_work_item", args: groupArgs(nil), mp: groupPersona, session: dryRun,
+			about: "writes disabled: the claim previewed"},
+		{name: "release.released", tool: "release_work_item", args: groupArgs(nil), mp: claimedPersona, session: rs(fxDlee),
+			about: "released; read back: the item is offered to the group again"},
+		{name: "release.dry-run", tool: "release_work_item", args: groupArgs(nil), mp: claimedPersona, session: dryRun,
+			about: "writes disabled: the release previewed"},
+		{name: "error.claim.not-in-inbox", tool: "claim_work_item", args: groupArgs(nil), isError: true,
+			mp: func(t *testing.T) *fixtureMidpoint {
+				// Someone else claimed it first: the recording after the claim,
+				// with the assignee changed to mkovac.
+				m := groupPersona(t)
+				m.cases[fxCaseOffered] = mutateCase(t, m.claimed[fxCaseOffered], func(c map[string]any) {
+					for _, wi := range caseWorkItems(c) {
+						wi["assigneeRef"] = map[string]any{"oid": fxMkovac, "type": "c:UserType", "targetName": "mkovac"}
+					}
+				})
+				return m
+			}, session: rs(fxDlee),
+			about: "the item was claimed by someone else meanwhile (recording modified: assignee mkovac)"},
+		{name: "error.decide.not-claimed", tool: "decide_work_item", args: decide(fxCaseOffered, "5", "approve"), isError: true,
+			mp: groupPersona, session: rs(fxDlee),
+			about: "an agent decides an offered item nobody has claimed: claim it first"},
+
 		// --- get_case ---
 		{name: "case.approver", tool: "get_case", args: map[string]any{"oid": fxCaseTwoStep}, mp: approverPersona, session: rs(fxDlee),
 			about: "the two-step case as dlee reads it: only dlee's own work item is visible"},
@@ -465,6 +552,8 @@ func viewFixtures() []viewFixture {
 			about: "the managers' case as jdoe reads it"},
 		{name: "case.removal", tool: "get_case", args: map[string]any{"oid": fxCaseRemoval}, mp: removalPersona, session: rs(fxMkovac),
 			about: "the removal case as mkovac reads it"},
+		{name: "case.offered", tool: "get_case", args: map[string]any{"oid": fxCaseOffered}, mp: groupPersona, session: rs(fxDlee),
+			about: "the offered case as dlee reads it: one step, the item offered to access-approvers"},
 
 		// --- whoami ---
 		{name: "whoami.approver", tool: "whoami", args: map[string]any{}, mp: approverPersona, session: rs(fxDlee),

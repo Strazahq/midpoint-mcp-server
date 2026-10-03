@@ -16,6 +16,7 @@ const (
 	CodeRequestClosed       = "request-closed"       // the case is not open
 	CodeAlreadyDecided      = "already-decided"      // the work item is closed, the case is not
 	CodeNotInInbox          = "not-in-inbox"         // the work item is not the caller's to decide
+	CodeNotClaimed          = "not-claimed"          // the work item is offered to a group and nobody claimed it (Q4)
 	CodeNotAssigned         = "not-assigned"         // no direct assignment to remove
 	CodeAuditUnavailable    = "audit-unavailable"    // the audit script path failed
 	CodeInvalidInput        = "invalid-input"        // arguments the tool cannot use

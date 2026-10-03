@@ -76,7 +76,11 @@ const (
 	ReasonManager      = "manager"
 	ReasonRoleApprover = "roleApprover"
 	ReasonRoleOwner    = "roleOwner"
-	ReasonAssigned     = "assigned"
+	// ReasonGroup: the item is offered to a group the acting identity
+	// belongs to, or they claimed it from one (Q4). It comes before the
+	// others: it is known, not inferred.
+	ReasonGroup    = "group"
+	ReasonAssigned = "assigned"
 )
 
 // WorkItemContext is what an approver needs to decide a work item (contract
@@ -93,7 +97,7 @@ type WorkItemContext struct {
 	CreatedAt       string          `json:"createdAt,omitempty" jsonschema:"when this work item reached the inbox (RFC 3339)"`
 	Deadline        string          `json:"deadline,omitempty" jsonschema:"decide by (RFC 3339)"`
 	Stage           StageInfo       `json:"stage"`
-	Reason          string          `json:"reason" jsonschema:"why the item is in this inbox: manager, roleApprover, roleOwner or assigned"`
+	Reason          string          `json:"reason" jsonschema:"why the item is in this inbox: manager, roleApprover, roleOwner, group (offered to, or claimed from, a group the acting identity belongs to) or assigned"`
 	CoAssignees     []ObjectRef     `json:"coAssignees" jsonschema:"other assignees of this same work item; any one of them deciding closes it for all"`
 	StageApprovers  []ObjectRef     `json:"stageApprovers" jsonschema:"assignees of the case's other open work items in the same step"`
 	RequesteeAccess RequesteeAccess `json:"requesteeAccess"`
@@ -102,13 +106,20 @@ type WorkItemContext struct {
 // InboxWorkItem is one work item in an approval inbox, with its context.
 type InboxWorkItem struct {
 	WorkItem
-	Context WorkItemContext `json:"context"`
+	// Offered and Claimed (Q4) tell an item offered to a group apart from one
+	// the acting identity holds. An offered item can't be decided until it is
+	// claimed; a claimed one can be released back to its group.
+	Offered   bool            `json:"offered" jsonschema:"true when the item is offered to a group the acting identity belongs to and nobody has claimed it: claim it (claim_work_item) before approving or rejecting it"`
+	Claimed   bool            `json:"claimed" jsonschema:"true when the acting identity claimed the item from a group and holds it alone: release_work_item gives it back to the group"`
+	OfferedTo *ObjectRef      `json:"offeredTo,omitempty" jsonschema:"the group (role, org or service) an offered item is offered to, or a claimed item was claimed from"`
+	Context   WorkItemContext `json:"context"`
 }
 
 // CaseWorkItem is one work item of a case as get_case shows it.
 type CaseWorkItem struct {
 	WorkItem
 	Assignees []ObjectRef `json:"assignees"`
+	OfferedTo []ObjectRef `json:"offeredTo,omitempty" jsonschema:"the groups the item is offered to (its candidates); an item nobody has claimed has no assignees"`
 	CreatedAt string      `json:"createdAt,omitempty"`
 	ClosedAt  string      `json:"closedAt,omitempty"`
 	Deadline  string      `json:"deadline,omitempty"`

@@ -380,6 +380,7 @@ const CAT = {
 'error.invalidField':`Some request details are missing or not valid. Check the marked field.`,
 'error.invalidValidity':`The chosen dates aren't valid. Check how long the role should be valid and try again.`,
 'error.notInInbox':`This request is no longer waiting for your decision.`,
+'error.notClaimed':`Claim this request first: it's offered to a group, and only the person who claims it can approve or reject it.`,
 'error.alreadyDecided':`This step of the request has already been decided.`,
 'error.requestClosed':`This request is already closed: it was decided or withdrawn.`,
 'error.notYourRequest':`Only the person who made a request can withdraw it.`,
@@ -461,6 +462,29 @@ const CAT = {
 'inbox.outcome.rejectedOpen':`Rejected. midPoint is still processing the request.`,
 'inbox.outcome.decidedByOther':`midPoint already shows this step as {outcome, select, approve {approved} reject {rejected} other {decided}}. Someone else probably decided first.`,
 'inbox.outcome.unconfirmed':`Sent to midPoint, but it hasn't recorded a decision yet. Refresh to check.`,
+'inbox.item.offered':`Offered to {group}`,
+'inbox.item.offeredHelp':`Anyone in {group} can take this request. Claim it to approve or reject it yourself.`,
+'inbox.item.why.group':`It was sent to {group}, and you're in it`,
+'inbox.item.why.claimed':`You claimed it from {group}`,
+'inbox.group.unnamed':`a group you're in`,
+'inbox.action.claim':`Claim`,
+'inbox.action.claimLabel':`Claim {target} for {requestee}`,
+'inbox.action.previewClaim':`Preview claim`,
+'inbox.action.previewClaimLabel':`Preview claim of {target} for {requestee}`,
+'inbox.action.release':`Release`,
+'inbox.action.releaseLabel':`Release {target} for {requestee}`,
+'inbox.action.previewRelease':`Preview release`,
+'inbox.action.previewReleaseLabel':`Preview release of {target} for {requestee}`,
+'confirm.claim.title':`Claim {role} for {requestee}?`,
+'confirm.claim.body':`It's offered to {group}. Once you claim it, only you can approve or reject it, until you release it.`,
+'confirm.claim.submit':`Claim`,
+'confirm.release.title':`Release {role} for {requestee}?`,
+'confirm.release.body':`It goes back to {group}, undecided, and anyone there can claim it.`,
+'confirm.release.submit':`Release`,
+'inbox.outcome.claimed':`Claimed. You can approve or reject it now.`,
+'inbox.outcome.released':`Released. It's back with {group}.`,
+'inbox.outcome.claimUnconfirmed':`Sent to midPoint, but it doesn't show this request as yours yet. Refresh to check.`,
+'inbox.outcome.releaseUnconfirmed':`Sent to midPoint, but it still shows this request as yours. Refresh to check.`,
 'validity.permanent':`No end date`,
 'validity.request.days':`Access for {count, plural, one {# day} other {# days}} (ends {date})`,
 'validity.request.fromDays':`Access from {from} for {count, plural, one {# day} other {# days}} (ends {to})`,
@@ -478,7 +502,9 @@ const PAGE = 10;               /* 6.13: inline lists show 10, then 10 more */
 const MAX_COMMENT = 1000, COUNTER_FROM = 800;
 const ERR_KEY = 'midpoint-mcp-server/error';
 const SLOT_KEY = 'intermediary/decision';
-const NO_LONGER = ['error.notInInbox', 'error.alreadyDecided', 'error.requestClosed', 'error.notYourRequest', 'error.notAssigned'];
+const NO_LONGER = ['error.notInInbox', 'error.notClaimed', 'error.alreadyDecided', 'error.requestClosed', 'error.notYourRequest', 'error.notAssigned'];
+/* Q4: an item offered to a group is claimed before it is decided; a claimed one can be released */
+const GROUP_TOOLS = {claim:'claim_work_item', release:'release_work_item'};
 
 /* ================= ICU-lite formatter ================= */
 const PARSED = new Map();
@@ -618,13 +644,14 @@ function normItem(w){
   if (!isObj(w) || !str(w.caseOid) || !str(w.id)) return null;
   const c = isObj(w.context) ? w.context : {}, st = isObj(c.stage) ? c.stage : {};
   const acc = isObj(c.requesteeAccess) ? c.requesteeAccess : {};
-  return {caseOid:w.caseOid, id:w.id, context:{
+  return {caseOid:w.caseOid, id:w.id, offered:w.offered === true, claimed:w.claimed === true && w.offered !== true,
+    offeredTo:isObj(w.offeredTo) ? ref(w.offeredTo) : null, context:{
     change:pick(c.change, ['add', 'delete', 'modify'], 'unknown'),
     requester:ref(c.requester), requestee:ref(c.requestee), target:ref(c.target),
     justification:str(c.justification).trim(), validity:normValidity(c.validity),
     requestedAt:str(c.requestedAt), createdAt:str(c.createdAt), deadline:str(c.deadline),
     stage:{number:int(st.number) || int(w.stage), count:int(st.count), name:str(st.name)},
-    reason:pick(c.reason, ['manager', 'roleApprover', 'roleOwner', 'assigned'], 'assigned'),
+    reason:pick(c.reason, ['manager', 'roleApprover', 'roleOwner', 'group', 'assigned'], 'assigned'),
     requesteeAccess:{visible:acc.visible === true, roles:arr(acc.roles).map(normMembership).filter(Boolean)}}};
 }
 function normList(sc){
@@ -639,6 +666,11 @@ function normDecide(sc){
     recordedOutcome:str(sc.recordedOutcome), caseState:str(sc.caseState),
     dryRun:sc.dryRun === true, summary:str(sc.summary), method:str(sc.method), endpoint:str(sc.endpoint), body:sc.body,
     acting:normActing(sc.acting), server:normServer(sc.server)};
+}
+function normGroup(sc, tool){
+  if (!isObj(sc) || sc.tool !== tool || !str(sc.caseOid) || !str(sc.workItemId)) return null;
+  return {caseOid:sc.caseOid, workItemId:sc.workItemId, confirmed:sc.confirmed === true, offeredTo:isObj(sc.offeredTo) ? ref(sc.offeredTo) : null,
+    dryRun:sc.dryRun === true, summary:str(sc.summary), method:str(sc.method), endpoint:str(sc.endpoint), body:sc.body};
 }
 function normCase(sc){
   if (!isObj(sc) || sc.tool !== 'get_case') return null;
@@ -862,13 +894,14 @@ function openLink(oid, type, text){
 
 /* ================= errors (6.8): by code first, then by text ================= */
 const ERR_CODES = {'shared-credential':'error.sharedCredential', 'not-requestable':'error.notRequestable', 'not-your-request':'error.notYourRequest',
-  'request-closed':'error.requestClosed', 'already-decided':'error.alreadyDecided', 'not-in-inbox':'error.notInInbox', 'not-assigned':'error.notAssigned',
+  'request-closed':'error.requestClosed', 'already-decided':'error.alreadyDecided', 'not-in-inbox':'error.notInInbox', 'not-claimed':'error.notClaimed', 'not-assigned':'error.notAssigned',
   'invalid-input':'error.invalidInput', 'invalid-field':'error.invalidField', 'invalid-validity':'error.invalidValidity',
   'not-authorized':'error.notAuthorized', 'not-found':'error.notFound', 'midpoint-unavailable':'error.midpointUnavailable', internal:'error.generic'};
 const ERR_TEXT = [
   [['shared/technical account'], 'error.sharedCredential'],
   [['is not flagged requestable'], 'error.notRequestable'],
   [['only the requester can withdraw'], 'error.notYourRequest'],
+  [['nobody has claimed it'], 'error.notClaimed'],
   [[', not open,'], 'error.requestClosed'],
   [['is already closed'], 'error.alreadyDecided'],
   [['has no work item', 'is assigned to'], 'error.notInInbox'],
@@ -1046,8 +1079,13 @@ function modelContext(res){
 
 /* ================= the card (7.1) ================= */
 const CHANGE_KEY = {add:'inbox.item.change.add', delete:'inbox.item.change.delete', modify:'inbox.item.change.modify', unknown:'inbox.item.change.unknown'};
+/* Q4: the group an item is offered to (or was claimed from), by name; a group without a name is said in words */
+const groupOf = it => it.offeredTo && !hiddenRef(it.offeredTo) ? dispName(it.offeredTo) : ts('inbox.group.unnamed');
+/* a neutral pill: offered is not a status that needs colour */
+const offeredPill = it => h('span', {class:'mp-chip mp-chip--meta'}, glyph('users', 12), t('inbox.item.offered', {group:groupOf(it)}));
 function cardHead(it, tid, decided){
   const x = it.context, k = wk(it), chips = [];
+  if (it.offered && !decided) chips.push(offeredPill(it));
   if (x.target.riskLevel) chips.push(riskChip(x.target.riskLevel));
   /* the decision clock (D19, D39): neutral, warning under 4 hours, solid danger once overdue; always the clock glyph; gone once decided */
   if (x.deadline && !decided){
@@ -1074,8 +1112,9 @@ function whoAsked(x){
   if (x.requester.oid === x.requestee.oid) return hiddenRef(x.requestee) ? null : t('inbox.item.selfRequested', {requestee:dispName(x.requestee)});
   return t('inbox.item.requestedBy', {requester:inlBadge(x.requester)});
 }
-function whyText(x){
+function whyText(x, it){
   const p = {requestee:dispName(x.requestee), target:dispName(x.target), name:x.stage.name};
+  if (x.reason === 'group') return t(it.claimed ? 'inbox.item.why.claimed' : 'inbox.item.why.group', {group:groupOf(it)});
   if (x.reason === 'manager') return t('inbox.item.why.manager', p);
   if (x.reason === 'roleApprover') return t('inbox.item.why.roleApprover', p);
   if (x.reason === 'roleOwner') return t('inbox.item.why.roleOwner', p);
@@ -1097,22 +1136,32 @@ function cardEl(it, flat){
   /* D39: the facts as label and value; draft.9: how long belongs to a request for access only */
   if (asked) facts.push(['inbox.fact.askedBy', asked]);
   if (x.change === 'add') facts.push(['inbox.fact.howLong', requestValidity(x.validity)]);
-  facts.push(['inbox.fact.why', whyText(x)]);
+  facts.push(['inbox.fact.why', whyText(x, it)]);
   body.push(h('dl', {class:'mp-facts'}, facts.map(([lk, v]) => [h('dt', null, t(lk)), h('dd', null, v)])));
   /* D30: a person you can't see is named once, in the title, so the quote label leaves them out */
   if (x.justification) body.push(quote(hiddenRef(x.requester) ? t('inbox.item.justificationHidden') : t('inbox.item.justification', {requester:dispName(x.requester)}), x.justification, 'j:' + k, 3));
   else if (x.change === 'add' && S.server && S.server.requestReason) body.push(h('p', {class:'mp-noreason'}, t('inbox.item.noReason')));
+  if (it.offered && !decided) body.push(h('p', {class:'mp-note'}, t('inbox.item.offeredHelp', {group:groupOf(it)})));
   /* D36: no approving blind; Reject stays */
-  if (hiddenRef(x.requestee) && canCall() && !decided) body.push(h('p', {class:'mp-banner mp-banner--info', role:'note'}, icon('lock'), h('span', null, t('inbox.item.cantApprove'))));
+  if (hiddenRef(x.requestee) && canCall() && !decided && !it.offered) body.push(h('p', {class:'mp-banner mp-banner--info', role:'note'}, icon('lock'), h('span', null, t('inbox.item.cantApprove'))));
   if (row) body.push(h('div', {class:'mp-outcome'}, rowOutcome(k, row)));
 
   const det = h('div', {class:'mp-card-more', id:detId}, open ? detailsEl(it, k) : null);
   det.hidden = !open;
   const more = h('button', {type:'button', class:'mp-btn mp-btn--link', 'data-k':'det:' + k, 'aria-expanded':String(open), 'aria-controls':detId, onclick:() => toggleDetails(it)},
     icon('chevron', 12), t(open ? 'inbox.action.hideDetails' : 'inbox.action.details'));
-  let actions = null;
-  if (canCall() && !decided){
-    const dry = !!(S.server && !S.server.writesEnabled), dis = !!(row && row.disabled) || null, lab = {target:dispName(x.target), requestee:dispName(x.requestee)};
+  let actions = null, release = null;
+  const dry = !!(S.server && !S.server.writesEnabled), dis = !!(row && row.disabled) || null, lab = {target:dispName(x.target), requestee:dispName(x.requestee)};
+  /* Q4: an offered item has Claim instead of Approve and Reject; a claimed one can be released from the footer */
+  if (canCall() && !decided && it.offered){
+    actions = h('div', {class:'mp-actions'},
+      h('button', {type:'button', class:'mp-btn mp-btn--secondary', 'data-k':'claim:' + k, disabled:dis,
+        'aria-label':ts(dry ? 'inbox.action.previewClaimLabel' : 'inbox.action.claimLabel', lab), onclick:() => openDecide(it, 'claim')},
+        glyph('users', 13), t(dry ? 'inbox.action.previewClaim' : 'inbox.action.claim')));
+  } else if (canCall() && !decided){
+    if (it.claimed) release = h('button', {type:'button', class:'mp-btn mp-btn--link', 'data-k':'release:' + k, disabled:dis,
+      'aria-label':ts(dry ? 'inbox.action.previewReleaseLabel' : 'inbox.action.releaseLabel', lab), onclick:() => openDecide(it, 'release')},
+      t(dry ? 'inbox.action.previewRelease' : 'inbox.action.release'));
     const rem = x.change === 'delete' && !dry;
     actions = h('div', {class:'mp-actions'},
       h('button', {type:'button', class:'mp-btn mp-btn--reject', 'data-k':'reject:' + k, disabled:dis,
@@ -1123,12 +1172,13 @@ function cardEl(it, flat){
         icon('check', 13), t(dry ? 'inbox.action.previewApprove' : rem ? 'inbox.action.approveRemoval' : 'inbox.action.approve')));
   }
   return h('article', {class:'mp-card', 'aria-labelledby':tid}, flat ? null : cardHead(it, tid, decided), h('div', {class:'mp-card-body'}, body), det,
-    h('div', {class:'mp-card-foot'}, more, actions));
+    h('div', {class:'mp-card-foot'}, more, release, actions));
 }
 /* D39, B: in full screen each request is one row (who, what, risk, clock); the first one, or the one picked, opens as its card */
 function ledgerRow(it, i){
   const x = it.context, k = wk(it), id = idOf(k), open = S.lopen === undefined ? i === 0 : S.lopen === k;
   const row = S.rows[k], decided = !!(row && row.decided), meta = [];
+  if (it.offered && !decided) meta.push(offeredPill(it));
   if (x.target.riskLevel) meta.push(riskChip(x.target.riskLevel));
   if (x.deadline && !decided){
     const d = Date.parse(x.deadline), now = Date.now(), over = !isNaN(d) && d < now, soon = !isNaN(d) && !over && d - now < 4 * 3600000;
@@ -1232,7 +1282,22 @@ function contentEl(){
 }
 
 /* ================= confirm dialog (6.5) ================= */
+/* Q4: claim and release confirm without a comment (6.5: every write has a confirm step) */
+function groupDialogEl(){
+  const d = S.dialog, x = d.it.context, claim = d.decision === 'claim', dry = !!(S.server && !S.server.writesEnabled);
+  const p = {role:dispName(x.target), requestee:dispName(x.requestee), group:groupOf(d.it)};
+  const box = h('div', {class:'mp-dialog', role:'dialog', 'aria-modal':'true', 'aria-labelledby':'dlg-t', 'aria-describedby':'dlg-d', tabindex:'-1', 'data-k':'dlg-box', onkeydown:dialogKeys},
+    h('h2', {id:'dlg-t'}, t(claim ? 'confirm.claim.title' : 'confirm.release.title', p)),
+    h('div', {class:'mp-dialog-body', id:'dlg-d'}, h('p', null, t(claim ? 'confirm.claim.body' : 'confirm.release.body', p))),
+    d.working ? slowNote(d.at) : null,
+    h('div', {class:'mp-actions'},
+      h('button', {type:'button', class:'mp-btn mp-btn--tool', 'data-k':'dlg-cancel', disabled:d.working || null, onclick:closeDialog}, t('common.cancel')),
+      h('button', {type:'button', class:'mp-btn mp-btn--primary', 'data-k':'dlg-submit', disabled:d.working || null, onclick:submitDialog},
+        d.working ? t('confirm.working') : t(dry ? 'dryrun.submit' : claim ? 'confirm.claim.submit' : 'confirm.release.submit'))));
+  return h('div', {class:'mp-overlay'}, box);
+}
 function dialogEl(){
+  if (GROUP_TOOLS[S.dialog.decision]) return groupDialogEl();
   const d = S.dialog, x = d.it.context, approve = d.decision === 'approve', dry = !!(S.server && !S.server.writesEnabled);
   const p = {change:x.change, role:dispName(x.target), requestee:dispName(x.requestee), requester:dispNameStart(x.requester)};
   const ta = h('textarea', {class:'mp-textarea', id:'dlg-c', rows:'3', maxlength:String(MAX_COMMENT), 'data-k':'dlg-comment',
@@ -1267,13 +1332,14 @@ function dialogKeys(e){
   else if (!e.shiftKey && act === last){ e.preventDefault(); first.focus(); }
 }
 function openDecide(it, decision){
-  if (S.dialog || !canCall()) return;
+  if (S.dialog || !canCall() || (GROUP_TOOLS[decision] && S.busy)) return;
   S.dialog = {it, decision, opener:decision + ':' + wk(it), comment:'', error:false, working:false, at:0};
-  render({focus:'dlg-comment'});
+  render({focus:GROUP_TOOLS[decision] ? 'dlg-cancel' : 'dlg-comment'});
 }
 function closeDialog(){ const d = S.dialog; if (!d || d.working) return; S.dialog = null; render({focus:d.opener}); }
 function submitDialog(){
   const d = S.dialog; if (!d || d.working) return;
+  if (GROUP_TOOLS[d.decision]) return submitGroup(d);
   const cm = d.comment.trim();
   if (d.decision === 'reject' && !cm){ d.error = true; render({focus:'dlg-comment'}); announce(ts('confirm.comment.requiredError'), true); return; }
   d.error = false; d.working = true; d.at = Date.now();
@@ -1289,6 +1355,45 @@ function submitDialog(){
     if (r.result && !row.error && !row.slot && !row.preview) modelContext(r.result);
     render({focus:'out:' + k});
     announce(rowSay(row), !!row.error);
+  });
+}
+
+/* Q4: the row for a claim or release answer; a write midPoint took re-reads the list, so the card shows the item as it is now */
+function groupRow(r, action){
+  const tool = GROUP_TOOLS[action];
+  if (r.error !== undefined) return {error:rpcErr(tool, r.error)};
+  const res = r.result, slot = slotOf(res);
+  if (blocked(slot)) return {slot};
+  if (res.isError === true){ const err = errOf(res, tool), key = classify(err), no = NO_LONGER.indexOf(key) >= 0; return {error:err, disabled:no, refresh:no}; }
+  const g = normGroup(res.structuredContent, tool);
+  if (!g) return {error:{tool, text:textOf(res), meta:{}}};
+  if (g.dryRun) return {preview:g};
+  const group = g.offeredTo && !hiddenRef(g.offeredTo) ? dispName(g.offeredTo) : ts('inbox.group.unnamed');
+  if (!g.confirmed) return {tone:'warning', key:action === 'claim' ? 'inbox.outcome.claimUnconfirmed' : 'inbox.outcome.releaseUnconfirmed', reread:true};
+  return {key:action === 'claim' ? 'inbox.outcome.claimed' : 'inbox.outcome.released', p:{group}, reread:true};
+}
+function submitGroup(d){
+  d.working = true; d.at = Date.now();
+  render({focus:'dlg-box'});
+  /* names as midPoint gives them (S38), like decide_work_item */
+  const args = {caseOid:d.it.caseOid, userName:d.it.context.requestee.name, roleName:d.it.context.target.name, workItemId:d.it.id};
+  callTool(GROUP_TOOLS[d.decision], args).then(r => {
+    const k = wk(d.it), row = groupRow(r, d.decision);
+    S.dialog = null;
+    S.rows[k] = row;
+    if (r.result && !row.error && !row.slot && !row.preview) modelContext(r.result);
+    announce(rowSay(row), !!row.error);
+    if (!row.reread || !canCall()) return render({focus:'out:' + k});
+    /* the item changed in midPoint: one list read shows it as it is now, with the outcome on its card */
+    S.busy = true; S.busyAt = Date.now();
+    render({focus:'out:' + k});
+    callTool('list_work_items', refreshArgs()).then(lr => {
+      S.busy = false; S.busyAt = 0;
+      onListAnswer(lr, true);
+      const still = S.items && S.items.some(i => wk(i) === k);
+      if (still) S.rows[k] = row; else S.notice = row;
+      render({focus:still ? 'out:' + k : 'out:entry'});
+    });
   });
 }
 

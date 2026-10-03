@@ -99,8 +99,9 @@ func TestLiveInboxData(t *testing.T) {
 		t.Errorf("case %s: stages=%+v stage=%+v requestedAt=%q", d.OID, d.Stages, d.Stage, d.RequestedAt)
 	}
 	for _, wi := range d.WorkItems {
-		if len(wi.Assignees) == 0 {
-			t.Errorf("case %s item %s: no assignees", d.OID, wi.ID)
+		// An item offered to a group has no assignee until someone claims it.
+		if len(wi.Assignees) == 0 && len(wi.OfferedTo) == 0 {
+			t.Errorf("case %s item %s: no assignees and no groups", d.OID, wi.ID)
 		}
 	}
 }

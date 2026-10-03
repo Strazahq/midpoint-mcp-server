@@ -84,6 +84,9 @@ export const ALL_CAPS = { serverTools: {}, openLinks: {}, message: {}, updateMod
 export const INBOX_TOOLS = {
   list_work_items: ['limit'],
   decide_work_item: ['caseOid', 'userName', 'roleName', 'workItemId', 'decision', 'comment'],
+  // Q4: items offered to a group
+  claim_work_item: ['caseOid', 'userName', 'roleName', 'workItemId'],
+  release_work_item: ['caseOid', 'userName', 'roleName', 'workItemId'],
   get_case: ['oid'],
   whoami: [],
 };

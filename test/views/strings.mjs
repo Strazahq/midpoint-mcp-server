@@ -112,6 +112,8 @@ export const S = {
     'invalid-field': 'Some request details are missing or not valid. Check the marked field.',
     'invalid-validity': "The chosen dates aren't valid. Check how long the role should be valid and try again.",
     'not-in-inbox': 'This request is no longer waiting for your decision.',
+    // Q4
+    'not-claimed': "Claim this request first: it's offered to a group, and only the person who claims it can approve or reject it.",
     'already-decided': 'This step of the request has already been decided.',
     'request-closed': 'This request is already closed: it was decided or withdrawn.',
     'not-your-request': 'Only the person who made a request can withdraw it.',
@@ -208,6 +210,35 @@ export const S = {
         `midPoint already shows this step as ${outcome === 'approve' ? 'approved' : outcome === 'reject' ? 'rejected' : 'decided'}. Someone else probably decided first.`,
       unconfirmed: "Sent to midPoint, but it hasn't recorded a decision yet. Refresh to check.",
     },
+  },
+
+  // Q4 (contract open question, settled by the live probe on 4.10.3): items
+  // offered to a group are claimed before they are decided, and a claimed
+  // one can be released back to the group.
+  group: {
+    offered: (group) => `Offered to ${group}`,
+    offeredHelp: (group) => `Anyone in ${group} can take this request. Claim it to approve or reject it yourself.`,
+    whyGroup: (group) => `It was sent to ${group}, and you're in it`,
+    whyClaimed: (group) => `You claimed it from ${group}`,
+    unnamed: "a group you're in",
+    claim: 'Claim',
+    claimLabel: (target, requestee) => `Claim ${target} for ${requestee}`,
+    previewClaim: 'Preview claim',
+    previewClaimLabel: (target, requestee) => `Preview claim of ${target} for ${requestee}`,
+    release: 'Release',
+    releaseLabel: (target, requestee) => `Release ${target} for ${requestee}`,
+    previewRelease: 'Preview release',
+    previewReleaseLabel: (target, requestee) => `Preview release of ${target} for ${requestee}`,
+    claimTitle: (role, requestee) => `Claim ${role} for ${requestee}?`,
+    claimBody: (group) => `It's offered to ${group}. Once you claim it, only you can approve or reject it, until you release it.`,
+    claimSubmit: 'Claim',
+    releaseTitle: (role, requestee) => `Release ${role} for ${requestee}?`,
+    releaseBody: (group) => `It goes back to ${group}, undecided, and anyone there can claim it.`,
+    releaseSubmit: 'Release',
+    claimed: 'Claimed. You can approve or reject it now.',
+    released: (group) => `Released. It's back with ${group}.`,
+    claimUnconfirmed: "Sent to midPoint, but it doesn't show this request as yours yet. Refresh to check.",
+    releaseUnconfirmed: 'Sent to midPoint, but it still shows this request as yours. Refresh to check.',
   },
 
   // 10.18

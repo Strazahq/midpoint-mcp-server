@@ -1,0 +1,93 @@
+{
+  "call": {
+    "arguments": {
+      "oid": "40000000-0000-0000-0000-000000000004"
+    },
+    "name": "get_case"
+  },
+  "about": "the offered case as dlee reads it: one step, the item offered to access-approvers",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Case 40000000-0000-0000-0000-000000000004: state=open, 1 work item(s).\nWork items:\n- 5 stage=1 outcome=open offeredTo=access-approvers"
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Dana Lee",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "change": "add",
+      "name": "Assigning role \"Finance reports\" to user \"Bob Stone (bstone)\"",
+      "object": "bstone",
+      "objectRef": {
+        "displayName": "Bob Stone",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "type": "User"
+      },
+      "oid": "40000000-0000-0000-0000-000000000004",
+      "requestedAt": "2026-10-03T18:15:00.153Z",
+      "requestor": "bstone",
+      "requestorRef": {
+        "displayName": "Bob Stone",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "type": "User"
+      },
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "stage": {
+        "count": 1,
+        "name": "Group step",
+        "number": 1,
+        "strategy": "firstDecides"
+      },
+      "stages": [
+        {
+          "count": 1,
+          "name": "Group step",
+          "number": 1,
+          "strategy": "firstDecides"
+        }
+      ],
+      "state": "open",
+      "target": "finance-reports",
+      "targetRef": {
+        "displayName": "Finance reports",
+        "name": "finance-reports",
+        "oid": "20000000-0000-0000-0000-0000000000e1",
+        "type": "Role"
+      },
+      "tool": "get_case",
+      "workItems": [
+        {
+          "assignees": [],
+          "caseOid": "40000000-0000-0000-0000-000000000004",
+          "createdAt": "2026-10-03T18:15:00.222Z",
+          "id": "5",
+          "offeredTo": [
+            {
+              "displayName": "Access approvers",
+              "name": "access-approvers",
+              "oid": "30000000-0000-0000-0000-000000000002",
+              "type": "Org"
+            }
+          ],
+          "stage": 1
+        }
+      ]
+    }
+  }
+}

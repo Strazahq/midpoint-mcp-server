@@ -374,7 +374,9 @@ func (c *Client) newEnricher(self userJSON) *enricher {
 }
 
 // workItemContext is what an approver needs to decide wi (contract 7.1).
-func (e *enricher) workItemContext(ctx context.Context, cj caseJSON, a approval, items []workItemJSON, wi workItemJSON) WorkItemContext {
+// viaGroup is set when wi is offered to, or was claimed from, a group of the
+// caller's (Q4).
+func (e *enricher) workItemContext(ctx context.Context, cj caseJSON, a approval, items []workItemJSON, wi workItemJSON, viaGroup bool) WorkItemContext {
 	wc := newWorkItemContext()
 	wc.Change = a.change
 	if p := e.reader.person(ctx, cj.RequestorRef); p != nil {
@@ -389,7 +391,14 @@ func (e *enricher) workItemContext(ctx context.Context, cj caseJSON, a approval,
 	wc.CreatedAt = wi.CreateTimestamp
 	wc.Deadline = wi.Deadline
 	wc.Stage = a.stageInfo(wi.StageNumber)
-	wc.Reason = reason(e.self, e.team, u, st == readOK, refOID(cj.TargetRef))
+	// An item offered to (or claimed from) the caller's group is here because
+	// of the group, whatever else links the caller to the request: that is
+	// known, where reason only infers (live on 4.10.3, a manager in the group
+	// otherwise reads "manager").
+	wc.Reason = ReasonGroup
+	if !viaGroup {
+		wc.Reason = reason(e.self, e.team, u, st == readOK, refOID(cj.TargetRef))
+	}
 
 	co := otherAssignees(wi, e.self.OID)
 	skip := map[string]bool{e.self.OID: true}
@@ -405,7 +414,9 @@ func (e *enricher) workItemContext(ctx context.Context, cj caseJSON, a approval,
 // reason says why a work item is in the caller's inbox, in the order of D29:
 // the caller manages (a selected manager link) an org the requestee is a
 // member of; else the caller's own roleMembershipRef holds the target as
-// approver, then as owner; else midPoint simply assigned it.
+// approver, then as owner; else midPoint simply assigned it. An item offered
+// to, or claimed from, a group of the caller's says group instead
+// (workItemContext).
 func reason(self userJSON, team TeamConfig, requestee userJSON, requesteeRead bool, targetOID string) string {
 	if requesteeRead {
 		managed := map[string]bool{}
@@ -496,7 +507,8 @@ func stageApprovers(items []workItemJSON, a approval, wi workItemJSON, selfOID s
 }
 
 // nextApprovers are who still has to decide an open case: the assignees of
-// its open work items and, when the caller sees only its own items, the
+// its open work items (the groups of one nobody has claimed) and, when the
+// caller sees only its own items, the
 // approvers the schema names for the current stage (as in stageApprovers),
 // apart from the caller.
 func nextApprovers(cj caseJSON, a approval, items []workItemJSON, selfOID string) []refJSON {
@@ -507,6 +519,10 @@ func nextApprovers(cj caseJSON, a approval, items []workItemJSON, selfOID string
 	for _, wi := range items {
 		if wi.open() {
 			out = append(out, wi.assignees()...)
+			// An item nobody has claimed waits for its groups (Q4).
+			if len(wi.assignees()) == 0 {
+				out = append(out, wi.candidates()...)
+			}
 		}
 	}
 	if othersHidden(items, selfOID) {
@@ -574,6 +590,9 @@ func (c *Client) caseDetailWithReader(ctx context.Context, cj caseJSON, r *refRe
 		if wi.Output != nil {
 			item.Outcome = shortURI(wi.Output.Outcome)
 			item.Comment = wi.Output.Comment
+		}
+		if c := wi.candidates(); len(c) > 0 {
+			item.OfferedTo = r.objectRefs(ctx, c, nil)
 		}
 		d.WorkItems = append(d.WorkItems, item)
 	}

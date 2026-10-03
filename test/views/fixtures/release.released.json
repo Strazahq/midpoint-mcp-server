@@ -1,0 +1,62 @@
+{
+  "call": {
+    "arguments": {
+      "caseOid": "40000000-0000-0000-0000-000000000004",
+      "roleName": "finance-reports",
+      "userName": "bstone",
+      "workItemId": "5"
+    },
+    "name": "release_work_item"
+  },
+  "about": "released; read back: the item is offered to the group again",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Released work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004) — finance-reports for bstone as dlee (resource-server mode): it is back with Access approvers, and anyone there can claim it."
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Dana Lee",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1",
+        "orgs": [],
+        "sharedCredential": false
+      },
+      "applied": true,
+      "case": "Assigning role \"Finance reports\" to user \"Bob Stone (bstone)\"",
+      "caseOid": "40000000-0000-0000-0000-000000000004",
+      "confirmed": true,
+      "dryRun": false,
+      "endpoint": "/ws/rest/cases/40000000-0000-0000-0000-000000000004/workItems/5/release",
+      "method": "POST",
+      "object": "bstone",
+      "offeredTo": {
+        "displayName": "Access approvers",
+        "name": "access-approvers",
+        "oid": "30000000-0000-0000-0000-000000000002",
+        "type": "Org"
+      },
+      "result": "status=204",
+      "server": {
+        "requestReason": true,
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "subject": {
+        "mode": "resource-server",
+        "name": "dlee",
+        "oid": "10000000-0000-0000-0000-0000000000a1"
+      },
+      "summary": "Release work item 5 in case 40000000-0000-0000-0000-000000000004",
+      "target": "finance-reports",
+      "tool": "release_work_item",
+      "workItemId": "5"
+    }
+  }
+}

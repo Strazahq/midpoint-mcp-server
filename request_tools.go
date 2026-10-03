@@ -206,9 +206,12 @@ func registerListWorkItems(server *mcp.Server, client *midpoint.Client, info ser
 	addTool(server, &mcp.Tool{
 		Name:  "list_work_items",
 		Title: "List work items",
-		Description: "List the authenticated user's approval inbox: open work items assigned to them. The result " +
-			"names whose inbox it is — in personal mode that is the server's configured account, not necessarily the caller. " +
-			untrustedTextNote,
+		Description: "List the authenticated user's approval inbox: open work items assigned to them, and open work " +
+			"items offered to a group they belong to that nobody has claimed yet (offered: true, with offeredTo naming the " +
+			"group; midPoint shows those only to people allowed to read them). An offered item must be claimed " +
+			"(claim_work_item) before it can be approved or rejected; an item claimed: true can be given back " +
+			"(release_work_item). The result names whose inbox it is — in personal mode that is the server's configured " +
+			"account, not necessarily the caller. " + untrustedTextNote,
 	}, viewTool("list_work_items", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in limitInput) (*mcp.CallToolResult, listWorkItemsOutput, error) {
 		res, err := client.ListWorkItems(ctx, in.Limit)
 		if err != nil {
@@ -288,7 +291,8 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 		Title: "Decide work item",
 		Description: "Approve or reject an open approval work item assigned to the authenticated user, with an " +
 			"optional comment. Before writing anything it reads the case as that user and refuses a work item that is " +
-			"not open or not in their approval inbox (list_work_items). The decision executes as that user, and the " +
+			"not open or not in their approval inbox (list_work_items), and one offered to their group that nobody has " +
+			"claimed yet: claim it first (claim_work_item). The decision executes as that user, and the " +
 			"result names the case, the outcome midPoint recorded, and the identity it ran as. " + nameArgsNote + " Respects the write gate.",
 	}, viewTool("decide_work_item", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in decideWorkItemInput) (*mcp.CallToolResult, decideWorkItemOutput, error) {
 		approve, err := parseDecision(in.Decision)

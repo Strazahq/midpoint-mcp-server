@@ -200,6 +200,23 @@ func stageText(n, count int) string {
 	return strconv.Itoa(n)
 }
 
+// boolText is "true" for a flag that is set, else empty, so the field is left
+// out.
+func boolText(b bool) string {
+	if b {
+		return "true"
+	}
+	return ""
+}
+
+// offeredToText names the group of an offered or claimed work item.
+func offeredToText(r *midpoint.ObjectRef) string {
+	if r == nil {
+		return ""
+	}
+	return cmp.Or(r.Name, r.OID)
+}
+
 // --- per tool ---
 
 // workItemsText is list_work_items' text: line 1, then each work item, with
@@ -233,6 +250,10 @@ func workItemsText(line1 string, items []midpoint.InboxWorkItem) string {
 			textField{"strategy", c.Stage.Strategy},
 			textField{"coAssignees", refNames(c.CoAssignees)},
 			textField{"stageApprovers", refNames(c.StageApprovers)},
+			// Q4: an offered item is claimed before it is decided.
+			textField{"offered", boolText(wi.Offered)},
+			textField{"claimed", boolText(wi.Claimed)},
+			textField{"offeredTo", offeredToText(wi.OfferedTo)},
 		)
 		t.untrusted(fieldJustification, fromRequester(requester), c.Justification)
 	}
@@ -261,6 +282,7 @@ func caseText(line1 string, c midpoint.CaseDetail) string {
 			textField{"assignees", cmp.Or(refNames(wi.Assignees), wi.Assignee)},
 			textField{"outcome", outcome},
 			textField{"closed", wi.ClosedAt},
+			textField{"offeredTo", refNames(wi.OfferedTo)},
 		)
 		var performer string
 		if wi.Performer != nil {

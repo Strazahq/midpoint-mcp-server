@@ -451,7 +451,7 @@ func TestOtherApproversFromVisibleItems(t *testing.T) {
 	a := approval{stages: []stageDef{{StageInfo: StageInfo{Number: 1}, approvers: decodeRefs(refsJSON(`{"oid":"s"}`))}}}
 	e := &enricher{reader: newRefReader(nil), self: userJSON{OID: "me"}}
 	e.reader.closed = true // no reads: names come from the work items
-	wc := e.workItemContext(context.Background(), caseJSON{State: "open"}, a, items, items[0])
+	wc := e.workItemContext(context.Background(), caseJSON{State: "open"}, a, items, items[0], false)
 	if got := refOIDs(wc.CoAssignees); !reflect.DeepEqual(got, []string{"x"}) {
 		t.Errorf("coAssignees = %v, want [x]", got)
 	}
@@ -463,7 +463,7 @@ func TestOtherApproversFromVisibleItems(t *testing.T) {
 	// approvers, still without the caller and the co-assignees.
 	own := []workItemJSON{workItem("1", 1, true, "me", "x")}
 	a.stages[0].approvers = decodeRefs(refsJSON(`{"oid":"me"}`, `{"oid":"x"}`, `{"oid":"s"}`))
-	wc = e.workItemContext(context.Background(), caseJSON{State: "open"}, a, own, own[0])
+	wc = e.workItemContext(context.Background(), caseJSON{State: "open"}, a, own, own[0], false)
 	if got := refOIDs(wc.StageApprovers); !reflect.DeepEqual(got, []string{"s"}) {
 		t.Errorf("stageApprovers from the schema = %v, want [s]", got)
 	}

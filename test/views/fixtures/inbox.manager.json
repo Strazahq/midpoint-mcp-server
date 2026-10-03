@@ -49,6 +49,7 @@
           "assignee": "jdoe",
           "case": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
           "caseOid": "40000000-0000-0000-0000-000000000001",
+          "claimed": false,
           "context": {
             "change": "add",
             "coAssignees": [
@@ -140,6 +141,7 @@
           },
           "id": "7",
           "object": "bstone",
+          "offered": false,
           "requestor": "bstone",
           "stage": 1,
           "target": "db-admin"
@@ -148,6 +150,7 @@
           "assignee": "jdoe",
           "case": "Assigning role \"Finance reports\" to user \"Bob Stone (bstone)\"",
           "caseOid": "40000000-0000-0000-0000-000000000002",
+          "claimed": false,
           "context": {
             "change": "add",
             "coAssignees": [],
@@ -217,6 +220,7 @@
           },
           "id": "5",
           "object": "bstone",
+          "offered": false,
           "requestor": "bstone",
           "stage": 1,
           "target": "Finance reports"
