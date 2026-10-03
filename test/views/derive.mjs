@@ -104,8 +104,9 @@ export function expectItem(wi) {
     title: S.inbox.change[change](requesteeStart, target),
     // The spoken title is defined for the arrow form only (D33).
     label: change === 'add' ? S.inbox.changeAddLabel(requesteeStart, target) : S.inbox.change[change](requesteeStart, target),
-    approveLabel: S.inbox.approveLabel(target, requestee),
-    rejectLabel: S.inbox.rejectLabel(target, requestee),
+    // D39: a removal's buttons say so
+    approveLabel: change === 'delete' ? S.inbox.approveRemovalLabel(target, requestee) : S.inbox.approveLabel(target, requestee),
+    rejectLabel: change === 'delete' ? S.inbox.rejectRemovalLabel(target, requestee) : S.inbox.rejectLabel(target, requestee),
     previewApproveLabel: S.inbox.previewApproveLabel(target, requestee),
     previewRejectLabel: S.inbox.previewRejectLabel(target, requestee),
     approveTitle: S.confirm.approveTitle(change, target, requestee),

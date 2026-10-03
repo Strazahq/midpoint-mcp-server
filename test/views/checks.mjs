@@ -24,10 +24,11 @@ const check = (id, criterion, title, run) => checks.push({ id, criterion, title,
 const across = (id, criterion, title, run) => runWide.push({ id, criterion, title, run });
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+// draft.11 (D39) tokens: danger text and fill #b4232a, soft #fde6e6; warning text #8a4b06, soft #fdf0cf, panel #fff3cd
 const RGB = {
-  danger: ['rgb(220, 53, 69)', 'rgb(248, 215, 218)'],
-  warning: ['rgb(255, 193, 7)', 'rgb(133, 100, 4)', 'rgb(255, 243, 205)'],
-  secondary: ['rgb(98, 115, 131)'],
+  danger: ['rgb(180, 35, 42)', 'rgb(253, 230, 230)', 'rgb(248, 215, 218)'],
+  warning: ['rgb(138, 75, 6)', 'rgb(253, 240, 207)', 'rgb(255, 243, 205)'],
+  secondary: ['rgb(79, 89, 100)', 'rgb(236, 239, 242)'],
   focus: 'rgb(255, 168, 54)',
 };
 const NO_TOOLS = { openLinks: {}, message: {}, updateModelContext: {} };
@@ -527,17 +528,18 @@ check('ac03.reason-clamp', '7.1 AC3, 6.12 (D33)', 'a long reason is clamped to 3
 });
 
 // AC3: who asked
-check('ac03.who-asked.self', '7.1 AC3', 'a self-request: "Requested by Bob Stone for themselves"', async (t) => {
+check('ac03.who-asked.self', '7.1 AC3', 'a self-request: Asked by "Bob Stone, for themselves" (D39 facts)', async (t) => {
   const { v, e, card } = await inbox(t, 'inbox.approver');
   if (card) t.ok(await v.hasText(e.requestedBy, { within: card }), `no "${e.requestedBy}"`);
+  if (card) for (const l of Object.values(S.inbox.facts)) t.ok(await v.hasText(l.toUpperCase(), { within: card }) || await v.hasText(l, { within: card }), `no fact label "${l}"`);
 });
 
-check('ac03.who-asked.other', '7.1 AC3', 'someone else asked: "Requested by Mia Kovac"', async (t) => {
+check('ac03.who-asked.other', '7.1 AC3', 'someone else asked: Asked by "Mia Kovac"', async (t) => {
   const { v, card } = await inbox(t, derive('inbox.approver', 'other-requester', M.otherRequester));
   if (card) t.ok(await v.hasText(S.inbox.requestedBy('Mia Kovac'), { within: card }), `no "${S.inbox.requestedBy('Mia Kovac')}"`);
 });
 
-check('ac03.who-asked.hidden', '7.1 AC3 (D16)', 'an unreadable requester: "Requested by a person you can\'t see in midPoint", no login', async (t) => {
+check('ac03.who-asked.hidden', '7.1 AC3 (D16)', 'an unreadable requester: Asked by "a person you can\'t see in midPoint", no login', async (t) => {
   const { v, card } = await inbox(t, 'inbox.removal');
   if (!card) return;
   t.ok(await v.hasText(S.inbox.requestedBy(S.personHidden), { within: card }), `no "${S.inbox.requestedBy(S.personHidden)}"`);
@@ -614,7 +616,7 @@ check('ac03.why.assigned', '7.1 AC3 (D14)', 'assigned, no step name', (t) =>
   whyCheck(t, derive('inbox.approver', 'reason-assigned-no-step-name', M.reasonAssignedNoName), 0, S.inbox.why.assigned));
 
 // D37: the step line instead of "who else decides"
-check('d37.step-line', 'D37 (overrides 7.1 AC3 "who else decides")', 'each card says "Step {number} of {count}"', async (t) => {
+check('d37.step-line', 'D37 (overrides 7.1 AC3 "who else decides")', 'each card says "Approval {number} of {count}" (D39 wording)', async (t) => {
   const { v, card } = await inbox(t, 'inbox.approver');
   if (card) t.ok(await v.hasText(S.d37.step(1, 2), { within: card }), `no "${S.d37.step(1, 2)}"`);
   const { v: v2, card: c2 } = await inbox(t, 'inbox.manager', {}, 1);
@@ -1318,7 +1320,8 @@ check('ac14.row-button-names', '7.1 AC14, 6.12', 'row buttons carry the catalog\
       const e = expectItem(wi);
       const card = await v.card(e);
       if (!card) { t.fail(`${name}: no card "${e.title}"`); continue; }
-      for (const [label, visible] of [[e.approveLabel, S.inbox.approve], [e.rejectLabel, S.inbox.reject]]) {
+      const rem = e.change === 'delete'; // D39: a removal's buttons say so
+      for (const [label, visible] of [[e.approveLabel, rem ? S.inbox.approveRemoval : S.inbox.approve], [e.rejectLabel, rem ? S.inbox.rejectRemoval : S.inbox.reject]]) {
         const b = card.getByRole('button', { name: label, exact: true });
         if (t.ok(await v.visible(b), `${name}: no button named "${label}"`)) {
           t.ok(norm(await b.first().innerText()) === visible, `${name}: "${label}" reads "${norm(await b.first().innerText())}", want "${visible}"`);

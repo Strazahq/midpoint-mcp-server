@@ -155,8 +155,11 @@ export const S = {
       unknown: (requestee, target) => `${requestee}: request about ${target}`,
     },
     changeAddLabel: (requestee, target) => `${requestee}, access to ${target}`,
-    requestedBy: (requester) => `Requested by ${requester}`,
-    selfRequested: (requestee) => `Requested by ${requestee} for themselves`,
+    // D39: the value of the "Asked by" fact
+    requestedBy: (requester) => requester,
+    selfRequested: (requestee) => `${requestee}, for themselves`,
+    facts: { askedBy: 'Asked by', howLong: 'How long', why: 'Why you' },
+    removal: 'Removal',
     requestedAt: /^Requested .+\(.+\)$/,
     deadline: (time) => `Decide by ${time}`,
     overduePrefix: 'Decision overdue since ',
@@ -167,11 +170,11 @@ export const S = {
       "You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you.",
     risk: (level) => `Risk: ${level}`,
     why: {
-      manager: (requestee) => `You're asked because you manage ${requestee}.`,
-      roleApprover: (target) => `You're asked because you approve requests for ${target}.`,
-      roleOwner: (target) => `You're asked because you own ${target}.`,
-      step: (name) => `You're asked for the "${name}" step.`,
-      assigned: 'midPoint sent this request to you.',
+      manager: (requestee) => `You manage ${requestee}`,
+      roleApprover: (target) => `You approve requests for ${target}`,
+      roleOwner: (target) => `You own ${target}`,
+      step: (name) => `You approve the "${name}" step`,
+      assigned: 'midPoint sent it to you',
     },
     currentRoles: (requestee, n) =>
       `${requestee} has ${n} ${plural(n, 'role', 'roles')} in effect now, including ones that come with other roles`,
@@ -180,8 +183,12 @@ export const S = {
     currentRolesNone: (requestee) => `${requestee} has no roles now.`,
     approve: 'Approve',
     reject: 'Reject',
+    approveRemoval: 'Approve removal',
+    rejectRemoval: 'Reject removal',
     approveLabel: (target, requestee) => `Approve ${target} for ${requestee}`,
     rejectLabel: (target, requestee) => `Reject ${target} for ${requestee}`,
+    approveRemovalLabel: (target, requestee) => `Approve removal of ${target} from ${requestee}`,
+    rejectRemovalLabel: (target, requestee) => `Reject removal of ${target} from ${requestee}`,
     details: 'Details',
     hideDetails: 'Hide details',
     history: 'Approval steps',
@@ -216,7 +223,7 @@ export const S = {
   // count is unknown), no "who else decides" line, and the approve sentence
   // chosen by steps only.
   d37: {
-    step: (number, count) => `Step ${number} of ${count}`,
+    step: (number, count) => `Approval ${number} of ${count}`,
     // draft.8 inbox.approvers.* and inbox.steps.more, which must not appear.
     forbidden: [
       /can also decide this\. The first decision counts\./,

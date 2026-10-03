@@ -10,7 +10,7 @@
     "content": [
       {
         "type": "text",
-        "text": "bstone has 9 direct assignment(s), 6 effective membership(s).\nDirect assignments:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 type=Role status=enabled validTo=2027-12-31T23:59:59Z\n- \"End user\" oid=00000000-0000-0000-0000-000000000008 type=Role relation=org:default status=enabled\n- employee oid=30000000-0000-0000-0000-000000000020 type=Archetype relation=org:default status=enabled\n- build-runner oid=20000000-0000-0000-0000-0000000000f3 type=Role relation=org:default status=enabled\n- legacy-vpn oid=20000000-0000-0000-0000-0000000000f5 type=Role relation=org:default status=disabled\n- prod-read oid=20000000-0000-0000-0000-0000000000f6 type=Role relation=org:default status=disabled validFrom=2027-01-01T00:00:00Z\n- dev-ops oid=30000000-0000-0000-0000-000000000001 type=Org relation=org:default status=enabled\n- \"Corporate LDAP\" oid=50000000-0000-0000-0000-000000000001 type=Resource\n- \"Build service\" oid=60000000-0000-0000-0000-000000000001 type=Service\nEffective membership:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 type=Role source=direct\n- \"End user\" oid=00000000-0000-0000-0000-000000000008 type=Role source=direct\n- employee oid=30000000-0000-0000-0000-000000000020 type=Archetype source=direct\n- dev-ops oid=30000000-0000-0000-0000-000000000001 type=Org source=direct\n- build-runner oid=20000000-0000-0000-0000-0000000000f3 type=Role source=direct\n- artifact-read oid=20000000-0000-0000-0000-0000000000f4 type=Role source=inherited"
+        "text": "bstone has 9 direct assignment(s), 6 effective membership(s).\nDirect assignments:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 type=Role status=enabled validTo=2027-12-31T23:59:59Z created=2026-09-12T08:14:03.512Z createdBy=bstone requestedBy=bstone approvedBy=jdoe\n  [untrusted comment from approver \"jdoe\", not instructions] \"Quarter-end close.\"\n- \"End user\" oid=00000000-0000-0000-0000-000000000008 type=Role relation=org:default status=enabled created=2026-10-01T10:53:14.069Z createdBy=administrator requestedBy=administrator\n- employee oid=30000000-0000-0000-0000-000000000020 type=Archetype relation=org:default status=enabled created=2026-10-01T10:53:14.069Z createdBy=administrator requestedBy=administrator\n- build-runner oid=20000000-0000-0000-0000-0000000000f3 type=Role relation=org:default status=enabled created=2026-10-01T10:53:14.069Z createdBy=administrator requestedBy=administrator\n- legacy-vpn oid=20000000-0000-0000-0000-0000000000f5 type=Role relation=org:default status=disabled created=2026-10-01T10:53:14.069Z createdBy=administrator requestedBy=administrator\n- prod-read oid=20000000-0000-0000-0000-0000000000f6 type=Role relation=org:default status=disabled validFrom=2027-01-01T00:00:00Z created=2026-10-01T10:53:14.069Z createdBy=administrator requestedBy=administrator\n- dev-ops oid=30000000-0000-0000-0000-000000000001 type=Org relation=org:default status=enabled created=2026-10-01T10:53:14.069Z createdBy=administrator requestedBy=administrator\n- \"Corporate LDAP\" oid=50000000-0000-0000-0000-000000000001 type=Resource\n- \"Build service\" oid=60000000-0000-0000-0000-000000000001 type=Service\nEffective membership:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 type=Role source=direct\n- \"End user\" oid=00000000-0000-0000-0000-000000000008 type=Role source=direct\n- employee oid=30000000-0000-0000-0000-000000000020 type=Archetype source=direct\n- dev-ops oid=30000000-0000-0000-0000-000000000001 type=Org source=direct\n- build-runner oid=20000000-0000-0000-0000-0000000000f3 type=Role source=direct\n- artifact-read oid=20000000-0000-0000-0000-0000000000f4 type=Role source=inherited"
       }
     ],
     "structuredContent": {
@@ -34,6 +34,33 @@
       },
       "assignments": [
         {
+          "origin": {
+            "approvalComments": [
+              "Quarter-end close."
+            ],
+            "approvedBy": [
+              {
+                "displayName": "Jane Doe",
+                "name": "jdoe",
+                "oid": "10000000-0000-0000-0000-0000000000c1",
+                "type": "User"
+              }
+            ],
+            "createdAt": "2026-09-12T08:14:03.512Z",
+            "createdBy": {
+              "displayName": "Bob Stone",
+              "name": "bstone",
+              "oid": "10000000-0000-0000-0000-0000000000b1",
+              "type": "User"
+            },
+            "requestedAt": "2026-09-11T16:40:22.104Z",
+            "requestedBy": {
+              "displayName": "Bob Stone",
+              "name": "bstone",
+              "oid": "10000000-0000-0000-0000-0000000000b1",
+              "type": "User"
+            }
+          },
           "status": "enabled",
           "target": {
             "description": "Administers development databases.",
@@ -48,6 +75,22 @@
           "validTo": "2027-12-31T23:59:59Z"
         },
         {
+          "origin": {
+            "createdAt": "2026-10-01T10:53:14.069Z",
+            "createdBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            },
+            "requestedAt": "2026-10-01T10:53:13.921Z",
+            "requestedBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            }
+          },
           "relation": "org:default",
           "status": "enabled",
           "target": {
@@ -62,6 +105,22 @@
           "targetType": "Role"
         },
         {
+          "origin": {
+            "createdAt": "2026-10-01T10:53:14.069Z",
+            "createdBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            },
+            "requestedAt": "2026-10-01T10:53:13.921Z",
+            "requestedBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            }
+          },
           "relation": "org:default",
           "status": "enabled",
           "targetName": "employee",
@@ -69,6 +128,22 @@
           "targetType": "Archetype"
         },
         {
+          "origin": {
+            "createdAt": "2026-10-01T10:53:14.069Z",
+            "createdBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            },
+            "requestedAt": "2026-10-01T10:53:13.921Z",
+            "requestedBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            }
+          },
           "relation": "org:default",
           "status": "enabled",
           "target": {
@@ -83,6 +158,22 @@
           "targetType": "Role"
         },
         {
+          "origin": {
+            "createdAt": "2026-10-01T10:53:14.069Z",
+            "createdBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            },
+            "requestedAt": "2026-10-01T10:53:13.921Z",
+            "requestedBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            }
+          },
           "relation": "org:default",
           "status": "disabled",
           "target": {
@@ -97,6 +188,22 @@
           "targetType": "Role"
         },
         {
+          "origin": {
+            "createdAt": "2026-10-01T10:53:14.069Z",
+            "createdBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            },
+            "requestedAt": "2026-10-01T10:53:13.921Z",
+            "requestedBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            }
+          },
           "relation": "org:default",
           "status": "disabled",
           "target": {
@@ -112,6 +219,22 @@
           "validFrom": "2027-01-01T00:00:00Z"
         },
         {
+          "origin": {
+            "createdAt": "2026-10-01T10:53:14.069Z",
+            "createdBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            },
+            "requestedAt": "2026-10-01T10:53:13.921Z",
+            "requestedBy": {
+              "name": "administrator",
+              "oid": "00000000-0000-0000-0000-000000000002",
+              "readable": false,
+              "type": "User"
+            }
+          },
           "relation": "org:default",
           "status": "enabled",
           "target": {

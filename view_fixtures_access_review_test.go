@@ -67,6 +67,20 @@ func accessFixtureResult(t *testing.T, fx accessFixture) *mcp.CallToolResult {
 		t.Fatal(err)
 	}
 	subject := user["user"].(map[string]any)
+	// Not recorded: the db-admin assignment (@id 9) carries the value metadata
+	// of an approved request, in the shape midPoint 4.10.3 returned live for one.
+	for _, a := range subject["assignment"].([]any) {
+		if as := a.(map[string]any); as["@id"] == float64(9) {
+			ref := func(oid, name string) map[string]any {
+				return map[string]any{"oid": oid, "type": "c:UserType", "targetName": name}
+			}
+			as["@metadata"] = map[string]any{
+				"storage": map[string]any{"createTimestamp": "2026-09-12T08:14:03.512Z", "creatorRef": ref(fxBstone, "bstone")},
+				"process": map[string]any{"requestTimestamp": "2026-09-11T16:40:22.104Z", "requestorRef": ref(fxBstone, "bstone"),
+					"createApproverRef": ref(fxJdoe, "jdoe"), "createApprovalComment": "Quarter-end close."},
+			}
+		}
+	}
 	self := managerPersona(t).self
 	if fx.noOrgs {
 		self = fixtureUser(fxJdoe, "jdoe", "Jane Doe")

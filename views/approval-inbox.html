@@ -6,39 +6,49 @@
 <title>Requests to approve</title>
 <style>
 /* Requests to approve: the approval inbox view (docs/ui-contract.md 7.1).
-   Tokens are contract 6.9: midPoint's GUI palette, light and dark. */
+   Tokens are contract 6.9 (draft.11): midPoint blue, one tint for kinds, colour only for status. */
 :root{
   --mp-font-sans:var(--font-sans, "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   --mp-font-mono:var(--font-mono, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
-  --mp-canvas:#ffffff; --mp-canvas-subtle:#f4f6f9; --mp-stripe:#f9f9f9;
-  --mp-text:#495057; --mp-text-strong:#30353a; --mp-text-muted:#595959; --mp-label:#357da7; --mp-link:#206f9d;
-  --mp-border:#dee2e6; --mp-divider:#dddddd; --mp-control-border:#6c757d;
-  --mp-primary:#206f9d; --mp-on-primary:#ffffff; --mp-secondary:#627383;
-  --mp-success-fill:#198754; --mp-danger-fill:#dc3545; --mp-warning-fill:#ffc107; --mp-info-fill:#008099;
-  --mp-success-text:#198754; --mp-danger-text:#dc3545; --mp-warning-text:#856404;
+  --mp-canvas:#ffffff; --mp-card:#ffffff; --mp-canvas-subtle:#f5f7fa; --mp-stripe:#f8f9fb;
+  --mp-text:#465361; --mp-text-strong:#16202b; --mp-text-muted:#5b6673; --mp-label:#5b6673; --mp-link:#1f6fa3;
+  --mp-border:#e2e7ed; --mp-divider:#e2e7ed; --mp-control-border:#8a96a3;
+  --mp-primary:#1f6fa3; --mp-on-primary:#ffffff; --mp-primary-soft:#e6f1f8; --mp-secondary:#5b6673;
+  --mp-success-fill:#126b33; --mp-on-success:#ffffff; --mp-danger-fill:#b4232a; --mp-on-danger:#ffffff;
+  --mp-success-text:#126b33; --mp-danger-text:#b4232a; --mp-warning-text:#8a4b06; --mp-info-text:#1d4fc4; --mp-neutral-text:#4f5964;
+  --mp-success-soft:#e1f4e7; --mp-danger-soft:#fde6e6; --mp-warning-soft:#fdf0cf; --mp-info-soft:#e5ecfd; --mp-neutral-soft:#eceff2;
   --mp-success-panel:#d1e7dd; --mp-danger-panel:#f8d7da; --mp-warning-panel:#fff3cd; --mp-info-panel:#cce6eb;
-  --mp-focus:#ffa836; --mp-focus-inner:#30353a; --mp-on-dark-badge:#1f2d3d;
+  --mp-tile-bg:#e6f1f8; --mp-tile-fg:#1f6fa3; --mp-avatar-bg:#e7ebf0; --mp-avatar-fg:#3d4a58;
+  --mp-focus:#ffa836; --mp-focus-inner:#16202b;
   --mp-focus-shadow:0 0 0 2px var(--mp-canvas), 0 0 0 3px var(--mp-focus-inner);
   --mp-scrim:rgb(22 28 34 / .5);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
-    --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
-    --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
-    --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+    --mp-canvas:#1a1f25; --mp-card:#20262d; --mp-canvas-subtle:#272e36; --mp-stripe:#232a31;
+    --mp-text:#c0c9d2; --mp-text-strong:#edf1f5; --mp-text-muted:#97a3ae; --mp-label:#97a3ae; --mp-link:#5aa6dc;
+    --mp-border:#313942; --mp-divider:#313942; --mp-control-border:#6b7682;
+    --mp-primary:#5aa6dc; --mp-on-primary:#0b1a26; --mp-primary-soft:#1b3446; --mp-secondary:#97a3ae;
+    --mp-success-fill:#6fdc97; --mp-on-success:#0b1a26; --mp-danger-fill:#ff9b9b; --mp-on-danger:#2a0b0d;
+    --mp-success-text:#6fdc97; --mp-danger-text:#ff9b9b; --mp-warning-text:#f5c35b; --mp-info-text:#9cb8ff; --mp-neutral-text:#aeb7c0;
+    --mp-success-soft:#163b25; --mp-danger-soft:#4a1d20; --mp-warning-soft:#3f3013; --mp-info-soft:#1e2c52; --mp-neutral-soft:#2b3138;
     --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+    --mp-tile-bg:#1b3446; --mp-tile-fg:#8cc4ea; --mp-avatar-bg:#2f3740; --mp-avatar-fg:#d5dde5;
     --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --mp-canvas:#454d55; --mp-canvas-subtle:#343a40; --mp-stripe:#4e565e;
-  --mp-text:#ffffff; --mp-text-strong:#ffffff; --mp-text-muted:#ced4da; --mp-label:#99c5de; --mp-link:#99c5de;
-  --mp-border:#6c757d; --mp-divider:#61686e; --mp-control-border:#adb5bd; --mp-primary:#3f6791; --mp-secondary:#6c757d;
-  --mp-success-text:#59e0a1; --mp-danger-text:#f3b7bd; --mp-warning-text:#ffc107;
+  --mp-canvas:#1a1f25; --mp-card:#20262d; --mp-canvas-subtle:#272e36; --mp-stripe:#232a31;
+  --mp-text:#c0c9d2; --mp-text-strong:#edf1f5; --mp-text-muted:#97a3ae; --mp-label:#97a3ae; --mp-link:#5aa6dc;
+  --mp-border:#313942; --mp-divider:#313942; --mp-control-border:#6b7682;
+  --mp-primary:#5aa6dc; --mp-on-primary:#0b1a26; --mp-primary-soft:#1b3446; --mp-secondary:#97a3ae;
+  --mp-success-fill:#6fdc97; --mp-on-success:#0b1a26; --mp-danger-fill:#ff9b9b; --mp-on-danger:#2a0b0d;
+  --mp-success-text:#6fdc97; --mp-danger-text:#ff9b9b; --mp-warning-text:#f5c35b; --mp-info-text:#9cb8ff; --mp-neutral-text:#aeb7c0;
+  --mp-success-soft:#163b25; --mp-danger-soft:#4a1d20; --mp-warning-soft:#3f3013; --mp-info-soft:#1e2c52; --mp-neutral-soft:#2b3138;
   --mp-success-panel:#3c5955; --mp-danger-panel:#634852; --mp-warning-panel:#6a6445; --mp-info-panel:#375763;
+  --mp-tile-bg:#1b3446; --mp-tile-fg:#8cc4ea; --mp-avatar-bg:#2f3740; --mp-avatar-fg:#d5dde5;
   --mp-focus-shadow:none; --mp-scrim:rgb(0 0 0 / .55);
   color-scheme:dark;
 }
@@ -201,6 +211,91 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-dialog-body{display:grid;gap:6px}
 .mp-dialog .mp-actions{justify-content:flex-end}
 
+/* ===== readability layer (contract 1.0-draft.11, D39): hierarchy, kind tiles, status pills, labelled facts ===== */
+.mp-title{font-size:17px;letter-spacing:-.005em}
+.mp-section-title{font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mp-text)}
+.mp-note,.mp-muted,.mp-foot{color:var(--mp-text-muted)}
+.mp-btn{min-height:36px;border-radius:8px;font-weight:600}
+.mp-btn--tool{min-height:32px;border-radius:8px;background:var(--mp-card);color:var(--mp-text);border-color:var(--mp-control-border);font-weight:600}
+.mp-btn--secondary,.mp-btn--ghost{background:var(--mp-card);color:var(--mp-text-strong);border-color:var(--mp-control-border)}
+.mp-btn--secondary:hover:not(:disabled),.mp-btn--ghost:hover:not(:disabled){filter:none;background:var(--mp-canvas-subtle)}
+.mp-btn--approve{background:var(--mp-success-fill);color:var(--mp-on-success)}
+.mp-btn--reject{background:var(--mp-card);color:var(--mp-danger-text);border-color:currentColor}
+.mp-btn--approve:hover:not(:disabled){filter:brightness(.92)}
+.mp-btn--reject:hover:not(:disabled){background:var(--mp-danger-soft)}
+.mp-btn--link{min-height:32px;font-weight:600;text-decoration:none}
+.mp-btn--link:hover{text-decoration:underline}
+
+/* pills: a colour, a glyph and a word; red only means danger */
+.mp-chip{min-height:22px;padding:1px 9px;font-size:12px;font-weight:700;background:var(--mp-neutral-soft);color:var(--mp-neutral-text);border:0}
+.mp-chip--secondary,.mp-chip--meta,.mp-chip--outline{background:var(--mp-neutral-soft);color:var(--mp-neutral-text);border:0}
+.mp-chip--outline{font-weight:600}
+.mp-chip--success{background:var(--mp-success-soft);color:var(--mp-success-text)}
+.mp-chip--danger{background:var(--mp-danger-soft);color:var(--mp-danger-text)}
+.mp-chip--alarm{background:var(--mp-danger-fill);color:var(--mp-on-danger)}
+.mp-chip--warning{background:var(--mp-warning-soft);color:var(--mp-warning-text)}
+.mp-chip--info{background:var(--mp-info-soft);color:var(--mp-info-text)}
+.mp-step{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--mp-text);white-space:nowrap}
+
+/* kind tiles: a rounded square for a thing, a circle with initials for a person (shape says kind; one tint) */
+.mp-disc{width:32px;height:32px;border-radius:8px;background:var(--mp-tile-bg);color:var(--mp-tile-fg);box-shadow:none}
+.mp-disc--sm,.mp-inline .mp-disc{width:22px;height:22px;border-radius:6px}
+.mp-disc--lg{width:44px;height:44px}
+.mp-disc--person{border-radius:50%;background:var(--mp-avatar-bg);color:var(--mp-avatar-fg)}
+.mp-disc[data-initials]::before{content:attr(data-initials);font-size:12px;font-weight:700;letter-spacing:.02em;line-height:1}
+.mp-disc--sm[data-initials]::before,.mp-inline .mp-disc[data-initials]::before{font-size:9.5px}
+.mp-disc--lg[data-initials]::before{font-size:16px}
+.mp-tname{display:inline}
+.mp-tname > .mp-disc{display:inline-block;vertical-align:-5px;margin-right:6px;text-align:center;line-height:20px}
+.mp-tname > .mp-disc > svg{vertical-align:middle}
+.mp-badge-name{color:var(--mp-text-strong);font-weight:600}
+
+/* panels keep midPoint's alert tints; their text is the strong ink in both themes */
+.mp-panel,.mp-panel .mp-muted{color:var(--mp-text-strong)}
+
+/* cards (A): avatar | who → what; pills; labelled facts; foot with actions */
+.mp-card{border-radius:12px;background:var(--mp-card)}
+.mp-card-head{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:8px 12px;padding:14px 14px 0;background:none;border-bottom:0}
+.mp-card-title{gap:2px}
+.mp-card-title h2{font-size:16px;font-weight:700;line-height:1.35;color:var(--mp-text-strong)}
+.mp-card-title .mp-about-text{font-size:14px;color:var(--mp-text)}
+.mp-card-chips{grid-column:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.mp-card-body{gap:12px;padding:12px 14px 14px 58px}
+.mp-card-more{padding:12px 14px;background:var(--mp-canvas-subtle)}
+.mp-card-foot{padding:10px 14px;background:none}
+.mp-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:7px 16px;margin:0}
+.mp-facts dt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-text-muted);padding-top:3px;white-space:nowrap}
+.mp-facts dd{margin:0;color:var(--mp-text-strong);min-width:0;overflow-wrap:anywhere}
+.mp-quote{border-left:0;border-radius:8px;padding:10px 12px;background:var(--mp-canvas-subtle)}
+.mp-quote-lab{font-weight:600;color:var(--mp-text)}
+.mp-quote-text{font-size:15px}
+.mp-summary svg{color:var(--mp-primary)}
+
+/* ledger (B, full screen): one row per item, the open one shows its card */
+.mp-ledger{list-style:none;margin:0;padding:0;display:grid;border:1px solid var(--mp-border);border-radius:12px;overflow:hidden;background:var(--mp-card)}
+.mp-ledger > li + li{border-top:1px solid var(--mp-border)}
+.mp-lrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px 12px;align-items:center;width:100%;min-height:52px;padding:10px 14px;background:none;border:0;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.mp-lrow:hover{background:var(--mp-canvas-subtle)}
+.mp-lrow[aria-expanded="true"]{background:var(--mp-primary-soft)}
+.mp-lrow[aria-expanded="true"] > svg{transform:rotate(90deg)}
+.mp-lrow-title{color:var(--mp-text-strong);font-weight:600;overflow-wrap:anywhere}
+.mp-lrow-meta{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-top:4px}
+.mp-ledger .mp-card{border:0;border-radius:0}
+.mp-ledger .mp-card-body{padding-top:4px}
+.mp-lrow-title{font-size:15px}
+
+@container (min-width:560px){
+  .mp-card-head,.mp-card-more,.mp-card-foot{padding-inline:16px}
+  .mp-card-body{padding-inline:60px 16px}
+}
+@container (max-width:469px){
+  .mp-card-body{padding-left:14px}
+  .mp-facts{grid-template-columns:minmax(0,1fr);gap:0}
+  .mp-facts dd{margin-bottom:8px}
+  .mp-btn{min-height:40px}
+  .mp-btn--link{min-height:32px}
+}
+
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -320,8 +415,8 @@ const CAT = {
 'inbox.item.change.delete':`{requestee}: remove {target}`,
 'inbox.item.change.modify':`{requestee}: change {target}`,
 'inbox.item.change.unknown':`{requestee}: request about {target}`,
-'inbox.item.requestedBy':`Requested by {requester}`,
-'inbox.item.selfRequested':`Requested by {requestee} for themselves`,
+'inbox.item.requestedBy':`{requester}`,
+'inbox.item.selfRequested':`{requestee}, for themselves`,
 'inbox.item.requestedAt':`Requested {time}`,
 'inbox.item.deadline':`Decide by {time}`,
 'inbox.item.overdue':`Decision overdue since {time}`,
@@ -330,12 +425,17 @@ const CAT = {
 'inbox.item.noReason':`No reason given`,
 'inbox.item.cantApprove':`You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you.`,
 'inbox.item.risk':`Risk: {level}`,
-'inbox.item.why.manager':`You're asked because you manage {requestee}.`,
-'inbox.item.why.roleApprover':`You're asked because you approve requests for {target}.`,
-'inbox.item.why.roleOwner':`You're asked because you own {target}.`,
-'inbox.item.why.step':`You're asked for the "{name}" step.`,
-'inbox.item.why.assigned':`midPoint sent this request to you.`,
-'inbox.item.step':`Step {number} of {count}`,
+'inbox.item.why.manager':`You manage {requestee}`,
+'inbox.item.why.roleApprover':`You approve requests for {target}`,
+'inbox.item.why.roleOwner':`You own {target}`,
+'inbox.item.why.step':`You approve the "{name}" step`,
+'inbox.item.why.assigned':`midPoint sent it to you`,
+'inbox.item.step':`Approval {number} of {count}`,
+'inbox.item.removal':`Removal`,
+'inbox.row.decided':`Decided`,
+'inbox.fact.askedBy':`Asked by`,
+'inbox.fact.howLong':`How long`,
+'inbox.fact.why':`Why you`,
 'inbox.item.currentRoles':`{requestee} has {count, plural, one {# role} other {# roles}} in effect now, including ones that come with other roles`,
 'inbox.item.currentRolesHidden':`You can't see {requestee}'s current roles.`,
 'inbox.item.currentRolesHiddenPerson':`You can't see this person's current roles.`,
@@ -344,6 +444,10 @@ const CAT = {
 'inbox.action.reject':`Reject`,
 'inbox.action.approveLabel':`Approve {target} for {requestee}`,
 'inbox.action.rejectLabel':`Reject {target} for {requestee}`,
+'inbox.action.approveRemoval':`Approve removal`,
+'inbox.action.rejectRemoval':`Reject removal`,
+'inbox.action.approveRemovalLabel':`Approve removal of {target} from {requestee}`,
+'inbox.action.rejectRemovalLabel':`Reject removal of {target} from {requestee}`,
 'inbox.action.details':`Details`,
 'inbox.action.hideDetails':`Hide details`,
 'inbox.details.history':`Approval steps`,
@@ -453,6 +557,7 @@ const STROKES = {
   collapse:'M13.5 2.5 9.4 6.6M9.4 3.2v3.4h3.4M2.5 13.5l4.1-4.1M6.6 12.8V9.4H3.2',
   check:'M3.2 8.4l3 3 6.6-6.8',
   x:'M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6',
+  minus:'M3.6 8h8.8',
   clock:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM8 4.8V8l2.3 1.4',
   ban:'M8 2.2a5.8 5.8 0 1 1 0 11.6A5.8 5.8 0 0 1 8 2.2zM3.9 3.9l8.2 8.2',
   alert:'M8 2.3l6.1 10.9H1.9zM8 6.6v3M8 11.3v.2',
@@ -702,7 +807,17 @@ function requestValidity(v){
 }
 
 /* ================= small parts ================= */
-function disc(r, size){ const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : ''), 'aria-hidden':'true'}); el.append(glyph(KIND_GLYPH[r && r.type] || 'dot', 14)); return el; }
+/* 6.4 (D39): a person is a circle with initials, a thing a rounded square with its kind's glyph; one tint for all kinds */
+function initials(r){
+  const w = String((r && (r.displayName || r.name)) || '').trim().split(/\s+/).filter(Boolean);
+  return w.length ? (Array.from(w[0])[0] + (w.length > 1 ? Array.from(w[w.length - 1])[0] : '')).toUpperCase() : '';
+}
+function disc(r, size){
+  const person = isPerson(r), ini = person && !hiddenRef(r) ? initials(r) : '';
+  const el = h('span', {class:'mp-disc' + (size ? ' mp-disc--' + size : '') + (person ? ' mp-disc--person' : ''), 'aria-hidden':'true', 'data-initials':ini || null});
+  if (!ini) el.append(glyph(KIND_GLYPH[r && r.type] || 'dot', size === 'sm' ? 12 : 16));
+  return el;
+}
 function badge(r, o){
   o = o || {};
   return h('span', {class:'mp-badge'}, disc(r, o.size), h('span', {class:'mp-badge-text'}, h('span', {class:'mp-badge-name'}, o.nameNode || dispName(r))));
@@ -931,26 +1046,32 @@ function modelContext(res){
 /* ================= the card (7.1) ================= */
 const CHANGE_KEY = {add:'inbox.item.change.add', delete:'inbox.item.change.delete', modify:'inbox.item.change.modify', unknown:'inbox.item.change.unknown'};
 function cardHead(it, tid, decided){
-  const x = it.context, chips = [];
+  const x = it.context, k = wk(it), chips = [];
   if (x.target.riskLevel) chips.push(riskChip(x.target.riskLevel));
-  /* the decision clock (D19): neutral, warning under 4 hours, danger once overdue; gone once decided */
+  /* the decision clock (D19, D39): neutral, warning under 4 hours, solid danger once overdue; always the clock glyph; gone once decided */
   if (x.deadline && !decided){
     const d = Date.parse(x.deadline), now = Date.now(), over = !isNaN(d) && d < now, soon = !isNaN(d) && !over && d - now < 4 * 3600000;
-    chips.push(h('span', {class:'mp-chip ' + (over ? 'mp-chip--danger' : soon ? 'mp-chip--warning' : 'mp-chip--meta')}, icon('clock', 12),
+    chips.push(h('span', {class:'mp-chip ' + (over ? 'mp-chip--alarm' : soon ? 'mp-chip--warning' : 'mp-chip--meta')}, icon('clock', 12),
       t(over ? 'inbox.item.overdue' : 'inbox.item.deadline', {time:timeEl(x.deadline, {smart:true})})));
   }
-  const p = {requestee:dispNameStart(x.requestee), target:dispName(x.target)}, key = CHANGE_KEY[x.change];
+  if (x.change === 'delete') chips.push(chip('meta', 'minus', t('inbox.item.removal')));
+  const step = stepLine(x.stage);
+  if (step) chips.push(h('span', {class:'mp-step'}, icon('layers', 12), step));
+  const lab = {requestee:dispNameStart(x.requestee), target:dispName(x.target)}, key = CHANGE_KEY[x.change];
+  const p = {requestee:lab.requestee, target:h('span', {class:'mp-tname'}, disc(x.target, 'sm'), lab.target)};
   return h('div', {class:'mp-card-head'},
+    disc(x.requestee),
     h('div', {class:'mp-card-title'},
-      h('h2', {class:'mp-section-title', id:tid, 'aria-label':x.change === 'add' ? ts('inbox.item.change.addLabel', p) : null}, badge(x.target, {nameNode:t(key, p)})),
+      h('h2', {id:tid, 'aria-label':x.change === 'add' ? ts('inbox.item.change.addLabel', lab) : null}, t(key, p)),
+      x.target.description ? clampText('rd:' + k, x.target.description, 2, 'mp-about-text') : null,
       hiddenRef(x.requestee) ? null : personStatus(x.requestee)),
     chips.length ? h('div', {class:'mp-card-chips'}, chips) : null);
 }
 /* who asked: the title names the person (D33); an unreadable person is named once, in the title (D30) */
 function whoAsked(x){
   if (!x.requester.oid) return null;
-  if (x.requester.oid === x.requestee.oid) return hiddenRef(x.requestee) ? null : h('p', null, t('inbox.item.selfRequested', {requestee:inlBadge(x.requestee)}));
-  return h('p', null, t('inbox.item.requestedBy', {requester:inlBadge(x.requester)}));
+  if (x.requester.oid === x.requestee.oid) return hiddenRef(x.requestee) ? null : t('inbox.item.selfRequested', {requestee:dispName(x.requestee)});
+  return t('inbox.item.requestedBy', {requester:inlBadge(x.requester)});
 }
 function whyText(x){
   const p = {requestee:dispName(x.requestee), target:dispName(x.target), name:x.stage.name};
@@ -966,19 +1087,20 @@ function approveBodyKey(st){
   if (st.count > 0 && st.count > st.number) return 'confirm.approve.bodyMore';
   return 'confirm.approve.bodyUnknown';
 }
-function cardEl(it){
+/* flat (D39, B): the ledger row above already shows the title and pills, so the card leaves out its head */
+function cardEl(it, flat){
   const x = it.context, k = wk(it), id = idOf(k), row = S.rows[k], decided = !!(row && row.decided);
   const tid = 't-' + id, detId = 'det-' + id, open = !!S.det[k];
-  const body = [];
-  if (x.target.description) body.push(h('div', null, clampText('rd:' + k, x.target.description, 2, 'mp-about-text')));
-  body.push(whoAsked(x));
-  /* draft.9: how long and "No reason given" belong to a request for access; a removal or other change has neither */
-  if (x.change === 'add') body.push(line(icon('hourglass', 13), requestValidity(x.validity)));
+  const body = [], facts = [], asked = whoAsked(x);
+  if (flat && x.target.description) body.push(h('div', null, clampText('rd:' + k, x.target.description, 2, 'mp-about-text')));
+  /* D39: the facts as label and value; draft.9: how long belongs to a request for access only */
+  if (asked) facts.push(['inbox.fact.askedBy', asked]);
+  if (x.change === 'add') facts.push(['inbox.fact.howLong', requestValidity(x.validity)]);
+  facts.push(['inbox.fact.why', whyText(x)]);
+  body.push(h('dl', {class:'mp-facts'}, facts.map(([lk, v]) => [h('dt', null, t(lk)), h('dd', null, v)])));
   /* D30: a person you can't see is named once, in the title, so the quote label leaves them out */
   if (x.justification) body.push(quote(hiddenRef(x.requester) ? t('inbox.item.justificationHidden') : t('inbox.item.justification', {requester:dispName(x.requester)}), x.justification, 'j:' + k, 3));
   else if (x.change === 'add' && S.server && S.server.requestReason) body.push(h('p', {class:'mp-noreason'}, t('inbox.item.noReason')));
-  const step = stepLine(x.stage);
-  body.push(h('div', {class:'mp-lines'}, line(icon('info', 13), whyText(x)), step ? line(icon('layers', 13), step) : null));
   /* D36: no approving blind; Reject stays */
   if (hiddenRef(x.requestee) && canCall() && !decided) body.push(h('p', {class:'mp-banner mp-banner--info', role:'note'}, icon('lock'), h('span', null, t('inbox.item.cantApprove'))));
   if (row) body.push(h('div', {class:'mp-outcome'}, rowOutcome(k, row)));
@@ -990,16 +1112,38 @@ function cardEl(it){
   let actions = null;
   if (canCall() && !decided){
     const dry = !!(S.server && !S.server.writesEnabled), dis = !!(row && row.disabled) || null, lab = {target:dispName(x.target), requestee:dispName(x.requestee)};
+    const rem = x.change === 'delete' && !dry;
     actions = h('div', {class:'mp-actions'},
-      h('button', {type:'button', class:'mp-btn mp-btn--secondary', 'data-k':'reject:' + k, disabled:dis,
-        'aria-label':ts(dry ? 'inbox.action.previewRejectLabel' : 'inbox.action.rejectLabel', lab), onclick:() => openDecide(it, 'reject')},
-        icon('x', 13), t(dry ? 'inbox.action.previewReject' : 'inbox.action.reject')),
-      hiddenRef(x.requestee) ? null : h('button', {type:'button', class:'mp-btn mp-btn--primary', 'data-k':'approve:' + k, disabled:dis,
-        'aria-label':ts(dry ? 'inbox.action.previewApproveLabel' : 'inbox.action.approveLabel', lab), onclick:() => openDecide(it, 'approve')},
-        icon('check', 13), t(dry ? 'inbox.action.previewApprove' : 'inbox.action.approve')));
+      h('button', {type:'button', class:'mp-btn mp-btn--reject', 'data-k':'reject:' + k, disabled:dis,
+        'aria-label':ts(dry ? 'inbox.action.previewRejectLabel' : rem ? 'inbox.action.rejectRemovalLabel' : 'inbox.action.rejectLabel', lab), onclick:() => openDecide(it, 'reject')},
+        icon('x', 13), t(dry ? 'inbox.action.previewReject' : rem ? 'inbox.action.rejectRemoval' : 'inbox.action.reject')),
+      hiddenRef(x.requestee) ? null : h('button', {type:'button', class:'mp-btn mp-btn--approve', 'data-k':'approve:' + k, disabled:dis,
+        'aria-label':ts(dry ? 'inbox.action.previewApproveLabel' : rem ? 'inbox.action.approveRemovalLabel' : 'inbox.action.approveLabel', lab), onclick:() => openDecide(it, 'approve')},
+        icon('check', 13), t(dry ? 'inbox.action.previewApprove' : rem ? 'inbox.action.approveRemoval' : 'inbox.action.approve')));
   }
-  return h('article', {class:'mp-card', 'aria-labelledby':tid}, cardHead(it, tid, decided), h('div', {class:'mp-card-body'}, body), det,
+  return h('article', {class:'mp-card', 'aria-labelledby':tid}, flat ? null : cardHead(it, tid, decided), h('div', {class:'mp-card-body'}, body), det,
     h('div', {class:'mp-card-foot'}, more, actions));
+}
+/* D39, B: in full screen each request is one row (who, what, risk, clock); the first one, or the one picked, opens as its card */
+function ledgerRow(it, i){
+  const x = it.context, k = wk(it), id = idOf(k), open = S.lopen === undefined ? i === 0 : S.lopen === k;
+  const row = S.rows[k], decided = !!(row && row.decided), meta = [];
+  if (x.target.riskLevel) meta.push(riskChip(x.target.riskLevel));
+  if (x.deadline && !decided){
+    const d = Date.parse(x.deadline), now = Date.now(), over = !isNaN(d) && d < now, soon = !isNaN(d) && !over && d - now < 4 * 3600000;
+    meta.push(h('span', {class:'mp-chip ' + (over ? 'mp-chip--alarm' : soon ? 'mp-chip--warning' : 'mp-chip--meta')}, icon('clock', 12),
+      t(over ? 'inbox.item.overdue' : 'inbox.item.deadline', {time:timeEl(x.deadline, {smart:true})})));
+  }
+  if (x.change === 'delete') meta.push(chip('meta', 'minus', t('inbox.item.removal')));
+  const step = stepLine(x.stage);
+  if (step) meta.push(h('span', {class:'mp-step'}, icon('layers', 12), step));
+  if (decided) meta.push(h('span', {class:'mp-step'}, icon('check', 12), t('inbox.row.decided')));
+  const p = {requestee:dispNameStart(x.requestee), target:dispName(x.target)};
+  const btn = h('button', {type:'button', class:'mp-lrow', 'data-k':'lrow:' + k, 'aria-expanded':String(open), 'aria-controls':'lc-' + id,
+    onclick:() => { S.lopen = open ? null : k; render({focus:'lrow:' + k}); }},
+    disc(x.requestee), h('span', null, h('span', {class:'mp-lrow-title', id:'t-' + id}, t(CHANGE_KEY[x.change], p)), meta.length ? h('span', {class:'mp-lrow-meta'}, meta) : null),
+    icon('chevron', 14));
+  return [btn, open ? h('div', {id:'lc-' + id}, cardEl(it, true)) : null];
 }
 /* Details hold only what the card doesn't (D28) */
 function detailsEl(it, k){
@@ -1070,7 +1214,8 @@ function inboxEl(){
   const waiting = items.filter(it => !(S.rows[wk(it)] && S.rows[wk(it)].decided)).length;
   out.push(h('p', {class:'mp-summary'}, glyph('inbox', 15), h('span', null, t('inbox.summary', {count:waiting}))));
   const shown = isFull() ? items : items.slice(0, S.shown);
-  out.push(h('ul', {class:'mp-cards'}, shown.map(it => h('li', null, cardEl(it)))));
+  if (isFull()) out.push(h('ul', {class:'mp-ledger'}, shown.map((it, i) => h('li', null, ledgerRow(it, i)))));
+  else out.push(h('ul', {class:'mp-cards'}, shown.map(it => h('li', null, cardEl(it)))));
   if (shown.length < items.length) out.push(h('button', {type:'button', class:'mp-btn mp-btn--tool mp-more', 'data-k':'more-cards',
     onclick:() => { S.shown += PAGE; render({focus:'more-cards'}); }}, t('common.showMore')));
   return out;
