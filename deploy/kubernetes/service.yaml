@@ -1,0 +1,17 @@
+# Reaches the server's plain HTTP port from inside the cluster. Expose it only
+# through a proxy that terminates TLS, such as the one in ingress.example.yaml,
+# because every request carries a bearer token.
+apiVersion: v1
+kind: Service
+metadata:
+  name: midpoint-mcp-server
+  labels:
+    app.kubernetes.io/name: midpoint-mcp-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: midpoint-mcp-server
+  ports:
+    - name: http
+      port: 3001
+      targetPort: http

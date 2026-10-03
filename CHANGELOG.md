@@ -8,6 +8,26 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- Releases refuse to publish without a CHANGELOG section matching the tag, push a
+  signed multi-arch image to `ghcr.io/strazahq/midpoint-mcp-server`, attach SPDX
+  SBOMs, a signed `checksums.txt` and a rendered Kubernetes manifest, record
+  provenance attestations for the archives, the binaries and the image, and use
+  the CHANGELOG section as the release notes. The image is pushed by digest and
+  gets its version and `latest` tags only after it is signed and the release
+  exists, so a failed run never leaves a tagged, unsigned image.
+- Build-time dependencies, all GitHub Actions pinned by commit and none shipped in
+  the binary: the docker actions build and push the image, `anchore/sbom-action`
+  installs Syft for the SBOMs, `sigstore/cosign-installer` installs cosign for
+  keyless signing, and `actions/attest-build-provenance` records provenance.
+- Plain Kubernetes manifests in `deploy/kubernetes`: one hardened shared-mode
+  replica with TCP probes, because the server has no health endpoint and keeps MCP
+  sessions in memory.
+- A workflow renders the manifests and validates them with kubeconform in strict
+  mode; kubeconform is a CI tool only.
+- `docs/misconfigurations.md` lists the configuration mistakes that let one caller
+  act as another in midPoint or lock people out. `examples/keycloak.env` and
+  `examples/entra.env` are annotated shared-mode settings for those two identity
+  providers.
 - **The other three MCP Apps views (PLAN.md M10 later slices; contract
   7.2 to 7.4, `1.0-draft.9`).** Each is one self-contained document in
   `views/` (79 to 89 KB), built from the reviewed mockup on the inbox's
@@ -323,6 +343,11 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- The Dockerfile builds each architecture natively by cross-compiling, so
+  multi-arch images need no emulation.
+- The README, `docs/identity-providers.md` and `docs/authorization.md` were
+  rewritten, including the warning that `examples/role-mcp-rs-service.xml` alone
+  lacks the read rights user matching needs.
 - **Role lists show display names.** The requestee's current roles in
   `list_work_items` (and the other enriched role lists) use a role's display
   name where the caller can read it, through the same per-call cache, so the
@@ -380,6 +405,13 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Fixed
 
+- The server now stops on SIGTERM as well as Ctrl-C. Over HTTP it stops taking
+  new connections and waits up to five seconds for the requests in flight to
+  finish before it exits, so container and service managers no longer cut them.
+- The `--http` help text and the Dockerfile comment no longer say HTTP is
+  loopback-only. A bare port or a loopback address works without OIDC, and any
+  other address needs both `MIDPOINT_MCP_OIDC_ISSUER` and
+  `MIDPOINT_MCP_OIDC_AUDIENCE`.
 - **The `integration`-tagged tests compile again.** The team test still
   ranged over a team answer as a list after it became a `TeamResult`, so
   `go test -tags=integration` did not build the package.

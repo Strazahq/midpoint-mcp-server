@@ -1,7 +1,8 @@
 // Command midpoint-mcp-server exposes Evolveum midPoint over the Model Context
 // Protocol. It runs over stdio by default (personal mode: the configured
-// credentials' identity) or over streamable HTTP with --http. HTTP mode is
-// loopback-only until per-request auth lands (see PLAN.md M4.5).
+// credentials' identity) or over streamable HTTP with --http. HTTP mode binds a
+// non-loopback address only in resource-server mode, where every request
+// carries an OIDC bearer token and runs as the matching midPoint user.
 package main
 
 import (
@@ -25,7 +26,7 @@ func main() {
 		httpAddr    string
 		showVersion bool
 	)
-	flag.StringVar(&httpAddr, "http", "", "serve the streamable HTTP transport on this address (e.g. :3001 or 127.0.0.1:3001); default is stdio. Loopback only until M4.5.")
+	flag.StringVar(&httpAddr, "http", "", "serve the streamable HTTP transport on this address instead of stdio. A bare port or a loopback address works without OIDC, and any other address needs MIDPOINT_MCP_OIDC_ISSUER and MIDPOINT_MCP_OIDC_AUDIENCE.")
 	flag.BoolVar(&showVersion, "version", false, "print version and exit")
 	flag.Parse()
 

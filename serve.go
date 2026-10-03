@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	sdkauth "github.com/modelcontextprotocol/go-sdk/auth"
@@ -19,9 +20,13 @@ import (
 	"github.com/strazahq/midpoint-mcp-server/internal/oidcauth"
 )
 
+// shutdownSignals are the signals that stop the server cleanly: Ctrl-C from a
+// terminal, and SIGTERM, which Kubernetes, Docker and systemd send to stop it.
+var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
+
 // serveStdio runs the server over stdio (personal mode).
 func serveStdio(client *midpoint.Client, cfg midpoint.Config) error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), shutdownSignals...)
 	defer stop()
 
 	log.Printf("%s %s serving on stdio (midPoint: %s; writes: %s)",
@@ -37,7 +42,7 @@ func serveStdio(client *midpoint.Client, cfg midpoint.Config) error {
 // mapped to a midPoint user, and executes as that user — so binding a
 // network-reachable address is allowed.
 func serveHTTP(addr string, client *midpoint.Client, cfg midpoint.Config) error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), shutdownSignals...)
 	defer stop()
 
 	var authn *oidcauth.Authenticator
@@ -61,7 +66,9 @@ func serveHTTP(addr string, client *midpoint.Client, cfg midpoint.Config) error 
 	}
 
 	// Shut down gracefully when signalled.
+	shutdownDone := make(chan struct{})
 	go func() {
+		defer close(shutdownDone)
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -83,6 +90,9 @@ func serveHTTP(addr string, client *midpoint.Client, cfg midpoint.Config) error 
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+	// ListenAndServe returns as soon as Shutdown starts. Waiting here lets the
+	// requests in flight finish before the process exits.
+	<-shutdownDone
 	return nil
 }
 

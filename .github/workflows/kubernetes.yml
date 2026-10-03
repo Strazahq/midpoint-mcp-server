@@ -1,0 +1,58 @@
+name: Kubernetes manifests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "deploy/kubernetes/**"
+      - ".github/workflows/kubernetes.yml"
+  pull_request:
+    paths:
+      - "deploy/kubernetes/**"
+      - ".github/workflows/kubernetes.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      KUBECONFORM_VERSION: v0.8.0
+      KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
+      # One fixed Kubernetes version, the oldest these manifests aim to support,
+      # so the result changes only when this line does.
+      KUBERNETES_VERSION: 1.35.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install kubeconform
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSLo kubeconform.tar.gz \
+            "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  kubeconform.tar.gz" | sha256sum -c -
+          mkdir -p bin
+          tar -xzf kubeconform.tar.gz -C bin kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Render the kustomization
+        run: |
+          set -euo pipefail
+          kubectl version --client
+          kubectl kustomize deploy/kubernetes > "$RUNNER_TEMP/rendered.yaml"
+          # The release pins the version through the images entry, which only
+          # takes effect when its name matches the image in deployment.yaml.
+          if ! grep -Eq '^ +image: ghcr\.io/strazahq/midpoint-mcp-server:[^ ]+$' "$RUNNER_TEMP/rendered.yaml"; then
+            echo "The images entry in kustomization.yaml did not set a tag on the Deployment's image. Make its name match the image in deployment.yaml."
+            exit 1
+          fi
+
+      - name: Validate the manifests and the Ingress example
+        run: |
+          kubeconform -strict -summary -kubernetes-version "${KUBERNETES_VERSION}" \
+            "$RUNNER_TEMP/rendered.yaml" deploy/kubernetes/ingress.example.yaml

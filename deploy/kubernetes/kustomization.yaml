@@ -1,0 +1,25 @@
+# Runs midpoint-mcp-server in shared mode. Apply it with:
+#   kubectl apply -k deploy/kubernetes
+# Create the Secret named midpoint-mcp-server first, as README.md in this
+# directory explains. The Secret is not part of this kustomization, so applying
+# it never overwrites your credentials. ingress.example.yaml is not listed here
+# either, because it needs your host name and certificate.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+
+# The selector of a Deployment cannot change after it is created, so add new
+# pairs below with includeSelectors set to false.
+labels:
+  - pairs:
+      app.kubernetes.io/name: midpoint-mcp-server
+    includeSelectors: true
+
+# A release sets newTag to its version in the rendered manifest it attaches.
+# Change newTag here to pin a version yourself.
+images:
+  - name: ghcr.io/strazahq/midpoint-mcp-server
+    newTag: latest

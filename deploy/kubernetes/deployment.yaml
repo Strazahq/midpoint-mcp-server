@@ -1,0 +1,80 @@
+# midpoint-mcp-server in shared mode. It serves streamable HTTP at /mcp on port
+# 3001, checks the OIDC bearer token on every request, and runs each call in
+# midPoint as the token's user. Every setting comes from the Secret named
+# midpoint-mcp-server.
+#
+# One replica, on purpose. The server keeps each MCP session in memory, and a
+# request whose Mcp-Session-Id header names a session held by another pod gets
+# 404 "session not found". A second replica therefore needs a proxy that sends
+# every request of a session to the same pod, by hashing that header. A restart
+# or a rollout ends the open sessions, and MCP clients then start new ones. The
+# pod keeps no other state and needs no volume.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: midpoint-mcp-server
+  labels:
+    app.kubernetes.io/name: midpoint-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: midpoint-mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: midpoint-mcp-server
+    spec:
+      # The server never calls the Kubernetes API.
+      automountServiceAccountToken: false
+      # Keeps the environment to the Secret's settings, without the variables
+      # Kubernetes would otherwise add for every Service in the namespace.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: midpoint-mcp-server
+          image: ghcr.io/strazahq/midpoint-mcp-server
+          # The image's entrypoint is the server, so these are its flags. The
+          # server binds an address other than loopback only in shared mode, so
+          # it refuses to start when the Secret lacks MIDPOINT_MCP_OIDC_ISSUER or
+          # MIDPOINT_MCP_OIDC_AUDIENCE. Go listens on IPv6 too for 0.0.0.0.
+          args: ["--http", "0.0.0.0:3001"]
+          envFrom:
+            - secretRef:
+                name: midpoint-mcp-server
+          ports:
+            - name: http
+              containerPort: 3001
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          # The server has no health endpoint. /mcp answers 401 to a request
+          # without a token and every other path answers 404, so an HTTP probe
+          # would always fail, and the image has no shell for an exec probe.
+          # The port opens only after the settings have passed validation and the
+          # identity provider's discovery document has been read, so a TCP check
+          # shows that the server started and still accepts connections.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20

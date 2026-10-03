@@ -1,0 +1,43 @@
+# An example Ingress that terminates TLS in front of midpoint-mcp-server. The
+# server speaks plain HTTP, and every request carries a bearer token that anyone
+# reading the traffic could replay, so clients must only ever reach it over
+# HTTPS. See "Put TLS in front of the server" in docs/misconfigurations.md.
+#
+# It is not part of the kustomization. Copy it, change each value marked
+# "Change" below, and apply your copy with kubectl apply -f in the same
+# namespace as the Service.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: midpoint-mcp-server
+  labels:
+    app.kubernetes.io/name: midpoint-mcp-server
+spec:
+  # Change: the IngressClass of your controller. Remove the line to use the
+  # cluster's default class.
+  ingressClassName: <ingress-class>
+  tls:
+    - hosts:
+        # Change: the host name your MCP clients use, the same as in rules.
+        - mcp.example.com
+      # Change: the Secret of type kubernetes.io/tls that holds the certificate
+      # for that host, made with kubectl create secret tls or by cert-manager.
+      secretName: midpoint-mcp-server-tls
+  rules:
+    # Change: the same host name as in tls.
+    - host: mcp.example.com
+      http:
+        paths:
+          # The server answers only under /mcp.
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: midpoint-mcp-server
+                port:
+                  name: http
+# Check two things on your controller. It must not also serve this host over
+# plain HTTP, other than a redirect to HTTPS. And because some responses are
+# server-sent event streams that stay open, it should not buffer responses, and
+# its read timeout should allow an idle stream. Controllers set both with their
+# own annotations under metadata.
