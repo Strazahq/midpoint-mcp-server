@@ -20,7 +20,7 @@ const writeTools=(name,after='closed',extra={})=>({cancel_request:[{...result(na
 const caseTools=fx=>({get_case:[{result:(fx??fixture('case')).result}]});
 const NO_TOOLS={openLinks:{},updateModelContext:{}};
 
-check('ac01.groups','7.3 AC1','waiting then finished, newest first, status and human names',async t=>{
+check('ac01.groups','7.3 AC1, D39','waiting then finished, newest first, status and human names; who it is now with as a fact',async t=>{
  const fx=derive('list',M.mixed),v=await open(t,fx);
  const waiting=v.frame.getByRole('region',{name:S['myRequests.group.open'],exact:true}),finished=v.frame.getByRole('region',{name:S['myRequests.group.closed'],exact:true});
  t.ok(await v.visible(waiting),'no waiting group');t.ok(await v.visible(finished),'no finished group');
@@ -29,13 +29,29 @@ check('ac01.groups','7.3 AC1','waiting then finished, newest first, status and h
  for(const [label,status] of [['Database admin','waiting'],['Finance reports','approved'],['Archive reader','rejected'],['Directory reader','closed']])t.ok(await v.hasText(S['status.case.'+status],{within:row(v,label)}),`missing ${status}`);
  const surface=await v.surfaceStrings();
  for(const forbidden of ['bstone','mkovac','Assigning role','40000000-','RoleType'])t.ok(!surface.includes(forbidden),`surface leaked ${forbidden}`);
- t.ok(await v.hasText('Waiting for Mia Kovac'),'missing waiting assignee');t.ok(await v.hasText(S['validity.permanent']),'missing unlimited phrase');
+ const facts=await row(v).getByRole('term').allTextContents();t.ok(facts.includes(S['myRequests.fact.nowWith']),`facts ${facts}`);t.ok(await v.hasText('Mia Kovac',{within:row(v)}),'missing waiting assignee');t.ok(await v.hasText(text('myRequests.row.step',{number:1,count:2}),{within:row(v)}),'missing approval step');t.ok(await v.hasText(S['validity.permanent']),'missing unlimited phrase');
  t.ok((await v.calls()).length===0,'entry list caused calls');
 });
 check('ac01.other-person','7.3 AC1','a request for someone else names that person',async t=>{const v=await open(t,derive('list',M.other));t.ok(await v.hasText(text('myRequests.row.forOther',{user:'Dana Lee'})),'missing requestee');const d=await confirm(v);t.ok(await v.hasText(text('confirm.withdraw.body',{role:'Database admin',user:'Dana Lee'}),{within:d}),'wrong other-person confirm');});
 check('ac01.hidden','7.3 AC1, 4.5','unreadable people and unnamed roles use human fallbacks',async t=>{const v=await open(t,derive('list',M.hidden));t.ok(await v.hasText(S['common.personHidden']),'missing hidden person');t.ok(await v.hasText(S['common.itemHidden']),'missing hidden role');t.ok(!(await v.surfaceStrings()).includes('hidden-login'),'hidden login leaked');});
 check('ac01.created','7.3 AC1, S16','created requests are waiting and withdrawable',async t=>{const v=await open(t,derive('list',M.created));t.ok(await v.visible(withdraw(v)),'created request has no withdrawal');t.ok(await v.visible(v.frame.getByRole('region',{name:S['myRequests.group.open']})),'created request in wrong group');});
 for(const [mutation,pattern] of [[M.permanent,/No end date/],[M.dates,/Access for 5 days/],[M.future,/Access from[\s\S]* for 4 days/]])check('ac01.validity.'+mutation.name,'7.3 AC1, 4.5','requested access: '+mutation.name,async t=>{const v=await open(t,derive('list',mutation));t.ok(pattern.test(norm(await v.text())),'wrong requested access phrase: '+await v.text());});
+check('ac01.decided-by','7.3 AC1, 6.15, D39','a finished row names who decided once the case is read, and quotes a rejection comment literally',async t=>{
+ const v=await open(t,derive('list',M.rejectedList),{tools:caseTools(derive('case',M.rejectedCase))});
+ t.ok(await v.hasText(S['status.case.rejected'],{within:row(v)}),'missing rejected');t.ok(!(await v.hasText(text('myRequests.row.by',{name:'Dana Lee'}),{within:row(v)})),'decider shown before the case was read');
+ await button(v,'myRequests.action.details').click();await settle();await button(v,'myRequests.action.hideDetails').click();await settle();
+ for(const s of [text('myRequests.row.by',{name:'Dana Lee'}),text('timeline.comment',{name:'Dana Lee'}),'Not this quarter.'])t.ok(await v.hasText(s,{within:row(v)}),`missing ${s}`);
+ t.ok((await row(v).getByRole('figure').count())===1,'rejection comment not a single quotation');t.ok(!(await v.visible(withdraw(v))),'finished row offers withdrawal');
+});
+check('b.ledger','7.3 AC1, 6.13, D39','full screen lists both groups as ledger rows with the same facts and an outlined Withdraw',async t=>{
+ const v=await open(t,derive('list',M.mixed));await button(v,'common.expand').click();await settle();
+ for(const key of ['myRequests.group.open','myRequests.group.closed'])t.ok(await v.visible(v.frame.getByRole('region',{name:S[key],exact:true})),`no ${key} band`);
+ const names=await v.frame.getByRole('article').getByRole('heading').allTextContents();t.ok(names.join('|')==='Release manager|Database admin|Archive reader|Finance reports|Directory reader',`order ${names}`);
+ t.ok(await v.hasText(text('myRequests.row.waitingFor',{names:'Mia Kovac'}),{within:row(v)}),'missing who it is with');t.ok(await v.hasText(text('myRequests.row.step',{number:1,count:2}),{within:row(v)}),'missing approval step');
+ t.ok(await v.hasText(S['validity.permanent'],{within:row(v,'Finance reports')}),'finished row lacks the requested access');t.ok(await v.hasText(S['status.case.rejected'],{within:row(v,'Archive reader')}),'missing rejected');
+ t.ok(await v.visible(withdraw(v)),'no withdrawal in full screen');t.ok(await v.visible(row(v).getByRole('button',{name:S['myRequests.action.details'],exact:true})),'no details in full screen');
+ t.ok(!/(^|\s)[–-](\s|$)/.test(await v.text()),'empty cell placeholder');t.ok((await v.calls()).length===0,'ledger called tools');
+});
 check('ac02.details','7.3 AC2, 6.15','details read once, retain names, justification and comments',async t=>{
  const fx=fixture('case'),v=await open(t,'list',{tools:caseTools()});
  await row(v).getByRole('button',{name:S['myRequests.action.details'],exact:true}).click();await settle();
@@ -215,6 +231,10 @@ for(const theme of ['light','dark'])check('shared.contrast.'+theme,'6.9, 6.12','
  await confirm(v);t.ok((await contrastIssues(v)).length===0,'dialog contrast: '+JSON.stringify(await contrastIssues(v)));
  const preview=await open(t,derive('list',M.preview),{context:{theme},tools:writeTools('preview')});await submit(preview,'dryrun.submit');t.ok((await contrastIssues(preview)).length===0,'preview contrast: '+JSON.stringify(await contrastIssues(preview)));
 });
+for(const theme of ['light','dark'])check('shared.contrast-groups.'+theme,'6.9, 6.12, D39','contrast on waiting cards, finished rows and the full-screen ledger in '+theme,async t=>{
+ const v=await open(t,derive('list',M.mixed),{context:{theme}});t.ok((await contrastIssues(v)).length===0,'groups contrast: '+JSON.stringify(await contrastIssues(v)));
+ await button(v,'common.expand').click();await settle();t.ok((await contrastIssues(v)).length===0,'ledger contrast: '+JSON.stringify(await contrastIssues(v)));await t.shot(v,theme+'-ledger');
+});
 check('shared.invalid-shape','6.7','invalid structured result without tool falls back to text',async t=>{const fx=derive('list',function invalidShape(res){res.structuredContent={};});const v=await open(t,fx);t.ok(await v.hasText(S['state.textOnly']),'invalid shape stuck loading');});
 check('shared.code-first','6.8','stable error code overrides contradictory raw text',async t=>{const fx=derive('not-authorized',function misleading(res){res.content=[{type:'text',text:'only the requester can withdraw'}];});const v=await open(t,'list',{tools:{cancel_request:[{result:fx.result}]}});await submit(v);t.ok(await v.hasText(S['error.notAuthorized']),'text overrode code');});
 check('shared.legacy-error','6.8','older server error text still maps to requester error',async t=>{const fx=derive('not-your-request',function noCode(res){delete res._meta;});const v=await open(t,'list',{tools:{cancel_request:[{result:fx.result}]}});await submit(v);t.ok(await v.hasText(S['error.notYourRequest']),'legacy error not classified');});
@@ -226,6 +246,6 @@ check('shared.entry-preview','7.3 outcome mode','preview entry has preview notic
 check('shared.size-stable','6.13','size observer reports changed dimensions without a message loop',async t=>{const v=await open(t);await settle();const before=await v.sent('ui/notifications/size-changed');await sleep(350);const after=await v.sent('ui/notifications/size-changed');t.ok(before.length>0 && before.length===after.length,'unstable size notifications');});
 check('bridge.handshake','3.4, 3.5','declares stable protocol and display modes before initialized',async t=>{const v=await open(t);const messages=await v.log();const init=messages.find(x=>x.dir==='view>host' && x.msg.method==='ui/initialize'),done=messages.find(x=>x.dir==='view>host' && x.msg.method==='ui/notifications/initialized');t.ok(init?.msg.params.protocolVersion==='2026-01-26','wrong protocol');t.ok(JSON.stringify(init?.msg.params.appCapabilities.availableDisplayModes)==='["inline","fullscreen"]','wrong display modes');t.ok(done?.seq>init?.seq,'initialize order');});
 check('shared.fullscreen-absent','6.13','Expand absent when fullscreen unsupported',async t=>{const v=await open(t,'list',{context:{availableDisplayModes:['inline']}});t.ok(!(await v.visible(button(v,'common.expand'))),'Expand unsupported');});
-check('shared.names-cap','6.11','long assignee lists show first three and remaining count',async t=>{const fx=derive('list',function manyPeople(res){res.structuredContent.requests[0].waitingFor=Array.from({length:5},(_,i)=>({oid:String(i),type:'User',displayName:'Person '+(i+1)}));});const v=await open(t,fx);t.ok(await v.hasText(text('myRequests.row.waitingFor',{names:'Person 1, Person 2, Person 3, and 2 more'})),'long names not capped');});
+check('shared.names-cap','6.11','long assignee lists show first three and remaining count',async t=>{const fx=derive('list',function manyPeople(res){res.structuredContent.requests[0].waitingFor=Array.from({length:5},(_,i)=>({oid:String(i),type:'User',displayName:'Person '+(i+1)}));});const v=await open(t,fx);t.ok(await v.hasText('Person 1, Person 2, Person 3, and 2 more'),'long names not capped');});
 check('shared.closed-time','6.11','closed request details include absolute closure time',async t=>{const fx=derive('case',function recentClose(res){res.structuredContent.state='closed';res.structuredContent.closedAt=new Date(Date.now()-60000).toISOString();});const v=await open(t,fx);const texts=await v.frame.getByText(/^Finished /).allTextContents();t.ok(texts.some(s=>s.includes('(') && s.includes(')')),'absolute close timestamp missing from Details');});
 check('shared.opaque-oid','4.1, 9','opaque OIDs remain data and pass back unchanged',async t=>{const fx=derive('list',function opaqueOid(res){res.structuredContent.requests[0].oid='__proto__';});const detail=derive('case',function opaqueCase(res){res.structuredContent.oid='__proto__';});const v=await open(t,fx,{tools:caseTools(detail)});await button(v,'myRequests.action.details').click();await settle();t.ok(await v.hasText(S['timeline.justification']),'opaque OID broke row');t.ok((await v.calls('get_case'))[0].args.oid==='__proto__','OID altered');});

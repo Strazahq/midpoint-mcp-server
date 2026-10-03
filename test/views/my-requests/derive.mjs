@@ -36,6 +36,8 @@ export const M = {
  dates(res){const now=Date.now();res.structuredContent.requests[0].validity={validFrom:new Date(now-86400000).toISOString(),validTo:new Date(now+86400000*5).toISOString()};},
  future(res){const now=Date.now();res.structuredContent.requests[0].validity={validFrom:new Date(now+86400000*2).toISOString(),validTo:new Date(now+86400000*5).toISOString()};},
  permanent(res){delete res.structuredContent.requests[0].validity;},
+ rejectedList(res){const c=res.structuredContent.requests[0];c.state='closed';c.outcome='reject';c.closedAt='2026-10-01T11:00:00Z';c.waitingFor=[];delete c.stage;},
+ rejectedCase(res){const c=res.structuredContent;c.state='closed';c.outcome='reject';c.closedAt='2026-10-01T11:00:00Z';c.workItems[0].outcome='reject';c.workItems[0].comment='Not this quarter.';c.workItems[1].closedAt='2026-10-01T11:00:00Z';},
  stale(res){const m={'midpoint-mcp-server/error':{v:1,code:'not-found'}};delete res.structuredContent;res.isError=true;res._meta=m;res.content=[{type:'text',text:'midPoint refused https://example.invalid/private'}];},
 };
 export const slot = (name,decision,extra={}) => derive(name,function intermediary(res){delete res.structuredContent;res._meta={'intermediary/decision':{v:1,decision,audited:true,...extra}};res.content=[{type:'text',text:'An intermediary answered.'}];});
