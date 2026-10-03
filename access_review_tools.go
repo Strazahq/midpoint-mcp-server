@@ -14,7 +14,19 @@ func accessReviewText(line1 string, res midpoint.UserAssignments) string {
 	t := newListText(line1)
 	t.group("Direct assignments:")
 	for _, a := range res.Assignments {
-		t.item(a.TargetName, textField{"oid", a.TargetOID}, textField{"type", a.TargetType}, textField{"relation", a.Relation}, textField{"status", a.Status}, textField{"validFrom", a.ValidFrom}, textField{"validTo", a.ValidTo})
+		var o midpoint.AssignmentOrigin
+		if a.Origin != nil {
+			o = *a.Origin
+		}
+		t.item(a.TargetName, textField{"oid", a.TargetOID}, textField{"type", a.TargetType}, textField{"relation", a.Relation}, textField{"status", a.Status}, textField{"validFrom", a.ValidFrom}, textField{"validTo", a.ValidTo},
+			textField{"created", o.CreatedAt}, textField{"createdBy", originName(o.CreatedBy)}, textField{"requestedBy", originName(o.RequestedBy)}, textField{"approvedBy", refNames(o.ApprovedBy)})
+		approver := ""
+		if len(o.ApprovedBy) == 1 {
+			approver = originName(&o.ApprovedBy[0])
+		}
+		for _, c := range o.ApprovalComments {
+			t.untrusted(fieldComment, fromApprover(approver), c)
+		}
 	}
 	t.group("Effective membership:")
 	for _, m := range res.Effective {
@@ -25,6 +37,14 @@ func accessReviewText(line1 string, res midpoint.UserAssignments) string {
 		t.item(m.Name, textField{"oid", m.OID}, textField{"type", m.Type}, textField{"source", source})
 	}
 	return t.String()
+}
+
+// originName names a person in an assignment's origin, or "" for none.
+func originName(r *midpoint.ObjectRef) string {
+	if r == nil {
+		return ""
+	}
+	return refNames([]midpoint.ObjectRef{*r})
 }
 
 // accessReviewTeamText lists the visible reports under the existing summary.

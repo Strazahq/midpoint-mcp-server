@@ -89,7 +89,7 @@ func (c *Client) GetUserAssignments(ctx context.Context, oid string) (UserAssign
 		if err := json.Unmarshal(raw, &a); err != nil {
 			return UserAssignments{}, fmt.Errorf("decoding assignment: %w", err)
 		}
-		entry := Assignment{Status: a.Activation.status(), Subtype: a.Subtype}
+		entry := Assignment{Status: a.Activation.status(), Subtype: a.Subtype, Origin: r.origin(ctx, raw)}
 		if a.Activation != nil {
 			entry.ValidFrom, entry.ValidTo = a.Activation.ValidFrom, a.Activation.ValidTo
 		}

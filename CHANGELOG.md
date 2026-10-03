@@ -6,6 +6,16 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+### Added
+
+- `get_user_assignments` says where each assignment came from: `origin` with
+  when midPoint created it and by whom, who requested it and when, who approved
+  it and their comments. It comes from the assignment's own metadata (midPoint
+  4.10 value metadata, or the older metadata container), which a plain read
+  returns, so it needs no midPoint rights beyond reading the user. The text
+  answer adds `created`, `createdBy`, `requestedBy` and `approvedBy`, and marks
+  approver comments as untrusted text.
+
 ### Changed
 
 - **Breaking for tool callers:** the write tools take the midPoint names of

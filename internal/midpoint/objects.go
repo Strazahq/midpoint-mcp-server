@@ -287,6 +287,8 @@ type Assignment struct {
 	Relation   string     `json:"relation,omitempty"`
 	Status     string     `json:"status,omitempty"`
 	Subtype    string     `json:"subtype,omitempty"`
+	// Origin is who requested, approved and created the assignment, when midPoint recorded it.
+	Origin *AssignmentOrigin `json:"origin,omitempty"`
 }
 
 // Membership is one effective role membership (direct or inherited).
