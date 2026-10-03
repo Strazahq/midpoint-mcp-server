@@ -110,8 +110,8 @@ func allWriteCalls() []struct {
 		args map[string]any
 	}{
 		{"create_user", map[string]any{"name": "jack"}},
-		{"disable_user", map[string]any{"oid": "user-1"}},
-		{"enable_user", map[string]any{"oid": "user-1"}},
+		{"disable_user", map[string]any{"oid": "user-1", "userName": "jack"}},
+		{"enable_user", map[string]any{"oid": "user-1", "userName": "jack"}},
 		{"assign_role", map[string]any{"userOid": "user-1", "userName": "jack", "roleOid": "role-1", "roleName": "role-one"}},
 		{"unassign_role", map[string]any{"userOid": "user-1", "userName": "jack", "roleOid": "role-1", "roleName": "role-one"}},
 		{"recompute_user", map[string]any{"oid": "user-1", "userName": "jack"}},
@@ -149,7 +149,7 @@ func TestWriteGateOnApplies(t *testing.T) {
 	cs := connectWithWrites(t, srv, true) // gate ON
 
 	// disable_user → PATCH with the replace-disabled delta.
-	out := callTool(t, cs, "disable_user", map[string]any{"oid": "user-1"})
+	out := callTool(t, cs, "disable_user", map[string]any{"oid": "user-1", "userName": "jack"})
 	if out["applied"] != true || out["dryRun"] != false {
 		t.Errorf("disable_user: applied=%v dryRun=%v", out["applied"], out["dryRun"])
 	}

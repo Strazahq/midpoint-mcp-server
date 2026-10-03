@@ -86,6 +86,7 @@ func registerTools(server *mcp.Server, client *midpoint.Client, cfg midpoint.Con
 	registerRequestTools(server, client, cfg.AllowWrites, info)
 	registerAuditTools(server, client)
 	registerTeamTools(server, client, info)
+	registerMyAccessTools(server, client)
 }
 
 // writeState describes the write gate for startup logging.

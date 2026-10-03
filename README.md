@@ -477,7 +477,8 @@ results by default and at most 100.
 | --- | --- |
 | `search_users` | Finds users by a substring of name, full name or email, or by exact oid. |
 | `get_user` | Reads one user by oid. |
-| `get_user_assignments` | Lists a user's direct assignments and effective role membership, each marked direct or inherited. |
+| `get_user_assignments` | Lists a user's direct assignments and effective role membership, each marked direct or inherited, and where each assignment came from: who created, requested and approved it. |
+| `get_my_access` | The same for the caller's own access. |
 | `list_roles`, `get_role` | Lists roles, or reads one role by oid. |
 | `list_resources`, `get_resource` | Lists connected systems, or reads one by oid with its connection status where midPoint reports it. |
 
@@ -500,6 +501,7 @@ results by default and at most 100.
 | `list_my_team` | Lists the caller's direct reports: the members of the orgs the caller manages. |
 | `list_my_managers` | Lists the managers of the orgs the caller belongs to. |
 | `list_my_teammates` | Lists the other members of the orgs the caller belongs to. |
+| `list_expiring_access` | Lists the assignments of the caller and their direct reports that end within the next days (30 by default), soonest first. |
 
 Team results name the identity they answered for and the org links they used, so an
 empty result shows why it is empty. The `team.*` keys of the settings file decide
@@ -516,6 +518,11 @@ midPoint's usual answer is an authorization whose object selector uses
 | `search_audit` | Queries the audit trail over a time range, the last 30 days by default, by initiator, target, event type, outcome or channel. midPoint 4.10 has no REST audit endpoint, so this runs a server-side script. It needs script-execution authorization and does not work in shared mode. |
 
 ### Administration
+
+Every write tool takes the midPoint `name` of the user and role it changes
+(`userName`, `roleName`) next to their OIDs, so an app that asks you to
+allow the call shows names you can check. The server refuses a name that
+doesn't match its OID before writing.
 
 | Tool | What it does |
 | --- | --- |

@@ -8,6 +8,11 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- `get_my_access` lists the caller's own access, with where each assignment
+  came from. `list_expiring_access` lists the assignments of the caller and
+  their direct reports that end within the next days (30 by default, at most
+  365), soonest first, read as the caller. People midPoint hides are listed by
+  OID. Neither needs new midPoint rights.
 - `get_user_assignments` says where each assignment came from: `origin` with
   when midPoint created it and by whom, who requested it and when, who approved
   it and their comments. It comes from the assignment's own metadata (midPoint
@@ -37,7 +42,7 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   what they change next to the OIDs: `decide_work_item`, `cancel_request`,
   `unassign_role` and `assign_role` require `userName` and `roleName`,
   `request_role` requires `roleName` (and `userName` with `userOid`), and
-  `recompute_user` requires `userName`. These are the objects' unique `name`
+  `recompute_user`, `enable_user` and `disable_user` require `userName`. These are the objects' unique `name`
   attribute (such as a login), not display names. A host that asks the person
   to allow a tool call shows these arguments, so the person now reads
   "bstone" and "db-admin" instead of two OIDs. The server reads the objects as

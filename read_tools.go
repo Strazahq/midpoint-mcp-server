@@ -80,9 +80,10 @@ type getUserAssignmentsOutput struct {
 
 func registerGetUserAssignments(server *mcp.Server, client *midpoint.Client, info serverInfo) {
 	addTool(server, &mcp.Tool{
-		Name:        "get_user_assignments",
-		Title:       "Get user assignments",
-		Description: "List a user's direct assignments and effective role membership (each flagged direct or inherited) — what they have and why.",
+		Name:  "get_user_assignments",
+		Title: "Get user assignments",
+		Description: "List a user's direct assignments and effective role membership (each flagged direct or inherited) — what they have and why, " +
+			"with where each assignment came from (who requested and approved it). " + untrustedTextNote,
 	}, viewTool("get_user_assignments", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, getUserAssignmentsOutput, error) {
 		res, err := client.GetUserAssignments(ctx, in.OID)
 		if err != nil {

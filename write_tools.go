@@ -104,17 +104,23 @@ func registerCreateUser(server *mcp.Server, client *midpoint.Client, allowWrites
 // --- enable_user / disable_user ---
 
 func registerSetUserEnabled(server *mcp.Server, client *midpoint.Client, allowWrites, enable bool) {
-	name, title, desc := "disable_user", "Disable user", "Disable a midPoint user (activation → disabled). Requires the write gate; otherwise a dry-run preview."
+	const names = "userName is the user's midPoint name (their login, not the full name); the call is refused when it doesn't match the OID, " +
+		"so the person confirming it reads the right name. "
+	name, title, desc := "disable_user", "Disable user", "Disable a midPoint user (activation → disabled). "+names+"Requires the write gate; otherwise a dry-run preview."
 	if enable {
-		name, title, desc = "enable_user", "Enable user", "Enable a midPoint user (activation → enabled). Requires the write gate; otherwise a dry-run preview."
+		name, title, desc = "enable_user", "Enable user", "Enable a midPoint user (activation → enabled). "+names+"Requires the write gate; otherwise a dry-run preview."
 	}
 	addTool(server, &mcp.Tool{
 		Name:        name,
 		Title:       title,
 		Description: desc,
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, writeOutput, error) {
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in userWriteInput) (*mcp.CallToolResult, writeOutput, error) {
 		plan, err := client.PlanSetUserEnabled(in.OID, enable)
 		if err != nil {
+			return nil, writeOutput{}, err
+		}
+		user := client.NamedRef(ctx, in.OID, "UserType")
+		if err := confirmRef("userName", "user", in.UserName, &user); err != nil {
 			return nil, writeOutput{}, err
 		}
 		return runWrite(ctx, allowWrites, client, plan)
@@ -188,7 +194,8 @@ func registerUnassignRole(server *mcp.Server, client *midpoint.Client, allowWrit
 
 // --- recompute_user ---
 
-type recomputeUserInput struct {
+// userWriteInput names one user by OID and midPoint name (D38).
+type userWriteInput struct {
 	OID      string `json:"oid" jsonschema:"OID of the user"`
 	UserName string `json:"userName" jsonschema:"the user's midPoint name (their login, not the full name); must match oid"`
 }
@@ -200,7 +207,7 @@ func registerRecomputeUser(server *mcp.Server, client *midpoint.Client, allowWri
 		Description: "Recompute (reconcile) a user so midPoint re-evaluates policies and propagates changes. " +
 			"userName is the user's midPoint name (their login, not the full name); the call is refused when it doesn't match the OID, " +
 			"so the person confirming it reads the right name. Requires the write gate; otherwise a dry-run preview.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in recomputeUserInput) (*mcp.CallToolResult, writeOutput, error) {
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in userWriteInput) (*mcp.CallToolResult, writeOutput, error) {
 		plan, err := client.PlanRecomputeUser(in.OID)
 		if err != nil {
 			return nil, writeOutput{}, err
