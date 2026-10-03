@@ -26,6 +26,7 @@ var contractFallback = []struct {
 	{midpoint.CodeNotYourRequest, []string{"only the requester can withdraw"}},
 	{midpoint.CodeRequestClosed, []string{", not open,"}},
 	{midpoint.CodeAlreadyDecided, []string{"is already closed"}},
+	{midpoint.CodeNotClaimed, []string{"nobody has claimed it"}},
 	{midpoint.CodeNotInInbox, []string{"has no work item", "is assigned to"}},
 	{midpoint.CodeNotAssigned, []string{"has no direct assignment to"}},
 	{midpoint.CodeAuditUnavailable, []string{"executeScript", "execute-script"}},

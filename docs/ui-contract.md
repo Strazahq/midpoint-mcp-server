@@ -7,7 +7,7 @@
 | **Targets** | MCP Apps extension `io.modelcontextprotocol/ui`, stable revision **2026-01-26**; the midPoint 4.10 GUI look |
 | **Build first** | [Requests to approve](#71-requests-to-approve--build-first) (the approval inbox) |
 | **Writes** | Plain REST only; approver comments are the only comments ([6.5.1](#651-comment-storage)) |
-| **Open questions** | Three: Q2 to Q4 ([section 11](#11-decisions-and-open-questions)) |
+| **Open questions** | Two: Q2 and Q3 ([section 11](#11-decisions-and-open-questions)); Q4 settled by D40 |
 
 This contract defines four interactive views ("apps") that an MCP host can render
 next to this server's tool results, the typed results the tools return for them,
@@ -43,6 +43,14 @@ a phone, and a UX and accessibility reviewer), and their fixes are folded in.
   `origin`: created when and by whom, requested by, approved by, and the
   approvers' comments, from midPoint's value metadata **[live]** on 4.10.3.
   My team's access says "approved by …" from it.
+- **Approvals offered to a group** (D40, settles Q4; S28): the inbox lists
+  open work items offered to a group the person belongs to.
+  - Such an item shows "Offered to {group}" and a Claim button in place of
+    Approve and Reject.
+  - A claimed item can be released.
+  - `decide_work_item` refuses an unclaimed offered item with the new code
+    `not-claimed`.
+  - The tools are `claim_work_item` and `release_work_item`.
 
 **1.0-draft.10 (2026-10-03)**, the owner's D38
 ([section 11](#11-decisions-and-open-questions)): readable confirmations.
@@ -1762,6 +1770,7 @@ Friendly sentence plus expandable details [default].
 | `not-your-request` | `error.notYourRequest` | `only the requester can withdraw` | `cancel_request` pre-check (S16) |
 | `request-closed` | `error.requestClosed` | `, not open,` | `cases.go` `CheckDecidable` (the decide pre-check); `cancel_request` pre-check uses the same phrase (S16) |
 | `already-decided` | `error.alreadyDecided` | `is already closed` | `cases.go` `CheckDecidable` (the work item, not the case, is closed) |
+| `not-claimed` | `error.notClaimed` | `nobody has claimed it` | `cases.go` `CheckDecidable` and `claim.go` (an item offered to a group that nobody claimed, D40) |
 | `not-in-inbox` | `error.notInInbox` | `has no work item` or `is assigned to` | `cases.go` `CheckDecidable` (no such work item; assigned to someone else) |
 | `not-assigned` | `error.notAssigned` | `has no direct assignment to` | `write.go` `PlanUnassignRole` |
 | `audit-unavailable` | none since draft.7 (no view calls `search_audit`, D24) | `executeScript` or `execute-script`, **only in a `search_audit` result** | the audit script path (`search_audit` is the only tool that uses the script endpoint) |
@@ -2064,6 +2073,7 @@ line per draft.9 D37.
 | --- | --- | --- |
 | `list_work_items` | agent (entry); view (Refresh) | entry: as given; Refresh: the entry arguments; view-initiated with none known: `{ "limit": 50 }`. Lists the work items **assigned** to the acting identity; items only offered to a group are not listed (Q4) |
 | `decide_work_item` | view (Approve, Reject); agent (entry, outcome mode) | `{ "caseOid", "userName", "roleName", "workItemId", "decision": "approve" or "reject", "comment"? }` with `caseOid` and `workItemId` taken verbatim from the item, and `userName` and `roleName` the `name` of its `requestee` and `target` (empty when the result has none; D38) |
+| `claim_work_item`, `release_work_item` | view (Claim on an offered item, Release on a claimed one; each with a confirm dialog) | `{ "caseOid", "userName", "roleName", "workItemId" }`, the names checked as for `decide_work_item` (D38); refused before writing when the item isn't offered to, or held by, the caller (D40) |
 | `get_case` | view: once per card, the first time its Details open; never on a read-only host | `{ "oid": caseOid }` |
 | `whoami` | view (header fallback) | `{}` |
 
@@ -2999,6 +3009,7 @@ All additive. Text changes only where S13 says so. Numbered for reference.
 | S25 | **Draft.8 data** (D28, D30, D32): `server.requestReason`; `RoleMembership.via` and `effectiveMembership[].via` from the `roleMembershipRef` value metadata `provenance/assignmentPath` (first segment's `targetRef` when the path has two or more segments); role `description` on `get_user_assignments` targets; `get_case` `stages[]` from `approvalContext/approvalSchema/stage`; `requesteeAccess.roles` limited to memberships in effect | `get_user_assignments`, `list_work_items`, `get_case`, all view-bearing results (`server`) | **[live]** 4.10.3: assignment path metadata on `roleMembershipRef` (two segments for an induced role, the direct role first); `approvalSchema/stage[]` with `name` and `evaluationStrategy`. **[live]** 4.10.3 (M10.2): the metadata is returned when read as a person holding only the stock End user and Approver roles, and as a manager |
 | S26 | **Names on writes** (D38): `decide_work_item`, `cancel_request`, `request_role`, `unassign_role`, `assign_role` and `recompute_user` take `userName` and `roleName` (`recompute_user` only `userName`; `request_role` needs `userName` only with `userOid`), the midPoint `name` of the objects their OIDs point to. The server names those objects the way the list results do, read as the acting identity, falling back to the name midPoint stores in the reference when the object can't be read. It compares case-insensitively and refuses a missing or different name, and a name where midPoint shows none, before any write and before the dry-run preview, with `invalid-input`. | the six write tools | unit, views |
 | S27 | **Assignment origin** (D39): `get_user_assignments` gives each assignment an optional `origin` with `createdAt`, `createdBy`, `requestedAt`, `requestedBy`, `approvedBy[]` and `approvalComments[]`. These come from the assignment's value metadata (4.10: `@metadata/storage` and `@metadata/process`; before 4.10 the `metadata` container), which a plain GET returns to anyone who may read the assignment **[live]** on 4.10.3. People are named as the caller. The comments are text by people, untrusted in the tool's text. | `get_user_assignments` | unit, views |
+| S28 | **Claim and release** (D40): `list_work_items` items gain `offered`, `claimed` and `offeredTo`, and `context.reason` gains `group`. New write tools `claim_work_item` and `release_work_item` (`POST /cases/{oid}/workItems/{id}/claim`, `/release`; write gate, dry run, D38 names) check the case before writing, because midPoint answers a claim or release on a closed item with 204 and changes nothing **[live]**. `decide_work_item` refuses an unclaimed offered item with `not-claimed`. `get_case` work items gain `offeredTo`. | `list_work_items`, `claim_work_item`, `release_work_item`, `decide_work_item`, `get_case` | unit, views, live |
 
 **S16 `cancel_request` in detail.**
 
@@ -3452,6 +3463,30 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `inbox.action.rejectRemoval` | Reject removal |
 | `inbox.action.approveRemovalLabel` | Approve removal of {target} from {requestee} |
 | `inbox.action.rejectRemovalLabel` | Reject removal of {target} from {requestee} |
+| `error.notClaimed` | Claim this request first: it's offered to a group, and only the person who claims it can approve or reject it. |
+| `inbox.item.offered` | Offered to {group} |
+| `inbox.item.offeredHelp` | Anyone in {group} can take this request. Claim it to approve or reject it yourself. |
+| `inbox.item.why.group` | It was sent to {group}, and you're in it |
+| `inbox.item.why.claimed` | You claimed it from {group} |
+| `inbox.group.unnamed` | a group you're in |
+| `inbox.action.claim` | Claim |
+| `inbox.action.claimLabel` | Claim {target} for {requestee} |
+| `inbox.action.previewClaim` | Preview claim |
+| `inbox.action.previewClaimLabel` | Preview claim of {target} for {requestee} |
+| `inbox.action.release` | Release |
+| `inbox.action.releaseLabel` | Release {target} for {requestee} |
+| `inbox.action.previewRelease` | Preview release |
+| `inbox.action.previewReleaseLabel` | Preview release of {target} for {requestee} |
+| `confirm.claim.title` | Claim {role} for {requestee}? |
+| `confirm.claim.body` | It's offered to {group}. Once you claim it, only you can approve or reject it, until you release it. |
+| `confirm.claim.submit` | Claim |
+| `confirm.release.title` | Release {role} for {requestee}? |
+| `confirm.release.body` | It goes back to {group}, undecided, and anyone there can claim it. |
+| `confirm.release.submit` | Release |
+| `inbox.outcome.claimed` | Claimed. You can approve or reject it now. |
+| `inbox.outcome.released` | Released. It's back with {group}. |
+| `inbox.outcome.claimUnconfirmed` | Sent to midPoint, but it doesn't show this request as yours yet. Refresh to check. |
+| `inbox.outcome.releaseUnconfirmed` | Sent to midPoint, but it still shows this request as yours. Refresh to check. |
 | `inbox.action.details` | Details |
 | `inbox.action.hideDetails` | Hide details |
 | `inbox.details.history` | Approval steps |
@@ -3714,6 +3749,7 @@ midPoint is searched automatically only when the loaded list was cut off.
 | D37 | You decide your own part only (owner: "u approve ur thing only"). The inbox card says which step the request is at, "Step N of M" (`inbox.item.step`, from `stage.number` and `stage.count`, which approvers can read), and nothing about who else decides. Without `stage.count`, no step line [default]. The approve dialog's sentence follows the steps only: last step, more steps, or unknown; never other approvers. Because the view no longer knows whether others in the same step must still agree, `confirm.approve.bodyFinal` speaks about the last step, not "the last approval needed". `coAssignees`, `stageApprovers`, `stage.strategy` and `nextApprovers` stay in the results (the first three also in the list text) for agents; views ignore all four. The owner's answers on the draft.9 review: (1) the approver's "Approval steps" in Details name no people, one line per step ("Step 1" or "Step 1, Team leads") with only its state, no decided-by and no comments; the requester's timeline (V3) stays as in draft.8; (2) after an approval that leaves the case open the outcome is always `inbox.outcome.approvedOpen`, and `inbox.outcome.approvedNext` is removed; (3) "Step 1 of 1" is shown for a one-step request, the same line on every card, telling the approver theirs is the last step. Supersedes D20 for the card; narrows D14, D15 and, for V1, D28. | 6.5, 6.15, 7.1, 10.6, 10.10, 10.11, S8, S23 |
 | D38 | Readable confirmations (owner, 2026-10-03: the phone's "allow this tool" card showed only OIDs). Every write tool also takes the midPoint `name` of the person and the role it changes, and the server refuses the call when a name doesn't match its OID, so the card can't show one thing while the call does another. The owner chose the `name` attribute over display names because midPoint keeps it unique, so the check never has to guess. | S26; 7.1 to 7.4 |
 | D39 | Readable views (owner, 2026-10-03: "extremely hard to read, everything same element same color"). After two independent reviews of a mockup, the views take layout A inline (labelled facts, avatars and one-tint kind tiles, status pills, real buttons) and layout B in full screen (a ledger). Colour means status only; midPoint blue stays primary; the AdminLTE palette is no longer binding (revises owner decision 3 and D31). The reviewers' fixes are in: inline labels under 560 px, outlined write buttons of at least 36 px, a distinct overdue pill, "Approve removal", plain words, and the contrast fixes. | 6.4, 6.9, 6.10, 7.1 to 7.4, 10; S27 |
+| D40 | Approvals offered to a group (settles Q4). An approval step whose approver is an org or role offers its work item to that group (`candidateRef`, no assignee, midPoint's default `byClaimingWorkItem`) **[live]** on 4.10.3. The inbox lists those items as `offered` with `offeredTo`; the card shows "Offered to {group}" and Claim; once claimed it is a normal card with Release. midPoint checks the claim itself: a `candidateRef` must be the person or one of their `roleMembershipRef` targets **[source]**. To see such an item an approver needs `read` on CaseType `workItem` with `candidateAssignee` `self`, the same as midPoint's own claimable-items page, and the server account needs `rest-3#claimWorkItem` and `#releaseWorkItem` (docs/authorization.md). | 7.1, 6.8; S28 |
 
 **Open questions** (draft.8, D35; shown in the mockup's review mode):
 
@@ -3722,7 +3758,7 @@ midPoint is searched automatically only when the loaded list was cut off.
 | Q1 | ~~Should a manager approve access for a person they can't see in midPoint?~~ | **Settled by D36**: no; Reject stays. | |
 | Q2 | What should "turned off" mean to a manager, and should turned-off roles show at all? | A disabled assignment stays on the person but grants nothing; a manager may read it as "still has access" or as "already removed". | Keep the row with "Turned off, not in effect" (draft.8); move turned-off roles to their own section; or hide them and say how many are hidden. |
 | Q3 | When do per-person signals return (D25)? | My team merged into My team's access because it had nothing per person; pending requests and access ending soon would make a team list worth its own view. | After the inbox ships and the S25 data is live; with the first manager feedback; or not in 1.0. |
-| Q4 | Should the inbox show approval items offered to a group the person belongs to? | `list_work_items` lists only work items assigned to the acting identity (`workItem/assigneeRef`, `cases.go` `ListWorkItems`). When an approval policy names a group (an org or role of approvers) instead of people, midPoint's default (`groupExpansion` `byClaimingWorkItem`) offers the item to the group's members with no assignee until one claims it, so a group approver sees an empty inbox. Items for people named directly, including role approvers by relation, are listed. midPoint 4.10.3 has plain REST endpoints for it: `POST /cases/{oid}/workItems/{id}/claim` and `/release` (**[source]** `ModelRestController.java:1078`, `:1102`); not fired yet. | List them with "Offered to your team: {group}" and a Take it step (claim) before Approve and Reject; claim automatically when the person decides (two calls, one confirm); or leave them to midPoint's own Claimable list and say so in the empty inbox. |
+| Q4 | Should the inbox show approval items offered to a group the person belongs to? | **Settled by D40** (2026-10-03). | |
 
 
 **Later ideas** (not planned for this version): a relation picker in Get

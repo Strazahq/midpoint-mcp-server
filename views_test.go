@@ -214,7 +214,7 @@ func TestUISessionToolLinkage(t *testing.T) {
 		// Their views aren't served yet: callable from views, but no link.
 		"list_requestable_roles": nil, "request_role": nil, "list_my_requests": nil, "get_case": nil, "cancel_request": nil,
 		"get_user_assignments": nil, "unassign_role": nil, "list_my_team": nil,
-		"list_my_managers": nil, "whoami": nil,
+		"list_my_managers": nil, "whoami": nil, "claim_work_item": nil, "release_work_item": nil,
 		// Every other tool is the agent's alone.
 		"ping": modelOnly, "search_users": modelOnly, "get_user": modelOnly, "list_roles": modelOnly,
 		"get_role": modelOnly, "list_resources": modelOnly, "get_resource": modelOnly,
@@ -336,9 +336,9 @@ func TestViewResources(t *testing.T) {
 // viewTools are the tools a view renders or calls (contract 4.2): their
 // results lead with tool, acting and server.
 var viewTools = []string{
-	"cancel_request",
+	"cancel_request", "claim_work_item",
 	"decide_work_item", "get_case", "get_user_assignments", "list_my_managers", "list_my_requests",
-	"list_my_team", "list_requestable_roles", "list_work_items", "request_role", "unassign_role", "whoami",
+	"list_my_team", "list_requestable_roles", "list_work_items", "release_work_item", "request_role", "unassign_role", "whoami",
 }
 
 func TestViewToolsDeclareViewFields(t *testing.T) {

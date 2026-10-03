@@ -490,7 +490,8 @@ results by default and at most 100.
 | `request_role` | Requests a role for the caller or a report, with optional `validFrom`, `validTo` and form `fields`. By default it refuses roles not flagged `requestable`. The result says `GRANTED` when no approval policy matched and midPoint applied the role at once. Write gate. |
 | `list_my_requests` | Lists the approval cases the caller started. |
 | `cancel_request` | Withdraws the caller's own open request, after checking its requester and state. midPoint must allow the caller to cancel the case. Write gate. |
-| `list_work_items` | Lists the caller's approval inbox. |
+| `list_work_items` | Lists the caller's approval inbox, including requests offered to a group the caller belongs to (`offered`, `offeredTo`). |
+| `claim_work_item`, `release_work_item` | Claims a request offered to the caller's group, so only the caller can decide it, or hands it back. midPoint needs the approver to be able to read offered items, see `docs/authorization.md`. Write gate. |
 | `get_case` | Reads an approval case with its work items. |
 | `decide_work_item` | Approves or rejects a work item in the caller's inbox, with an optional comment, and reports the outcome midPoint recorded. It refuses an item that is not open or not the caller's, even with writes off. Write gate. |
 

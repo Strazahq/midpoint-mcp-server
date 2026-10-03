@@ -53,6 +53,8 @@
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#addObject</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#modifyObject</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#completeWorkItem</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#claimWorkItem</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#releaseWorkItem</action>
     </authorization>
 
     <!--

@@ -263,6 +263,18 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
     strings, palette and layout, including contrast in both themes and no
     overflow at 320 px; `go test ./...` passes. Next: `list_recent_errors`
     as a text tool only; no new views.
+- **M11 — self-service and operator tools (2026-10-03, owner: "go implement
+  rec")**: text tools (no new views) plus the inbox's Claim.
+  - **For everyone:** `get_my_access` and `list_expiring_access`.
+  - **Group-offered approvals** (D40, Q4 settled): `claim_work_item` and
+    `release_work_item`.
+  - **For operators:** `list_recent_errors`, `list_tasks` and `get_task`,
+    `run_task`, `suspend_task` and `resume_task`, and `test_resource`.
+  - Every write takes D38 names.
+
+  Each was fired against midPoint 4.10.3 (throwaway objects deleted). AC:
+  `go test ./...` and the four view suites pass; the integration-tagged live
+  tests pass against a 4.10 instance.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

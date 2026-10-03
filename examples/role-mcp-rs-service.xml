@@ -56,16 +56,22 @@
         modifyObject    PATCH /ws/rest/users/{oid}       (enable/disable, assign,
                                                           unassign, request, recompute)
         completeWorkItem POST /ws/rest/cases/{oid}/workItems/{id}/complete
+        claimWorkItem   POST /ws/rest/cases/{oid}/workItems/{id}/claim   (claim_work_item)
+        releaseWorkItem POST /ws/rest/cases/{oid}/workItems/{id}/release (release_work_item)
+      Not included: runTask, suspendTask, resumeTask and testResource (the operator
+      tools). Add them only where operators should act from the assistant.
     -->
     <authorization>
         <name>rest-entry</name>
-        <description>The REST operations the 27 tools use. Endpoint-level only; object access comes from the impersonated user.</description>
+        <description>The REST operations the tools use. Endpoint-level only; object access comes from the impersonated user.</description>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getSelf</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getObject</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#searchObjects</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#addObject</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#modifyObject</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#completeWorkItem</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#claimWorkItem</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#releaseWorkItem</action>
     </authorization>
 
     <!--

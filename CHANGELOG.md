@@ -8,6 +8,23 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- Approvals offered to a group (contract D40, settles Q4):
+  - `list_work_items` also lists open work items offered to a group the
+    caller belongs to (`offered`, `offeredTo`), and marks those the caller
+    claimed (`claimed`).
+  - New write tools `claim_work_item` and `release_work_item` use midPoint's
+    plain REST claim and release endpoints, with dry-run previews and name
+    checks. They refuse before writing, because midPoint answers a no-op
+    claim with 204.
+  - `decide_work_item` refuses an unclaimed offered item with the new code
+    `not-claimed`.
+  - The approval inbox shows "Offered to {group}" with a Claim button, and
+    Release on claimed items.
+
+  This needs `rest-3#claimWorkItem` and `#releaseWorkItem` on the REST account,
+  now in both example roles, and a `candidateAssignee` read authorization for
+  approvers, the same one midPoint's own claimable-items page needs. Stock
+  midPoint roles don't show offered items. No new dependencies.
 - Operator tools for server tasks and resource tests:
   - `list_tasks` and `get_task` read midPoint tasks as the caller. Filters
     are name, execution state, result status and `finishedSince`. For one

@@ -176,9 +176,37 @@ In shared mode the `rest-3` actions are checked for the service account and the
 | `recompute_user` | `PATCH /users/{oid}?options=reconcile` | `modifyObject` | `modify` on UserType, with an empty change |
 | `decide_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` on CaseType |
 | `cancel_request` | `POST /cases/{oid}/cancel` | `cancelCase` | Not yet verified |
+| `claim_work_item`, `release_work_item` | `POST /cases/{oid}/workItems/{id}/claim`, `/release` | `claimWorkItem`, `releaseWorkItem` | None for the person: midPoint checks that a `candidateRef` of the item is the person or one of their `roleMembershipRef` targets. To *see* an item offered to their group, an approver needs `read` on CaseType `workItem` with `candidateAssignee` `self`, see below. Verified on 4.10.3 |
+| `list_tasks`, `get_task` | `POST /tasks/search`, `GET /tasks/{oid}` | `searchObjects`, `getObject` | `read` on TaskType. midPoint's End user reads the tasks it owns |
+| `run_task`, `suspend_task`, `resume_task` | `POST /tasks/{oid}/run`, `/suspend`, `/resume` | `runTask`, `suspendTask`, `resumeTask` | midPoint's task control authorizations. An End user is refused even on its own task. Verified on 4.10.3 |
+| `test_resource` | `POST /resources/{oid}/test` | `testResource` | midPoint's resource test authorization. An End user is refused. Verified on 4.10.3 |
+| `list_recent_errors` | the task, resource and shadow searches above, and the audit route of `search_audit` | `searchObjects`, `getObject`, and `executeScript` for its audit part | `read` on TaskType, ResourceType and ShadowType. Without script access the audit part is skipped, not failed |
 | No tool. midPoint's projector does this as a consequence of the activation and assignment rows. | none | none | `add`, `modify` and `delete` on ShadowType whenever the affected users are provisioned |
 | `search_audit` | `POST /rpc/executeScript` | `executeScript` | `executeScript`, `auditRead`, and `read` on SystemConfigurationType, and a deployment expression profile |
 | Correlation, in shared mode only, run as the service account itself | `POST /users/search` | `searchObjects` | `read` on the users in scope, see [Let the service account find users](#let-the-service-account-find-users) |
+
+**Approvals offered to a group.** When an approval step names an org or role
+as its approver, midPoint offers the work item to that group (`candidateRef`,
+no assignee) until someone claims it. midPoint's stock Approver role can't see
+such an item: the case reads, but midPoint removes the work item. The read
+authorization below makes it visible. midPoint's own "claimable" work items
+page needs the same one. Verified on 4.10.3, with the shape of midPoint's
+`role-approver-standard-with-candidates.xml` test role:
+
+```xml
+<authorization>
+    <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#read</action>
+    <object>
+        <parent>
+            <type>CaseType</type>
+            <path>workItem</path>
+        </parent>
+        <candidateAssignee>
+            <special>self</special>
+        </candidateAssignee>
+    </object>
+</authorization>
+```
 
 Neither example role grants `rest-3#cancelCase`, so with the roles as shipped
 `cancel_request` is refused at the REST layer. Add the action to the `rest-entry`
