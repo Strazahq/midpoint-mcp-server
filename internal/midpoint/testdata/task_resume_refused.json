@@ -1,0 +1,33 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+    "@type": "c:OperationResultType",
+    "operation": "resumeTask",
+    "status": "fatal_error",
+    "importance": "normal",
+    "start": "2026-10-03T18:27:34.302Z",
+    "end": "2026-10-03T18:27:34.319Z",
+    "message": "Attempted to resume non-recurring task that was not suspended. Task = Task(id:1791051220018-58493-1, name:e5e5 probe noop task, oid:e5e5e5e5-0000-4000-8000-00000000a5c1), scheduling state = READY",
+    "partialResults": [
+      {
+        "operation": "com.evolveum.midpoint.model.impl.controller.ModelController.resumeTasks",
+        "status": "fatal_error",
+        "importance": "normal",
+        "start": "2026-10-03T18:27:34.312Z",
+        "end": "2026-10-03T18:27:34.317Z",
+        "message": "Attempted to resume non-recurring task that was not suspended. Task = Task(id:1791051220018-58493-1, name:e5e5 probe noop task, oid:e5e5e5e5-0000-4000-8000-00000000a5c1), scheduling state = READY",
+        "partialResults": [
+          {
+            "operation": "com.evolveum.midpoint.task.api.TaskManager.resumeTask",
+            "status": "fatal_error",
+            "importance": "normal",
+            "start": "2026-10-03T18:27:34.312Z",
+            "end": "2026-10-03T18:27:34.317Z",
+            "message": "Attempted to resume non-recurring task that was not suspended. Task = Task(id:1791051220018-58493-1, name:e5e5 probe noop task, oid:e5e5e5e5-0000-4000-8000-00000000a5c1), scheduling state = READY"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+    "@type": "c:OperationResultType",
+    "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.test",
+    "status": "success",
+    "importance": "normal",
+    "start": "2026-10-03T18:11:55.731Z",
+    "end": "2026-10-03T18:11:58.852Z",
+    "partialResults": [
+      {
+        "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector",
+        "status": "success",
+        "importance": "normal",
+        "start": "2026-10-03T18:11:55.731Z",
+        "end": "2026-10-03T18:11:58.796Z",
+        "partialResults": [
+          {
+            "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector.instantiation",
+            "status": "success",
+            "importance": "normal",
+            "start": "2026-10-03T18:11:55.731Z",
+            "end": "2026-10-03T18:11:55.731Z"
+          },
+          {
+            "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector.initialization",
+            "status": "success",
+            "importance": "normal",
+            "start": "2026-10-03T18:11:55.731Z",
+            "end": "2026-10-03T18:11:56.903Z",
+            "partialResults": [
+              {
+                "operation": "com.evolveum.midpoint.provisioning.ucf.api.ConnectorInstance.configure",
+                "status": "success",
+                "importance": "normal",
+                "start": "2026-10-03T18:11:55.735Z",
+                "end": "2026-10-03T18:11:56.005Z"
+              },
+              {
+                "operation": "com.evolveum.midpoint.provisioning.ucf.api.ConnectorInstance.initialize",
+                "status": "success",
+                "importance": "normal",
+                "start": "2026-10-03T18:11:56.903Z",
+                "end": "2026-10-03T18:11:56.903Z"
+              }
+            ]
+          },
+          {
+            "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector.connection",
+            "status": "success",
+            "importance": "normal",
+            "start": "2026-10-03T18:11:56.903Z",
+            "end": "2026-10-03T18:11:58.654Z",
+            "partialResults": [
+              {
+                "operation": "com.evolveum.midpoint.provisioning.ucf.api.ConnectorInstance.test",
+                "status": "success",
+                "importance": "normal",
+                "start": "2026-10-03T18:11:56.903Z",
+                "end": "2026-10-03T18:11:58.654Z"
+              }
+            ]
+          },
+          {
+            "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector.capabilities",
+            "status": "success",
+            "importance": "normal",
+            "start": "2026-10-03T18:11:58.654Z",
+            "end": "2026-10-03T18:11:58.795Z",
+            "partialResults": [
+              {
+                "operation": "com.evolveum.midpoint.provisioning.ucf.api.ConnectorInstance.fetchCapabilities",
+                "status": "success",
+                "importance": "minor",
+                "start": "2026-10-03T18:11:58.654Z",
+                "end": "2026-10-03T18:11:58.795Z",
+                "partialResults": [
+                  {
+                    "operation": "org.identityconnectors.framework.api.ConnectorFacade.getSupportedOperations",
+                    "status": "success",
+                    "importance": "normal",
+                    "start": "2026-10-03T18:11:58.654Z",
+                    "end": "2026-10-03T18:11:58.654Z"
+                  },
+                  {
+                    "operation": "org.identityconnectors.framework.api.ConnectorFacade.schema",
+                    "status": "success",
+                    "importance": "normal",
+                    "start": "2026-10-03T18:11:58.655Z",
+                    "end": "2026-10-03T18:11:58.792Z"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.resourceSchema",
+        "status": "success",
+        "importance": "normal",
+        "start": "2026-10-03T18:11:58.796Z",
+        "end": "2026-10-03T18:11:58.852Z",
+        "partialResults": [
+          {
+            "operation": "com.evolveum.midpoint.provisioning.ucf.api.ConnectorInstance.fetchResourceSchema",
+            "status": "success",
+            "importance": "normal",
+            "start": "2026-10-03T18:11:58.796Z",
+            "end": "2026-10-03T18:11:58.796Z"
+          }
+        ]
+      },
+      {
+        "operation": "com.evolveum.midpoint.repo.cache.RepositoryCache.getVersion",
+        "status": "success",
+        "importance": "normal",
+        "start": "2026-10-03T18:11:58.852Z",
+        "end": "2026-10-03T18:11:58.852Z"
+      }
+    ]
+  }
+}

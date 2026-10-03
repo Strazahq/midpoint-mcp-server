@@ -248,7 +248,7 @@ func cut(s string, n int) string {
 
 // --- failed tasks ---
 
-type taskJSON struct {
+type healthTaskJSON struct {
 	OID                    string     `json:"oid"`
 	Name                   polyString `json:"name"`
 	ResultStatus           string     `json:"resultStatus"`
@@ -278,7 +278,7 @@ func (c *Client) failedTasks(ctx context.Context, since time.Time, limit int) Fa
 		sec.More, raws = true, raws[:limit]
 	}
 	for _, raw := range raws {
-		var t taskJSON
+		var t healthTaskJSON
 		if err := json.Unmarshal(raw, &t); err != nil || t.OID == "" {
 			continue
 		}
@@ -332,7 +332,7 @@ func (c *Client) taskMessage(ctx context.Context, oid string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var t taskJSON
+	var t healthTaskJSON
 	if err := json.Unmarshal(obj, &t); err != nil {
 		return "", err
 	}

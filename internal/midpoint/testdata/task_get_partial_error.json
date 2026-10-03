@@ -1,0 +1,230 @@
+{
+  "task": {
+    "oid": "e5e5e5e5-2c32-4704-b080-8665d778fad5",
+    "version": "22",
+    "name": "e5e5e5e5 probe failing change",
+    "iteration": 0,
+    "iterationToken": "",
+    "archetypeRef": {
+      "oid": "00000000-0000-0000-0000-000000000528",
+      "relation": "org:default",
+      "type": "c:ArchetypeType",
+      "targetName": "Utility task"
+    },
+    "taskIdentifier": "1791051208843-58493-1",
+    "ownerRef": {
+      "oid": "00000000-0000-0000-0000-000000000002",
+      "relation": "org:default",
+      "type": "c:UserType",
+      "targetName": "administrator"
+    },
+    "executionState": "closed",
+    "schedulingState": "closed",
+    "result": {
+      "operation": "run",
+      "status": "partial_error",
+      "importance": "normal",
+      "start": "2026-10-03T18:13:28.890Z",
+      "end": "2026-10-03T18:13:29.279Z",
+      "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+      "partialResults": [
+        {
+          "operation": "com.evolveum.midpoint.task.api.Task.listSubtasks",
+          "status": "success",
+          "importance": "minor",
+          "start": "2026-10-03T18:13:28.928Z",
+          "end": "2026-10-03T18:13:28.930Z"
+        },
+        {
+          "operation": "com.evolveum.midpoint.repo.common.activity.run.LocalActivityRun.runLocally",
+          "status": "fatal_error",
+          "importance": "normal",
+          "start": "2026-10-03T18:13:29.075Z",
+          "end": "2026-10-03T18:13:29.216Z",
+          "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+          "partialResults": [
+            {
+              "operation": "com.evolveum.midpoint.repo.common.activity.run.processing.ProcessingCoordinator.submitItem",
+              "status": "fatal_error",
+              "importance": "normal",
+              "start": "2026-10-03T18:13:29.106Z",
+              "end": "2026-10-03T18:13:29.140Z",
+              "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+              "partialResults": [
+                {
+                  "operation": "com.evolveum.midpoint.repo.common.activity.run.processing.ItemProcessingGatekeeper.process",
+                  "status": "fatal_error",
+                  "importance": "normal",
+                  "start": "2026-10-03T18:13:29.115Z",
+                  "end": "2026-10-03T18:13:29.139Z",
+                  "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                  "partialResults": [
+                    {
+                      "operation": "com.evolveum.midpoint.repo.common.activity.run.processing.ItemProcessingGatekeeper.handle",
+                      "status": "fatal_error",
+                      "importance": "normal",
+                      "start": "2026-10-03T18:13:29.116Z",
+                      "end": "2026-10-03T18:13:29.127Z",
+                      "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                      "partialResults": [
+                        {
+                          "operation": "com.evolveum.midpoint.model.api.ModelService.executeChanges",
+                          "status": "fatal_error",
+                          "importance": "normal",
+                          "start": "2026-10-03T18:13:29.117Z",
+                          "end": "2026-10-03T18:13:29.126Z",
+                          "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                          "partialResults": [
+                            {
+                              "operation": "com.evolveum.midpoint.model.impl.lens.Clockwork.run",
+                              "status": "fatal_error",
+                              "importance": "normal",
+                              "start": "2026-10-03T18:13:29.117Z",
+                              "end": "2026-10-03T18:13:29.126Z",
+                              "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                              "partialResults": [
+                                {
+                                  "operation": "com.evolveum.midpoint.model.impl.lens.Clockwork.runWithConflictDetection",
+                                  "status": "fatal_error",
+                                  "importance": "normal",
+                                  "start": "2026-10-03T18:13:29.118Z",
+                                  "end": "2026-10-03T18:13:29.126Z",
+                                  "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                                  "partialResults": [
+                                    {
+                                      "operation": "com.evolveum.midpoint.model.impl.lens.Clockwork.click",
+                                      "status": "fatal_error",
+                                      "importance": "normal",
+                                      "start": "2026-10-03T18:13:29.118Z",
+                                      "end": "2026-10-03T18:13:29.126Z",
+                                      "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                                      "partialResults": [
+                                        {
+                                          "operation": "com.evolveum.midpoint.model.impl.lens.projector.loader.ContextLoader.determineFocusContext",
+                                          "status": "fatal_error",
+                                          "importance": "minor",
+                                          "start": "2026-10-03T18:13:29.118Z",
+                                          "end": "2026-10-03T18:13:29.119Z",
+                                          "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                                          "partialResults": [
+                                            {
+                                              "operation": "com.evolveum.midpoint.repo.cache.RepositoryCache.getObject",
+                                              "status": "fatal_error",
+                                              "importance": "normal",
+                                              "start": "2026-10-03T18:13:29.118Z",
+                                              "end": "2026-10-03T18:13:29.119Z",
+                                              "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                                              "partialResults": [
+                                                {
+                                                  "operation": "SqaleRepositoryService.getObject",
+                                                  "status": "fatal_error",
+                                                  "importance": "minor",
+                                                  "start": "2026-10-03T18:13:29.118Z",
+                                                  "end": "2026-10-03T18:13:29.119Z",
+                                                  "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found."
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "resultStatus": "partial_error",
+    "lastRunStartTimestamp": "2026-10-03T18:13:28.890Z",
+    "lastRunFinishTimestamp": "2026-10-03T18:13:29.281Z",
+    "completionTimestamp": "2026-10-03T18:13:29.361Z",
+    "progress": 1,
+    "binding": "loose",
+    "activity": {
+      "work": {
+        "explicitChangeExecution": {
+          "delta": {
+            "changeType": "modify",
+            "objectType": "#UserType",
+            "oid": "e5e5e5e5-dead-4000-8000-0000decafbad"
+          }
+        }
+      }
+    },
+    "activityState": {
+      "activity": {
+        "executionAttempt": 1,
+        "realizationState": "complete",
+        "resultStatus": "partial_error",
+        "realizationStartTimestamp": "2026-10-03T18:13:29.047Z",
+        "realizationEndTimestamp": "2026-10-03T18:13:29.216Z",
+        "runStartTimestamp": "2026-10-03T18:13:29.047Z",
+        "runEndTimestamp": "2026-10-03T18:13:29.216Z",
+        "progress": {
+          "committed": {
+            "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+            "@id": 9,
+            "outcome": {
+              "outcome": "failure"
+            },
+            "count": 1
+          },
+          "uncommitted": []
+        },
+        "statistics": {
+          "itemProcessing": {
+            "processed": {
+              "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+              "@id": 11,
+              "outcome": {
+                "outcome": "failure"
+              },
+              "count": 1,
+              "duration": 12.43,
+              "lastItem": {
+                "name": "#1",
+                "startTimestamp": "2026-10-03T18:13:29.115Z",
+                "endTimestamp": "2026-10-03T18:13:29.128Z",
+                "message": "Object of type 'UserType' with OID 'e5e5e5e5-dead-4000-8000-0000decafbad' was not found.",
+                "operationId": 288
+              }
+            },
+            "current": [],
+            "run": {
+              "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+              "@id": 10,
+              "startTimestamp": "2026-10-03T18:13:29.047Z",
+              "endTimestamp": "2026-10-03T18:13:29.216Z"
+            }
+          }
+        },
+        "bucketing": {
+          "bucket": {
+            "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+            "@id": 5,
+            "sequentialNumber": 1,
+            "state": "complete",
+            "content": {
+              "@type": "http://midpoint.evolveum.com/xml/ns/public/common/common-3#NullWorkBucketContentType"
+            }
+          },
+          "numberOfBuckets": 1,
+          "workComplete": true
+        },
+        "workState": {},
+        "persistence": "singleRealization"
+      }
+    }
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3",
+    "@type": "http://midpoint.evolveum.com/xml/ns/public/common/api-types-3#ObjectListType",
+    "object": [
+      {
+        "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+        "@type": "c:TaskType",
+        "oid": "00000000-0000-0000-0000-000000000007",
+        "version": "12601",
+        "name": "Trigger Scanner",
+        "description": "A system task that executes triggers attached to objects.",
+        "iteration": 0,
+        "iterationToken": "",
+        "archetypeRef": [
+          {
+            "t:oid": "00000000-0000-0000-0000-000000000529",
+            "t:relation": "org:default",
+            "t:type": "c:ArchetypeType",
+            "targetName": "System task"
+          },
+          {
+            "t:oid": "00000000-0000-0000-0000-000000000531",
+            "t:relation": "org:default",
+            "t:type": "c:ArchetypeType",
+            "targetName": "Trigger scanner task"
+          }
+        ],
+        "taskIdentifier": "1790871443674-58493-1",
+        "ownerRef": {
+          "t:oid": "00000000-0000-0000-0000-000000000002",
+          "t:relation": "org:default",
+          "t:type": "c:UserType",
+          "targetName": "administrator"
+        },
+        "executionState": "runnable",
+        "schedulingState": "ready",
+        "resultStatus": "success",
+        "lastRunStartTimestamp": "2026-10-03T18:12:32.824Z",
+        "lastRunFinishTimestamp": "2026-10-03T18:12:33.106Z",
+        "progress": 0,
+        "binding": "loose",
+        "schedule": {
+          "interval": 300
+        },
+        "activity": {
+          "work": {
+            "triggerScan": {}
+          }
+        }
+      },
+      {
+        "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+        "@type": "c:TaskType",
+        "oid": "e5e5e5e5-2c32-4704-b080-8665d778fad5",
+        "version": "22",
+        "name": "e5e5e5e5 probe failing change",
+        "iteration": 0,
+        "iterationToken": "",
+        "archetypeRef": {
+          "t:oid": "00000000-0000-0000-0000-000000000528",
+          "t:relation": "org:default",
+          "t:type": "c:ArchetypeType",
+          "targetName": "Utility task"
+        },
+        "taskIdentifier": "1791051208843-58493-1",
+        "ownerRef": {
+          "t:oid": "00000000-0000-0000-0000-000000000002",
+          "t:relation": "org:default",
+          "t:type": "c:UserType",
+          "targetName": "administrator"
+        },
+        "executionState": "closed",
+        "schedulingState": "closed",
+        "resultStatus": "partial_error",
+        "lastRunStartTimestamp": "2026-10-03T18:13:28.890Z",
+        "lastRunFinishTimestamp": "2026-10-03T18:13:29.281Z",
+        "completionTimestamp": "2026-10-03T18:13:29.361Z",
+        "progress": 1,
+        "binding": "loose",
+        "activity": {
+          "work": {
+            "explicitChangeExecution": {
+              "delta": {
+                "changeType": "modify",
+                "objectType": "#UserType",
+                "oid": "e5e5e5e5-dead-4000-8000-0000decafbad"
+              }
+            }
+          }
+        }
+      },
+      {
+        "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+        "@type": "c:TaskType",
+        "oid": "e5e5e5e5-0000-4000-8000-00000000b5c1",
+        "version": "0",
+        "name": "e5e5 probe end-user noop task",
+        "description": "Throwaway probe task owned by a plain end user.",
+        "iteration": 0,
+        "iterationToken": "",
+        "taskIdentifier": "1791051220269-58493-1",
+        "ownerRef": {
+          "t:oid": "44444444-4444-4444-4444-444444444444",
+          "t:relation": "org:default",
+          "t:type": "c:UserType",
+          "targetName": "enduser"
+        },
+        "executionState": "suspended",
+        "schedulingState": "suspended",
+        "binding": "loose",
+        "activity": {
+          "work": {
+            "noOp": {
+              "steps": 1,
+              "delay": 10
+            }
+          }
+        }
+      },
+      {
+        "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+        "@type": "c:TaskType",
+        "oid": "e5e5e5e5-0000-4000-8000-00000000a5c1",
+        "version": "81",
+        "name": "e5e5 probe noop task",
+        "description": "Throwaway probe task (no-op activity); safe to delete.",
+        "iteration": 0,
+        "iterationToken": "",
+        "taskIdentifier": "1791051220018-58493-1",
+        "ownerRef": {
+          "t:oid": "00000000-0000-0000-0000-000000000002",
+          "t:relation": "org:default",
+          "t:type": "c:UserType",
+          "targetName": "administrator"
+        },
+        "executionState": "suspended",
+        "schedulingState": "suspended",
+        "stateBeforeSuspend": "running",
+        "schedulingStateBeforeSuspend": "ready",
+        "resultStatus": "in_progress",
+        "lastRunStartTimestamp": "2026-10-03T18:16:37.317Z",
+        "lastRunFinishTimestamp": "2026-10-03T18:16:42.373Z",
+        "completionTimestamp": "2026-10-03T18:16:09.200Z",
+        "progress": 5,
+        "binding": "loose",
+        "activity": {
+          "work": {
+            "noOp": {
+              "steps": 40,
+              "delay": 1000,
+              "stepInterruptibility": "full"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

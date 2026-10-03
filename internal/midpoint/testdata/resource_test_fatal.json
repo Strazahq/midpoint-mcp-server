@@ -1,0 +1,111 @@
+{
+  "@ns": "http://prism.evolveum.com/xml/ns/public/types-3",
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+    "@type": "c:OperationResultType",
+    "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.test",
+    "status": "fatal_error",
+    "importance": "normal",
+    "start": "2026-10-03T18:12:37.181Z",
+    "end": "2026-10-03T18:12:37.287Z",
+    "message": "Connector initialization failed. Configuration error: Configuration error: File '/nonexistent/e5e5-probe.csv' doesn't exists. At least file with CSV header must exist",
+    "partialResults": [
+      {
+        "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector",
+        "status": "fatal_error",
+        "importance": "normal",
+        "start": "2026-10-03T18:12:37.181Z",
+        "end": "2026-10-03T18:12:37.266Z",
+        "message": "Connector initialization failed. Configuration error: Configuration error: File '/nonexistent/e5e5-probe.csv' doesn't exists. At least file with CSV header must exist",
+        "partialResults": [
+          {
+            "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector.instantiation",
+            "status": "success",
+            "importance": "normal",
+            "start": "2026-10-03T18:12:37.181Z",
+            "end": "2026-10-03T18:12:37.251Z"
+          },
+          {
+            "operation": "com.evolveum.midpoint.schema.constants.TestResourceOpNames.connector.initialization",
+            "status": "fatal_error",
+            "importance": "normal",
+            "start": "2026-10-03T18:12:37.251Z",
+            "end": "2026-10-03T18:12:37.266Z",
+            "message": "Connector initialization failed. Configuration error: Configuration error: File '/nonexistent/e5e5-probe.csv' doesn't exists. At least file with CSV header must exist",
+            "partialResults": [
+              {
+                "operation": "com.evolveum.midpoint.provisioning.ucf.api.ConnectorInstance.configure",
+                "status": "success",
+                "importance": "normal",
+                "start": "2026-10-03T18:12:37.252Z",
+                "end": "2026-10-03T18:12:37.259Z"
+              },
+              {
+                "operation": "com.evolveum.midpoint.provisioning.ucf.api.ConnectorInstance.initialize",
+                "status": "fatal_error",
+                "importance": "normal",
+                "start": "2026-10-03T18:12:37.259Z",
+                "end": "2026-10-03T18:12:37.263Z",
+                "message": "Configuration error: File '/nonexistent/e5e5-probe.csv' doesn't exists. At least file with CSV header must exist",
+                "partialResults": [
+                  {
+                    "operation": "org.identityconnectors.framework.api.ConnectorFacade.getSupportedOperations",
+                    "status": "success",
+                    "importance": "normal",
+                    "start": "2026-10-03T18:12:37.259Z",
+                    "end": "2026-10-03T18:12:37.259Z"
+                  },
+                  {
+                    "operation": "org.identityconnectors.framework.api.ConnectorFacade.schema",
+                    "status": "fatal_error",
+                    "importance": "normal",
+                    "start": "2026-10-03T18:12:37.259Z",
+                    "end": "2026-10-03T18:12:37.263Z",
+                    "message": "Configuration error: File '/nonexistent/e5e5-probe.csv' doesn't exists. At least file with CSV header must exist"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "operation": "com.evolveum.midpoint.repo.cache.RepositoryCache.getObject",
+        "status": "success",
+        "importance": "normal",
+        "start": "2026-10-03T18:12:37.266Z",
+        "end": "2026-10-03T18:12:37.266Z"
+      },
+      {
+        "operation": "com.evolveum.midpoint.provisioning.impl.resources.ResourceCompletionOperation.completeResource",
+        "status": "success",
+        "importance": "minor",
+        "start": "2026-10-03T18:12:37.266Z",
+        "end": "2026-10-03T18:12:37.267Z"
+      },
+      {
+        "operation": "com.evolveum.midpoint.repo.cache.RepositoryCache.modifyObject",
+        "status": "success",
+        "importance": "normal",
+        "start": "2026-10-03T18:12:37.270Z",
+        "end": "2026-10-03T18:12:37.287Z",
+        "partialResults": [
+          {
+            "operation": "SqaleRepositoryService.modifyObject",
+            "status": "success",
+            "importance": "normal",
+            "start": "2026-10-03T18:12:37.270Z",
+            "end": "2026-10-03T18:12:37.283Z"
+          },
+          {
+            "operation": "com.evolveum.midpoint.repo.cache.RepositoryCache.invalidateCacheEntries",
+            "status": "success",
+            "importance": "minor",
+            "start": "2026-10-03T18:12:37.283Z",
+            "end": "2026-10-03T18:12:37.287Z"
+          }
+        ]
+      }
+    ]
+  }
+}
