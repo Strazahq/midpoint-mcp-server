@@ -6,6 +6,8 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-03
+
 ### Added
 
 - Releases refuse to publish without a CHANGELOG section matching the tag, push a
