@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Draft for review. Nothing in this document is implemented yet. |
-| **Contract version** | `1.0-draft.9` (2026-10-01) |
+| **Contract version** | `1.0-draft.10` (2026-10-03) |
 | **Targets** | MCP Apps extension `io.modelcontextprotocol/ui`, stable revision **2026-01-26**; the midPoint 4.10 GUI look |
 | **Build first** | [Requests to approve](#71-requests-to-approve--build-first) (the approval inbox) |
 | **Writes** | Plain REST only; approver comments are the only comments ([6.5.1](#651-comment-storage)) |
@@ -16,6 +16,20 @@ that views, tool changes, and any intermediary between host and server can be
 built and reviewed separately against one written agreement.
 
 ## Revision history
+
+**1.0-draft.10 (2026-10-03)**, the owner's D38
+([section 11](#11-decisions-and-open-questions)): readable confirmations.
+
+- **Names next to OIDs on every write** (D38, S26): a host that asks the
+  person to allow a tool call shows its arguments, and those were OIDs only,
+  which nobody can check on a phone. `decide_work_item`, `cancel_request`,
+  `request_role`, `unassign_role`, `assign_role` and `recompute_user` now also
+  take `userName` and `roleName`, the objects' midPoint `name` (the unique
+  attribute, such as a login), not their display names. The server reads the
+  objects as the acting identity and refuses, before any write and with the
+  gate closed too, a name that doesn't match its OID (`invalid-input`).
+- **Views** send the names they already hold (`name` on the refs of their
+  results, 4.5); the argument tables of 7.1 to 7.4 list them.
 
 **1.0-draft.9 (2026-10-01)**, the owner's D37
 ([section 11](#11-decisions-and-open-questions)) and the contract fixes found
@@ -2018,7 +2032,7 @@ line per draft.9 D37.
 | Tool | Called by | Arguments |
 | --- | --- | --- |
 | `list_work_items` | agent (entry); view (Refresh) | entry: as given; Refresh: the entry arguments; view-initiated with none known: `{ "limit": 50 }`. Lists the work items **assigned** to the acting identity; items only offered to a group are not listed (Q4) |
-| `decide_work_item` | view (Approve, Reject); agent (entry, outcome mode) | `{ "caseOid", "workItemId", "decision": "approve" or "reject", "comment"? }` with `caseOid` and `workItemId` taken verbatim from the item |
+| `decide_work_item` | view (Approve, Reject); agent (entry, outcome mode) | `{ "caseOid", "userName", "roleName", "workItemId", "decision": "approve" or "reject", "comment"? }` with `caseOid` and `workItemId` taken verbatim from the item, and `userName` and `roleName` the `name` of its `requestee` and `target` (empty when the result has none; D38) |
 | `get_case` | view: once per card, the first time its Details open; never on a read-only host | `{ "oid": caseOid }` |
 | `whoami` | view (header fallback) | `{}` |
 
@@ -2427,7 +2441,7 @@ person may read the system configuration **[live]** (D9). The server settings
 
 | Button | Confirm | Inputs | Tool call | After |
 | --- | --- | --- | --- | --- |
-| `requestAccess.action.request` | the request dialog above | validity (default no end date) and the form fields; no comment | `request_role` `{roleOid, userOid?, validFrom?, validTo?, fields?}` | outcome below |
+| `requestAccess.action.request` | the request dialog above | validity (default no end date) and the form fields; no comment | `request_role` `{roleOid, roleName, userOid?, userName?, validFrom?, validTo?, fields?}`, the names being the role's and the chosen person's `name` (`userName` with `userOid` only; D38) | outcome below |
 | dry run `requestAccess.action.preview` | same dialog, submit `dryrun.submit` | same | same | dry-run outcome |
 | target change | none | | `list_requestable_roles` `{limit: 100, forUser?, query?}` (an active search is kept) | new list |
 | typing pauses with no local match, list cut off (D34) | none | | `list_requestable_roles` `{limit: 100, forUser?, query}` | midPoint's results |
@@ -2591,7 +2605,7 @@ untrusted free text), `validity`, `stage`, **`stages[]`** (draft.8, D28:
 
 | Button | Confirm | Comment | Tool call | After |
 | --- | --- | --- | --- | --- |
-| `myRequests.action.withdraw` | `confirm.withdraw.title`; body `confirm.withdraw.body` (or `confirm.withdraw.bodySelf` when the requestee is the acting identity); rows `confirm.row.role`, `confirm.row.for`, and `confirm.row.request` as a link only, when links are on | none (the cancel endpoint takes no body) | `cancel_request` `{caseOid}` | outcome below |
+| `myRequests.action.withdraw` | `confirm.withdraw.title`; body `confirm.withdraw.body` (or `confirm.withdraw.bodySelf` when the requestee is the acting identity); rows `confirm.row.role`, `confirm.row.for`, and `confirm.row.request` as a link only, when links are on | none (the cancel endpoint takes no body) | `cancel_request` `{caseOid, userName, roleName}`, the names being the `name` of the request's `objectRef` and `targetRef` (D38) | outcome below |
 | dry run `myRequests.action.previewWithdraw` | same dialog, submit `dryrun.submit` | same | same | dry-run outcome; no re-read |
 | details | none (read) | | `get_case` `{oid}` | timeline |
 
@@ -2744,7 +2758,7 @@ dropped `users[].via`, draft.8 dropped `users[].archetype`).
 
 | Button | Confirm | Comment | Tool call | After |
 | --- | --- | --- | --- | --- |
-| `review.action.revoke` | `confirm.revoke.title`, `confirm.revoke.body`, `confirm.revoke.policy`; rows `confirm.row.role`, `confirm.row.from` | none (D4) | `unassign_role` `{userOid, roleOid}` | outcome notice, then re-read per the table below |
+| `review.action.revoke` | `confirm.revoke.title`, `confirm.revoke.body`, `confirm.revoke.policy`; rows `confirm.row.role`, `confirm.row.from` | none (D4) | `unassign_role` `{userOid, userName, roleOid, roleName}`, the names being the person's and the role's `name` (D38) | outcome notice, then re-read per the table below |
 | dry run `review.action.preview` | same dialog, submit `dryrun.submit` | same | same | dry-run outcome; no re-read |
 | person change | none | | `get_user_assignments` `{oid}` | new content |
 | `review.action.requestFor` | none (it sends a chat message the person could type; the host may ask for consent) | | `ui/update-model-context`, then `ui/message` `review.handoff.requestFor` | the assistant renders Get access for that person |
@@ -2776,7 +2790,7 @@ keeps today's explained summary). `unassign_role` text is unchanged
 - [ ] Managers can switch between direct reports; each switch is one `get_user_assignments` call; a person who is not a direct report (or the acting identity) appears as a labelled first option while shown.
 - [ ] The person card shows no login name, and "Account turned off" only when the person is disabled; "Request access for {name}" appears only for a direct report with `hostCapabilities.message`, and its visible message has no OID.
 - [ ] Revoke appears only on direct role assignments of a direct report; never on inherited roles, org links, the person's own access or someone else's.
-- [ ] The Revoke dialog has no comment field and produces exactly one `unassign_role` call with `userOid` and `roleOid`; an approval-gated removal shows the pending-approval outcome.
+- [ ] The Revoke dialog has no comment field and produces exactly one `unassign_role` call with `userOid`, `userName`, `roleOid` and `roleName`; an approval-gated removal shows the pending-approval outcome.
 - [ ] Role rows show no kind label and the role's description (2 lines); `approver` and `owner` read in plain words, other relations not at all; an end date shows (`validity.until`, or `validity.fromUntil` for a future start); a disabled assignment reads "Turned off, not in effect".
 - [ ] Included access names its source ("Comes with Build runner") when midPoint's assignment path gives it; a resource assignment reads "Account in …".
 - [ ] `removed`, `pending-approval`, `still-assigned` and `preview` each render their own outcome notice above Roles; applied outcomes re-read once and the notice survives the re-read.
@@ -2853,6 +2867,7 @@ All additive. Text changes only where S13 says so. Numbered for reference.
 | S23 | **Why you, and the step's approvers** (draft.7, D14, D20): `WorkItemContext` gains `reason`, `coAssignees`, `stageApprovers` and `stage.strategy`, and drops `otherApprovers`; `ObjectRef.readable` (D16) on refs the server could not read as the caller. `reason` is computed from what the server already reads: the acting identity's selected manager links and its own `roleMembershipRef` relations, and the requestee's `parentOrgRef`. No new grants. `stageApprovers` falls back to the step's `approverRef` in the approval schema when the caller sees only its own work items (7.1, best-effort). Since draft.9 the view uses only `reason` and `stage` (D37); the other fields stay for agents and the list text | `list_work_items`, `get_case`, `list_my_requests` | **[live]** on 4.10.3: a REST case object carries `approvalContext/approvalSchema/stage[]` with `number`, `name`, `evaluationStrategy` (`allMustApprove` or `firstDecides`) and the `approverRef` midPoint resolved, none for approvers picked by an expression; two approvers get one work item each in the same stage; under `firstDecides` the first decision closes the other item with no outcome and no performer; under `allMustApprove` the case stays in the step until both approved; the stock Approver role reads only its own work item of a case; a delegated work item has two `assigneeRef` values; the requestee's `parentOrgRef` is readable to a person holding only End user and Approver. **[verify]** claimed group items (Q4) |
 | S24 | **Readable chat** (D26): the server sends `instructions` in its `initialize` result (today it sends none), in substance: "When you write to a person, name people, roles and requests by their display names. OIDs are identifiers for tool calls; mention one only when the person asks or when two objects would otherwise be confused." A shorter sentence closes the description of every tool, since every tool's text carries OIDs: "When you write to a person, name people, roles and requests by their display names rather than OIDs." Where a tool's description has the untrusted-text sentence of 4.8 rule 9, this one comes after it. Text and `structuredContent` are unchanged | server, the list and read tools | unit: `initialize` carries the instructions; golden descriptions |
 | S25 | **Draft.8 data** (D28, D30, D32): `server.requestReason`; `RoleMembership.via` and `effectiveMembership[].via` from the `roleMembershipRef` value metadata `provenance/assignmentPath` (first segment's `targetRef` when the path has two or more segments); role `description` on `get_user_assignments` targets; `get_case` `stages[]` from `approvalContext/approvalSchema/stage`; `requesteeAccess.roles` limited to memberships in effect | `get_user_assignments`, `list_work_items`, `get_case`, all view-bearing results (`server`) | **[live]** 4.10.3: assignment path metadata on `roleMembershipRef` (two segments for an induced role, the direct role first); `approvalSchema/stage[]` with `name` and `evaluationStrategy`. **[live]** 4.10.3 (M10.2): the metadata is returned when read as a person holding only the stock End user and Approver roles, and as a manager |
+| S26 | **Names on writes** (D38): `decide_work_item`, `cancel_request`, `request_role`, `unassign_role`, `assign_role` and `recompute_user` take `userName` and `roleName` (`recompute_user` only `userName`; `request_role` needs `userName` only with `userOid`), the midPoint `name` of the objects their OIDs point to. The server names those objects the way the list results do, read as the acting identity, falling back to the name midPoint stores in the reference when the object can't be read. It compares case-insensitively and refuses a missing or different name, and a name where midPoint shows none, before any write and before the dry-run preview, with `invalid-input`. | the six write tools | unit, views |
 
 **S16 `cancel_request` in detail.**
 
@@ -3539,6 +3554,7 @@ midPoint is searched automatically only when the loaded list was cut off.
 | # | Decision | Produced |
 | --- | --- | --- |
 | D37 | You decide your own part only (owner: "u approve ur thing only"). The inbox card says which step the request is at, "Step N of M" (`inbox.item.step`, from `stage.number` and `stage.count`, which approvers can read), and nothing about who else decides. Without `stage.count`, no step line [default]. The approve dialog's sentence follows the steps only: last step, more steps, or unknown; never other approvers. Because the view no longer knows whether others in the same step must still agree, `confirm.approve.bodyFinal` speaks about the last step, not "the last approval needed". `coAssignees`, `stageApprovers`, `stage.strategy` and `nextApprovers` stay in the results (the first three also in the list text) for agents; views ignore all four. The owner's answers on the draft.9 review: (1) the approver's "Approval steps" in Details name no people, one line per step ("Step 1" or "Step 1, Team leads") with only its state, no decided-by and no comments; the requester's timeline (V3) stays as in draft.8; (2) after an approval that leaves the case open the outcome is always `inbox.outcome.approvedOpen`, and `inbox.outcome.approvedNext` is removed; (3) "Step 1 of 1" is shown for a one-step request, the same line on every card, telling the approver theirs is the last step. Supersedes D20 for the card; narrows D14, D15 and, for V1, D28. | 6.5, 6.15, 7.1, 10.6, 10.10, 10.11, S8, S23 |
+| D38 | Readable confirmations (owner, 2026-10-03: the phone's "allow this tool" card showed only OIDs). Every write tool also takes the midPoint `name` of the person and the role it changes, and the server refuses the call when a name doesn't match its OID, so the card can't show one thing while the call does another. The owner chose the `name` attribute over display names because midPoint keeps it unique, so the check never has to guess. | S26; 7.1 to 7.4 |
 
 **Open questions** (draft.8, D35; shown in the mockup's review mode):
 

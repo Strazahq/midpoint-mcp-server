@@ -9,7 +9,9 @@ import (
 )
 
 type cancelRequestInput struct {
-	CaseOID string `json:"caseOid" jsonschema:"OID of your open request to withdraw"`
+	CaseOID  string `json:"caseOid" jsonschema:"OID of your open request to withdraw"`
+	UserName string `json:"userName" jsonschema:"midPoint name (login) of the person the request is for; empty only when midPoint doesn't show you their name"`
+	RoleName string `json:"roleName" jsonschema:"midPoint name of the role (or other object) the request adds or removes; empty only when midPoint doesn't show you its name"`
 }
 
 type withdrawal struct {
@@ -29,10 +31,16 @@ type cancelRequestOutput struct {
 }
 
 func registerCancelRequest(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
-	addTool(server, &mcp.Tool{Name: "cancel_request", Title: "Withdraw request", Description: "Withdraw your own open approval request. Reads the case and checks its state and requester before writing, even with writes disabled. midPoint enforces cancel authorization. Uses plain REST with no comment; reads back the case to confirm closure. Respects the write gate."},
+	addTool(server, &mcp.Tool{Name: "cancel_request", Title: "Withdraw request", Description: "Withdraw your own open approval request. Reads the case and checks its state and requester before writing, even with writes disabled. midPoint enforces cancel authorization. Uses plain REST with no comment; reads back the case to confirm closure. " + nameArgsNote + " Respects the write gate."},
 		viewTool("cancel_request", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in cancelRequestInput) (*mcp.CallToolResult, cancelRequestOutput, error) {
 			d, err := client.CheckWithdrawable(ctx, in.CaseOID)
 			if err != nil {
+				return nil, cancelRequestOutput{}, err
+			}
+			if err := confirmRef("userName", "person", in.UserName, d.Case.ObjectRef); err != nil {
+				return nil, cancelRequestOutput{}, err
+			}
+			if err := confirmRef("roleName", "role", in.RoleName, d.Case.TargetRef); err != nil {
 				return nil, cancelRequestOutput{}, err
 			}
 			plan, err := client.PlanCancelRequest(in.CaseOID)

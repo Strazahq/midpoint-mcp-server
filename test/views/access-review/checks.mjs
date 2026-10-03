@@ -6,10 +6,10 @@ import { hostZone, endOfDayIn } from '../derive.mjs';
 export const checks = [], runWide = [];
 const check=(id,criterion,title,run)=>checks.push({id,criterion,title,run});
 const across=(id,criterion,title,run)=>runWide.push({id,criterion,title,run});
-const tools={list_my_team:['limit'],get_user_assignments:['oid'],unassign_role:['userOid','roleOid'],whoami:[]};
+const tools={list_my_team:['limit'],get_user_assignments:['oid'],unassign_role:['userOid','userName','roleOid','roleName'],whoami:[]};
 defaults.allowedTools=tools;
 const fx=fixture('person'), sc=fx.result.structuredContent, user=personName(sc.user), role=roleName(sc.assignments[0]);
-const userOid=sc.user.oid, roleOid=sc.assignments[0].targetOid;
+const userOid=sc.user.oid, roleOid=sc.assignments[0].targetOid, userName=sc.user.name, roleMpName=sc.assignments[0].target.name;
 const secondUser=personName(fixture('second-person').result.structuredContent.user), actingName=personName(sc.acting);
 const included=sc.effectiveMembership.find(m=>!m.direct), sourceName=included.via.displayName||included.via.name;
 const resourceName=roleName(sc.assignments.find(a=>a.targetType==='Resource')), orgName=fixture('none-visible').result.structuredContent.orgs[0].name;
@@ -106,7 +106,7 @@ check('ac05.dialog','7.4 AC5, 6.5','removal dialog has summary, no comment, init
  await d.getByRole('button',{name:s('confirm.revoke.submit'),exact:true}).click();
  t.ok(await v.waitFor(s('review.outcome.pending',{user,role})),'pending outcome missing');
  await sleep(150);const calls=await v.calls('unassign_role');
- t.ok(calls.length===1&&JSON.stringify(calls[0].args)===JSON.stringify({userOid,roleOid}),'wrong removal call');
+ t.ok(calls.length===1&&JSON.stringify(calls[0].args)===JSON.stringify({userOid,userName,roleOid,roleName:roleMpName}),'wrong removal call');
  t.ok(await v.dialog().count()===0,'dialog stayed open');
 });
 check('ac05.keyboard','6.5, 6.12','modal traps Tab, Esc and Cancel restore opener focus',async t=>{

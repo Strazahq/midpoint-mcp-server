@@ -115,7 +115,7 @@ func TestWriteMyRequestsViewFixtures(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			f := newRequesterFixture(t)
 			tool := "cancel_request"
-			args := map[string]any{"caseOid": fxCaseTwoStep}
+			args := map[string]any{"caseOid": fxCaseTwoStep, "userName": "bstone", "roleName": "db-admin"}
 			wantError := false
 			switch name {
 			case "list", "personal", "closed":

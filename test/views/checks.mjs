@@ -1052,13 +1052,13 @@ check('ac09.working-state', '6.5', 'while the call runs: Working…, both button
 });
 
 // AC10
-check('ac10.comment-omitted', '7.1 AC10, 6.5', 'an empty optional comment is omitted; caseOid and workItemId verbatim', async (t) => {
+check('ac10.comment-omitted', '7.1 AC10, 6.5', 'an empty optional comment is omitted; caseOid, workItemId and the midPoint names verbatim', async (t) => {
   const { v, wi, e, card } = await inbox(t, 'inbox.approver', { tools: decideTools('decide.approve-next') });
   if (!card) return;
   await approve(t, v, card, e);
   await settle();
   const c = (await v.calls('decide_work_item'))[0];
-  const want = { caseOid: wi.caseOid, workItemId: wi.id, decision: 'approve' };
+  const want = { caseOid: wi.caseOid, userName: wi.context.requestee.name, roleName: wi.context.target.name, workItemId: wi.id, decision: 'approve' };
   t.ok(c && JSON.stringify(Object.keys(c.args).sort()) === JSON.stringify(Object.keys(want).sort()) && Object.entries(want).every(([k, x]) => c.args[k] === x),
     `arguments ${JSON.stringify(c?.args)}, want exactly ${JSON.stringify(want)}`);
 });

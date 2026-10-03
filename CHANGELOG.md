@@ -8,6 +8,18 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- **Breaking for tool callers:** the write tools take the midPoint names of
+  what they change next to the OIDs: `decide_work_item`, `cancel_request`,
+  `unassign_role` and `assign_role` require `userName` and `roleName`,
+  `request_role` requires `roleName` (and `userName` with `userOid`), and
+  `recompute_user` requires `userName`. These are the objects' unique `name`
+  attribute (such as a login), not display names. A host that asks the person
+  to allow a tool call shows these arguments, so the person now reads
+  "bstone" and "db-admin" instead of two OIDs. The server reads the objects as
+  the acting identity and refuses, before any write and in a dry run too, a
+  name that is missing or doesn't match its OID (error code `invalid-input`).
+  The four views send the names they already hold (contract 1.0-draft.10, D38).
+
 - The release page takes its text from `release-notes/X.Y.Z.md` when that file
   exists, so users read a short summary instead of the full CHANGELOG section.
   Without the file the page still shows the CHANGELOG section, with a warning

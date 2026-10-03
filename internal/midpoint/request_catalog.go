@@ -60,6 +60,11 @@ func (c *Client) RequestableCatalog(ctx context.Context, target, query string, l
 	return out, nil
 }
 
+// NamedRef names one object, read as the caller, the way RequestRefs does.
+func (c *Client) NamedRef(ctx context.Context, oid, typ string) ObjectRef {
+	return newRefReader(c).objectRef(ctx, refJSON{OID: oid, Type: typ}, typ == "UserType")
+}
+
 // RequestRefs resolves request labels best-effort as the caller.
 func (c *Client) RequestRefs(ctx context.Context, userOID, roleOID string) (ObjectRef, ObjectRef) {
 	r := newRefReader(c)

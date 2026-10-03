@@ -3,6 +3,8 @@
     "arguments": {
       "caseOid": "40000000-0000-0000-0000-000000000002",
       "decision": "approve",
+      "roleName": "finance-reports",
+      "userName": "bstone",
       "workItemId": "5"
     },
     "name": "decide_work_item"

@@ -108,7 +108,7 @@ func TestRequestAccessResults(t *testing.T) {
 			if !strings.HasPrefix(text, "Found 2 requestable role(s).\nRoles:\n") || !strings.Contains(text, "[untrusted description") || !strings.Contains(text, "Request form fields:\n") {
 				t.Error(text)
 			}
-			args := map[string]any{"roleOid": fxDbAdmin, "validFrom": "2099-10-01T00:00:00+02:00", "validTo": "2099-10-31T23:59:59+01:00", "fields": map[string]any{"projectCode": "OPS-7", "acknowledged": false, "justification": "Review access"}}
+			args := map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin", "validFrom": "2099-10-01T00:00:00+02:00", "validTo": "2099-10-31T23:59:59+01:00", "fields": map[string]any{"projectCode": "OPS-7", "acknowledged": false, "justification": "Review access"}}
 			out = callTool(t, cs, "request_role", args)
 			req := out["request"].(map[string]any)
 			want := "preview"
@@ -138,9 +138,9 @@ func TestRequestAccessRefusalsBeforeWrite(t *testing.T) {
 			args        map[string]any
 			code, field string
 		}{
-			{map[string]any{"roleOid": fxDbAdmin}, "invalid-field", "projectCode"},
-			{map[string]any{"roleOid": fxDbAdmin, "validTo": "yesterday"}, "invalid-validity", ""},
-			{map[string]any{"roleOid": fxDbAdmin, "fields": map[string]any{"extra": "ignored?"}}, "invalid-field", "extra"},
+			{map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, "invalid-field", "projectCode"},
+			{map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin", "validTo": "yesterday"}, "invalid-validity", ""},
+			{map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin", "fields": map[string]any{"extra": "ignored?"}}, "invalid-field", "extra"},
 		} {
 			res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "request_role", Arguments: tc.args})
 			if err != nil {
@@ -175,12 +175,12 @@ func TestWriteRequestAccessViewFixtures(t *testing.T) {
 		{name: "team", tool: "list_my_team", manager: true, writes: true},
 		{name: "managers", tool: "list_my_managers", writes: true},
 		{name: "identity", tool: "whoami", writes: true},
-		{name: "pending", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin}, writes: true},
-		{name: "granted", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin}, writes: true, granted: true},
-		{name: "preview", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin}},
+		{name: "pending", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, writes: true},
+		{name: "granted", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, writes: true, granted: true},
+		{name: "preview", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}},
 		{name: "case", tool: "get_case", args: map[string]any{"oid": fxCaseTwoStep}, writes: true},
-		{name: "invalid-field", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin}, form: true, writes: true, isError: true},
-		{name: "invalid-validity", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "validTo": "yesterday"}, writes: true, isError: true},
+		{name: "invalid-field", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, form: true, writes: true, isError: true},
+		{name: "invalid-validity", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin", "validTo": "yesterday"}, writes: true, isError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cs, _ := requestAccessSession(t, tc.manager, tc.form, tc.writes, tc.granted)

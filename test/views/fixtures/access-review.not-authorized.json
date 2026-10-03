@@ -2,7 +2,9 @@
   "about": "Server UI session, recorded-style access review REST answers; scenario not-authorized. See view_fixtures_access_review_test.go for provenance.",
   "call": {
     "arguments": {
+      "roleName": "db-admin",
       "roleOid": "20000000-0000-0000-0000-0000000000f1",
+      "userName": "bstone",
       "userOid": "10000000-0000-0000-0000-0000000000b1"
     },
     "name": "unassign_role"

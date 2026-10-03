@@ -47,6 +47,10 @@ func mockMidpointWrite(t *testing.T) (*httptest.Server, *[]recordedReq) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"user":{"oid":"user-1","name":"jack","assignment":[{"@id":5,"targetRef":{"oid":"role-1","type":"c:RoleType"}}]}}`)
 	}))
+	mux.HandleFunc("GET /ws/rest/roles/{oid}", record(func(w http.ResponseWriter, _ *http.Request, _ string) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"role":{"oid":"role-1","name":"role-one"}}`)
+	}))
 	mux.HandleFunc("PATCH /ws/rest/users/{oid}", record(func(w http.ResponseWriter, _ *http.Request, _ string) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -108,9 +112,9 @@ func allWriteCalls() []struct {
 		{"create_user", map[string]any{"name": "jack"}},
 		{"disable_user", map[string]any{"oid": "user-1"}},
 		{"enable_user", map[string]any{"oid": "user-1"}},
-		{"assign_role", map[string]any{"userOid": "user-1", "roleOid": "role-1"}},
-		{"unassign_role", map[string]any{"userOid": "user-1", "roleOid": "role-1"}},
-		{"recompute_user", map[string]any{"oid": "user-1"}},
+		{"assign_role", map[string]any{"userOid": "user-1", "userName": "jack", "roleOid": "role-1", "roleName": "role-one"}},
+		{"unassign_role", map[string]any{"userOid": "user-1", "userName": "jack", "roleOid": "role-1", "roleName": "role-one"}},
+		{"recompute_user", map[string]any{"oid": "user-1", "userName": "jack"}},
 	}
 }
 
@@ -179,7 +183,7 @@ func TestUnassignRoleSendsItemPathDelta(t *testing.T) {
 	srv, reqs := mockMidpointWrite(t)
 	cs := connectWithWrites(t, srv, true) // gate ON
 
-	out := callTool(t, cs, "unassign_role", map[string]any{"userOid": "user-1", "roleOid": "role-1"})
+	out := callTool(t, cs, "unassign_role", map[string]any{"userOid": "user-1", "userName": "jack", "roleOid": "role-1", "roleName": "role-one"})
 	if out["applied"] != true || out["dryRun"] != false {
 		t.Errorf("unassign_role: applied=%v dryRun=%v", out["applied"], out["dryRun"])
 	}

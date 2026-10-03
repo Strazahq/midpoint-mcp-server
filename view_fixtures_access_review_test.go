@@ -32,7 +32,7 @@ type accessFixture struct {
 
 func accessFixtures() []accessFixture {
 	args := map[string]any{"oid": fxBstone}
-	revoke := map[string]any{"userOid": fxBstone, "roleOid": fxDbAdmin}
+	revoke := map[string]any{"userOid": fxBstone, "userName": "bstone", "roleOid": fxDbAdmin, "roleName": "db-admin"}
 	return []accessFixture{
 		{name: "person", tool: "get_user_assignments", args: args, writes: true},
 		{name: "person-personal", tool: "get_user_assignments", args: args, writes: true, personal: true},

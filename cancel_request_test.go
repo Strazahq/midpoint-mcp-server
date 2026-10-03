@@ -30,7 +30,7 @@ func TestCancelRequest(t *testing.T) {
 						}
 					})
 					cs := f.connect(t)
-					res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "cancel_request", Arguments: map[string]any{"caseOid": fxCaseTwoStep}})
+					res, err := cs.CallTool(context.Background(), &mcp.CallToolParams{Name: "cancel_request", Arguments: map[string]any{"caseOid": fxCaseTwoStep, "userName": "bstone", "roleName": "db-admin"}})
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -105,7 +105,7 @@ func TestCancelRequestReadbackAndRefusals(t *testing.T) {
 			case "invalid":
 				oid = ""
 			}
-			res, err := f.connect(t).CallTool(context.Background(), &mcp.CallToolParams{Name: "cancel_request", Arguments: map[string]any{"caseOid": oid}})
+			res, err := f.connect(t).CallTool(context.Background(), &mcp.CallToolParams{Name: "cancel_request", Arguments: map[string]any{"caseOid": oid, "userName": "bstone", "roleName": "db-admin"}})
 			if err != nil {
 				t.Fatal(err)
 			}

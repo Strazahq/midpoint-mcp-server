@@ -566,7 +566,7 @@ const pending = new Map();
 function post(m){ window.parent.postMessage(m, '*'); }
 function request(method, params){ const id = ++rpcId; return new Promise(res => { pending.set(id, res); post({jsonrpc:'2.0', id, method, params}); }); }
 function notify(method, params){ post({jsonrpc:'2.0', method, params}); }
-const TOOLS = {list_my_team:['limit'], get_user_assignments:['oid'], unassign_role:['userOid', 'roleOid'], whoami:[]};
+const TOOLS = {list_my_team:['limit'], get_user_assignments:['oid'], unassign_role:['userOid', 'userName', 'roleOid', 'roleName'], whoami:[]};
 const canCall = () => S.init && isObj(S.caps.serverTools);
 function callTool(name, args){
   if (!canCall() || !TOOLS[name] || Object.keys(args).some(k => !TOOLS[name].includes(k))) return Promise.resolve({error:{}});
@@ -1038,7 +1038,7 @@ function closeDialog(){ const d = S.dialog; if (!d || d.working) return; S.dialo
 async function submitDialog(){
   const d = S.dialog; if (!d || d.working || !canCall()) return;
   d.working = true; d.at = Date.now(); render({focus:'dlg-box'});
-  const r = await callTool('unassign_role', {userOid:d.user.oid, roleOid:d.roleOid});
+  const r = await callTool('unassign_role', {userOid:d.user.oid, userName:d.user.name || '', roleOid:d.roleOid, roleName:(d.role && d.role.name) || ''});
   if (r.result) remember(r.result);
   const row = outcomeOf(r); S.dialog = null; S.notice = row;
   if (row.error && classify(row.error) === 'error.notAssigned') S.disabled.add(d.roleOid);

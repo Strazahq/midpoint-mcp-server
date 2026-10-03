@@ -406,7 +406,7 @@ func TestViewFieldsOnResults(t *testing.T) {
 	}{
 		{"list_work_items", map[string]any{}},
 		{"get_case", map[string]any{"oid": "case-1"}},
-		{"decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"}},
+		{"decide_work_item", map[string]any{"caseOid": "case-1", "userName": "selfuser", "roleName": "Superuser", "workItemId": "1", "decision": "approve"}},
 		{"whoami", map[string]any{}},
 	} {
 		*reqs = nil

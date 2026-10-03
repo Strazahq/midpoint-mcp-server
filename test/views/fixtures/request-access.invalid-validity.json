@@ -1,6 +1,7 @@
 {
   "call": {
     "arguments": {
+      "roleName": "db-admin",
       "roleOid": "20000000-0000-0000-0000-0000000000f1",
       "validTo": "yesterday"
     },

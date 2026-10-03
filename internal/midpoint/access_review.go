@@ -43,6 +43,26 @@ type Revocation struct {
 	CaseOID string    `json:"caseOid,omitempty"`
 }
 
+// AssignmentRefs names a user and a role the way the access lists do, read as
+// the caller: the role by its own name, or, when it can't be read, by the name
+// midPoint stores in the user's assignment to it. Unreadable objects come back
+// with whatever name is known, perhaps none.
+func (c *Client) AssignmentRefs(ctx context.Context, userOID, roleOID string) (ObjectRef, ObjectRef) {
+	r := newRefReader(c)
+	var u userJSON
+	if err := c.getObject(ctx, collUsers, userOID, true, &u); err != nil {
+		return r.objectRef(ctx, refJSON{OID: userOID, Type: "UserType"}, true), r.objectRef(ctx, refJSON{OID: roleOID, Type: "RoleType"}, false)
+	}
+	user := ObjectRef{OID: userOID, Type: "User", Name: u.Name.value(), DisplayName: u.FullName.value()}
+	for _, raw := range u.Assignment {
+		var a assignmentJSON
+		if json.Unmarshal(raw, &a) == nil && a.TargetRef != nil && a.TargetRef.OID == roleOID {
+			return user, r.objectRef(ctx, *a.TargetRef, false)
+		}
+	}
+	return user, r.objectRef(ctx, refJSON{OID: roleOID, Type: "RoleType"}, false)
+}
+
 // ReadRevocation reads the user after a removal, or names a preview. A write's
 // HTTP success is not proof that the assignment disappeared. If the user cannot
 // be read, the error is returned instead of claiming an outcome.

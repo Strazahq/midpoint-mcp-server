@@ -860,7 +860,7 @@ function modelContext(res){
 }
 
 /* Get access: own tools, snapshots and request form (7.2). */
-const TOOLS={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','userOid','validFrom','validTo','fields'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
+const TOOLS={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','roleName','userOid','userName','validFrom','validTo','fields'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
 const sig=v=>JSON.stringify(v);
 const LIST=new Intl.ListFormat('en',{style:'long',type:'conjunction'});
 const names=refs=>{const n=refs.map(dispName);return LIST.format(n.length>3?n.slice(0,3).concat(ts('common.andMore',{count:n.length-3})):n)};
@@ -1187,7 +1187,7 @@ function submitDialog(){
  d.errors=val.error?{[val.error]:ts(val.key,{max:MAX_DAYS}),...errors}:errors;
  const bad=Object.keys(d.errors)[0];
  if(bad){render({focus:bad==='days'?'days':bad});announce(d.errors[bad],true);return;}
- const args={roleOid:d.role.oid};if(S.target)args.userOid=S.target;
+ const args={roleOid:d.role.oid,roleName:d.role.name};if(S.target){args.userOid=S.target;args.userName=(d.user&&d.user.name)||'';}
  Object.assign(args,val);if(Object.keys(fields).length)args.fields=fields;
  d.working=true;d.at=Date.now();render({focus:'dlg-box'});
  callTool('request_role',args).then(r=>{

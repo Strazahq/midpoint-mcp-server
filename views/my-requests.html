@@ -1009,7 +1009,7 @@ function withdrawalRow(r){
 function submitDialog(){
  const d=S.dialog;if(!d || d.working)return;
  d.working=true;d.at=Date.now();render({focus:'dlg-box'});
- callTool('cancel_request',{caseOid:d.it.oid}).then(r=>{
+ callTool('cancel_request',{caseOid:d.it.oid,userName:d.it.objectRef.name,roleName:d.it.targetRef.name}).then(r=>{
   const row=withdrawalRow(r);S.dialog=null;
   if(r.result)S.writeSigs.add(sig(r.result));
   if(row.error)S.rows[d.it.oid]=row;else S.notice=row;

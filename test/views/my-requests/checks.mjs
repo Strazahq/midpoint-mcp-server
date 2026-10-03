@@ -2,7 +2,7 @@ import { S, text } from './strings.mjs';
 import { fixture, derive, M, item, nameOf, slot } from './derive.mjs';
 import { defaults, diagnostics, VIEW_URL, sleep, inLiveRegion, norm } from '../harness.mjs';
 
-defaults.allowedTools={list_my_requests:['limit'],get_case:['oid'],cancel_request:['caseOid'],whoami:[]};
+defaults.allowedTools={list_my_requests:['limit'],get_case:['oid'],cancel_request:['caseOid','userName','roleName'],whoami:[]};
 defaults.tools={whoami:[{result:fixture('whoami').result}]};
 export const checks=[],runWide=[];
 const check=(id,criterion,title,run)=>checks.push({id,criterion,title,run});
@@ -62,7 +62,7 @@ check('ac04.confirm','7.3 AC4, 6.5','confirm names role and person, no comment o
 check('ac04.once','7.3 AC4, 6.5','working confirm cannot submit twice or close on Escape',async t=>{
  const v=await open(t,'list',{tools:writeTools('withdrawn','closed',{hold:true})});await submit(v);const d=v.dialog();
  t.ok(await d.getByRole('button',{name:S['confirm.working']}).isDisabled(),'working button enabled');t.ok(await d.getByRole('button',{name:S['common.cancel'],exact:true}).isDisabled(),'Cancel enabled');
- await v.frame.getByRole('dialog').press('Escape');t.ok(await v.visible(d),'Escape closed pending dialog');const calls=await v.calls('cancel_request');t.ok(calls.length===1,'write count');t.ok(JSON.stringify(calls[0].args)===JSON.stringify({caseOid:item(fixture('list')).oid}),'write arguments not caseOid only');await v.release();await settle();
+ await v.frame.getByRole('dialog').press('Escape');t.ok(await v.visible(d),'Escape closed pending dialog');const calls=await v.calls('cancel_request');t.ok(calls.length===1,'write count');t.ok(JSON.stringify(calls[0].args)===JSON.stringify({caseOid:item(fixture('list')).oid,userName:item(fixture('list')).objectRef.name,roleName:item(fixture('list')).targetRef.name}),'write arguments not caseOid and names only');await v.release();await settle();
 });
 for(const outcome of ['withdrawn','unconfirmed','preview'])check('ac05.'+outcome,'7.3 AC5','distinct '+outcome+' outcome and correct list re-read',async t=>{
  const entry=outcome==='preview'?derive('list',M.preview):fixture('list');const v=await open(t,entry,{tools:writeTools(outcome,outcome==='withdrawn'?'closed':'list')});await submit(v,outcome==='preview'?'dryrun.submit':'confirm.withdraw.submit');

@@ -2,7 +2,9 @@
   "about": "Requester scenario: request-closed. Recorded case enriched by this server; second open approver item and bodyless cancellation modeled from the documented REST shapes (live verification pending).",
   "call": {
     "arguments": {
-      "caseOid": "40000000-0000-0000-0000-000000000001"
+      "caseOid": "40000000-0000-0000-0000-000000000001",
+      "roleName": "db-admin",
+      "userName": "bstone"
     },
     "name": "cancel_request"
   },

@@ -4,6 +4,8 @@
       "caseOid": "40000000-0000-0000-0000-000000000001",
       "comment": "Not needed for this project.",
       "decision": "reject",
+      "roleName": "db-admin",
+      "userName": "bstone",
       "workItemId": "6"
     },
     "name": "decide_work_item"

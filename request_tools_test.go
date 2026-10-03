@@ -83,11 +83,11 @@ func TestRequestToolsRoundTrip(t *testing.T) {
 		tool string
 		args map[string]any
 	}{
-		{"request_role", map[string]any{"roleOid": "role-su"}},
+		{"request_role", map[string]any{"roleOid": "role-su", "roleName": "Superuser"}},
 		{"list_my_requests", map[string]any{}},
 		{"list_work_items", map[string]any{}},
 		{"get_case", map[string]any{"oid": "case-1"}},
-		{"decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"}},
+		{"decide_work_item", map[string]any{"caseOid": "case-1", "userName": "selfuser", "roleName": "Superuser", "workItemId": "1", "decision": "approve"}},
 	}
 	for _, c := range calls {
 		out := callTool(t, cs, c.tool, c.args)
@@ -101,7 +101,7 @@ func TestRequestRoleSurfacesCase(t *testing.T) {
 	srv, reqs := mockMidpointCases(t)
 	cs := connectRequests(t, srv, true) // gate ON
 
-	out := callTool(t, cs, "request_role", map[string]any{"roleOid": "role-su"})
+	out := callTool(t, cs, "request_role", map[string]any{"roleOid": "role-su", "roleName": "Superuser"})
 	if out["applied"] != true {
 		t.Errorf("applied = %v, want true", out["applied"])
 	}
@@ -122,9 +122,9 @@ func TestRequestWritesGateOff(t *testing.T) {
 		tool string
 		args map[string]any
 	}{
-		{"request_role", map[string]any{"roleOid": "role-su"}},
-		{"decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"}},
-		{"decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "reject"}},
+		{"request_role", map[string]any{"roleOid": "role-su", "roleName": "Superuser"}},
+		{"decide_work_item", map[string]any{"caseOid": "case-1", "userName": "selfuser", "roleName": "Superuser", "workItemId": "1", "decision": "approve"}},
+		{"decide_work_item", map[string]any{"caseOid": "case-1", "userName": "selfuser", "roleName": "Superuser", "workItemId": "1", "decision": "reject"}},
 	} {
 		out := callTool(t, cs, c.tool, c.args)
 		if out["dryRun"] != true || out["applied"] != false {
@@ -170,7 +170,7 @@ func TestRequestRoleRefusesNonRequestableRole(t *testing.T) {
 	srv, reqs := mockMidpointCases(t)
 	cs := connectRequests(t, srv, true) // gate ON
 
-	msg := callToolErr(t, cs, "request_role", map[string]any{"roleOid": "role-priv"})
+	msg := callToolErr(t, cs, "request_role", map[string]any{"roleOid": "role-priv", "roleName": "Privileged"})
 	for _, want := range []string{"not flagged requestable", "assign_role", "requireRequestable"} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("refusal %q does not mention %q", msg, want)
@@ -187,7 +187,7 @@ func TestRequestRoleRefusesNonRequestableInDryRun(t *testing.T) {
 	srv, _ := mockMidpointCases(t)
 	cs := connectRequests(t, srv, false) // gate OFF
 
-	msg := callToolErr(t, cs, "request_role", map[string]any{"roleOid": "role-priv"})
+	msg := callToolErr(t, cs, "request_role", map[string]any{"roleOid": "role-priv", "roleName": "Privileged"})
 	if !strings.Contains(msg, "not flagged requestable") {
 		t.Errorf("dry-run refusal = %q", msg)
 	}
@@ -215,7 +215,7 @@ func TestRequestRoleGuardrailCanBeDisabled(t *testing.T) {
 	}
 	t.Cleanup(func() { cs.Close() })
 
-	if out := callTool(t, cs, "request_role", map[string]any{"roleOid": "role-priv"}); out["applied"] != true {
+	if out := callTool(t, cs, "request_role", map[string]any{"roleOid": "role-priv", "roleName": "Privileged"}); out["applied"] != true {
 		t.Errorf("applied = %v, want true with the guardrail disabled", out["applied"])
 	}
 	if findReq(*reqs, http.MethodPatch, "/ws/rest/users/u-self") == nil {
@@ -347,7 +347,7 @@ func TestDecideWorkItem(t *testing.T) {
 			mp := newDecideMidpoint(t)
 			cs := connectRequests(t, mp.srv, true) // gate ON
 
-			args := map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": tc.decision}
+			args := map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": tc.decision}
 			if tc.comment != "" {
 				args["comment"] = tc.comment
 			}
@@ -403,7 +403,7 @@ func TestDecideWorkItemNextApprovers(t *testing.T) {
 	cs := connectRequests(t, mp.srv, true) // gate ON
 
 	out := callTool(t, cs, "decide_work_item",
-		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
+		map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "approve"})
 	if out["caseState"] != "open" || out["recordedOutcome"] != "approve" {
 		t.Fatalf("caseState=%v recordedOutcome=%v", out["caseState"], out["recordedOutcome"])
 	}
@@ -423,7 +423,7 @@ func TestDecideWorkItemText(t *testing.T) {
 	cs := connectRequests(t, mp.srv, true) // gate ON
 
 	_, msg := callToolText(t, cs, "decide_work_item",
-		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
+		map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "approve"})
 	for _, want := range []string{"Approved work item 1", `"Approving Superuser for Jane" (case-1)`,
 		"Superuser for Jane Doe", "as selfuser (personal mode)", "recorded outcome approve", "now closed"} {
 		if !strings.Contains(msg, want) {
@@ -440,7 +440,7 @@ func TestDecideWorkItemRefusesOthersWorkItem(t *testing.T) {
 		cs := connectRequests(t, mp.srv, gate)
 
 		msg := callToolErr(t, cs, "decide_work_item",
-			map[string]any{"caseOid": "case-1", "workItemId": "2", "decision": "approve"})
+			map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "2", "decision": "approve"})
 		for _, want := range []string{"refused", "assigned to Someone Else", "not to selfuser"} {
 			if !strings.Contains(msg, want) {
 				t.Errorf("gate=%v: refusal %q does not mention %q", gate, msg, want)
@@ -458,8 +458,8 @@ func TestDecideWorkItemRefusesClosedWorkItem(t *testing.T) {
 	mp := newDecideMidpoint(t)
 	cs := connectRequests(t, mp.srv, true) // gate ON
 
-	callTool(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
-	msg := callToolErr(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "reject"})
+	callTool(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "approve"})
+	msg := callToolErr(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "reject"})
 	if !strings.Contains(msg, "refused") || !strings.Contains(msg, "not open") {
 		t.Errorf("refusal = %q, want the case reported as not open", msg)
 	}
@@ -473,7 +473,7 @@ func TestDecideWorkItemGateOff(t *testing.T) {
 	cs := connectRequests(t, mp.srv, false) // gate OFF
 
 	out, msg := callToolText(t, cs, "decide_work_item",
-		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "reject", "comment": "no"})
+		map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "reject", "comment": "no"})
 	if out["dryRun"] != true || out["applied"] != false {
 		t.Errorf("dryRun=%v applied=%v, want a preview", out["dryRun"], out["applied"])
 	}
@@ -499,7 +499,7 @@ func TestDecideWorkItemRejectsUnknownDecision(t *testing.T) {
 	cs := connectRequests(t, mp.srv, true) // gate ON
 
 	msg := callToolErr(t, cs, "decide_work_item",
-		map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "maybe"})
+		map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "maybe"})
 	if !strings.Contains(msg, `"approve" or "reject"`) {
 		t.Errorf("refusal = %q", msg)
 	}

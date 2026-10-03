@@ -124,18 +124,33 @@ func registerSetUserEnabled(server *mcp.Server, client *midpoint.Client, allowWr
 // --- assign_role / unassign_role ---
 
 type roleAssignmentInput struct {
-	UserOID string `json:"userOid" jsonschema:"OID of the user"`
-	RoleOID string `json:"roleOid" jsonschema:"OID of the role"`
+	UserOID  string `json:"userOid" jsonschema:"OID of the user"`
+	UserName string `json:"userName" jsonschema:"the user's midPoint name (their login, not the full name); must match userOid"`
+	RoleOID  string `json:"roleOid" jsonschema:"OID of the role"`
+	RoleName string `json:"roleName" jsonschema:"the role's midPoint name (its unique name attribute, not the display name); must match roleOid"`
+}
+
+// confirmAssignmentNames checks a role assignment's names against the objects
+// its OIDs point to, read as the acting identity.
+func confirmAssignmentNames(ctx context.Context, client *midpoint.Client, in roleAssignmentInput) error {
+	user, role := client.AssignmentRefs(ctx, in.UserOID, in.RoleOID)
+	if err := confirmRef("userName", "user", in.UserName, &user); err != nil {
+		return err
+	}
+	return confirmRef("roleName", "role", in.RoleName, &role)
 }
 
 func registerAssignRole(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
 	addTool(server, &mcp.Tool{
 		Name:        "assign_role",
 		Title:       "Assign role",
-		Description: "Assign a role to a user. Requires the write gate; otherwise a dry-run preview.",
+		Description: "Assign a role to a user. " + nameArgsNote + " Requires the write gate; otherwise a dry-run preview.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in roleAssignmentInput) (*mcp.CallToolResult, writeOutput, error) {
 		plan, err := client.PlanAssignRole(in.UserOID, in.RoleOID)
 		if err != nil {
+			return nil, writeOutput{}, err
+		}
+		if err := confirmAssignmentNames(ctx, client, in); err != nil {
 			return nil, writeOutput{}, err
 		}
 		return runWrite(ctx, allowWrites, client, plan)
@@ -152,11 +167,14 @@ func registerUnassignRole(server *mcp.Server, client *midpoint.Client, allowWrit
 	addTool(server, &mcp.Tool{
 		Name:        "unassign_role",
 		Title:       "Unassign role",
-		Description: "Remove a user's assignment to a role. Requires the write gate; otherwise a dry-run preview.",
+		Description: "Remove a user's assignment to a role. " + nameArgsNote + " Requires the write gate; otherwise a dry-run preview.",
 	}, viewTool("unassign_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in roleAssignmentInput) (*mcp.CallToolResult, revocationOutput, error) {
 		// Resolves the assignment id via a read even in dry-run, so the preview is accurate.
 		plan, err := client.PlanUnassignRole(ctx, in.UserOID, in.RoleOID)
 		if err != nil {
+			return nil, revocationOutput{}, err
+		}
+		if err := confirmAssignmentNames(ctx, client, in); err != nil {
 			return nil, revocationOutput{}, err
 		}
 		res, out, err := runWrite(ctx, allowWrites, client, plan)
@@ -170,14 +188,25 @@ func registerUnassignRole(server *mcp.Server, client *midpoint.Client, allowWrit
 
 // --- recompute_user ---
 
+type recomputeUserInput struct {
+	OID      string `json:"oid" jsonschema:"OID of the user"`
+	UserName string `json:"userName" jsonschema:"the user's midPoint name (their login, not the full name); must match oid"`
+}
+
 func registerRecomputeUser(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
 	addTool(server, &mcp.Tool{
-		Name:        "recompute_user",
-		Title:       "Recompute user",
-		Description: "Recompute (reconcile) a user so midPoint re-evaluates policies and propagates changes. Requires the write gate; otherwise a dry-run preview.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in oidInput) (*mcp.CallToolResult, writeOutput, error) {
+		Name:  "recompute_user",
+		Title: "Recompute user",
+		Description: "Recompute (reconcile) a user so midPoint re-evaluates policies and propagates changes. " +
+			"userName is the user's midPoint name (their login, not the full name); the call is refused when it doesn't match the OID, " +
+			"so the person confirming it reads the right name. Requires the write gate; otherwise a dry-run preview.",
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in recomputeUserInput) (*mcp.CallToolResult, writeOutput, error) {
 		plan, err := client.PlanRecomputeUser(in.OID)
 		if err != nil {
+			return nil, writeOutput{}, err
+		}
+		user := client.NamedRef(ctx, in.OID, "UserType")
+		if err := confirmRef("userName", "user", in.UserName, &user); err != nil {
 			return nil, writeOutput{}, err
 		}
 		return runWrite(ctx, allowWrites, client, plan)

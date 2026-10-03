@@ -83,7 +83,7 @@ export const ALL_CAPS = { serverTools: {}, openLinks: {}, message: {}, updateMod
 // The inbox's tool allowlist and arguments (contract 7.1).
 export const INBOX_TOOLS = {
   list_work_items: ['limit'],
-  decide_work_item: ['caseOid', 'workItemId', 'decision', 'comment'],
+  decide_work_item: ['caseOid', 'userName', 'roleName', 'workItemId', 'decision', 'comment'],
   get_case: ['oid'],
   whoami: [],
 };

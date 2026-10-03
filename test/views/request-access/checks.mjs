@@ -4,7 +4,7 @@ import {defaults,diagnostics,VIEW_URL,inLiveRegion,sleep} from '../harness.mjs';
 export const checks=[],runWide=[];
 const check=(id,criterion,title,run)=>checks.push({id,criterion,title,run});
 const across=(id,criterion,title,run)=>runWide.push({id,criterion,title,run});
-defaults.allowedTools={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','userOid','validFrom','validTo','fields'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
+defaults.allowedTools={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','roleName','userOid','userName','validFrom','validTo','fields'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
 defaults.tools={whoami:[{result:fixture('identity').result}],list_my_managers:[{result:fixture('managers').result}],list_my_team:[{result:fixture('team').result}],list_requestable_roles:[{result:fixture('catalog').result}],get_case:[{result:fixture('case').result}],request_role:[{result:fixture('pending').result}]};
 const rn=roleName(role());
 async function catalog(t,name='catalog',opts={}){const v=await t.open({entry:typeof name==='string'?fixture(name):name,...opts});t.ok(await v.waitFor(v.frame.getByRole('heading',{name:S.title,exact:true})),'Get access did not load');return v;}
@@ -60,7 +60,7 @@ check('ac04.confirm','7.2 AC4, 6.5','confirm names role and person, policy hint,
  const v=await catalog(t);const d=await open(t,v);t.ok(await v.hasText(S.titleRequest(rn),{within:d}),'role title');t.ok(await v.hasText(S.body(rn),{within:d}),'requestee body');t.ok(await v.hasText(S.policy,{within:d}),'policy');t.ok(await v.hasText(person(),{within:d}),'summary person');t.ok(await d.getByRole('textbox').count()===0,'comment field without form');t.ok((await v.calls('request_role')).length===0,'write before confirm');
 });
 check('ac05.permanent','7.2 AC5','no end date is default and sends no dates or self OID',async t=>{
- const v=await catalog(t);const d=await open(t,v);t.ok(await d.getByRole('radio',{name:S.permanent}).isChecked(),'permanent not default');await submit(v);const a=(await v.calls('request_role'))[0]?.args;t.ok(a&&Object.keys(a).join(',')==='roleOid','unexpected permanent args');
+ const v=await catalog(t);const d=await open(t,v);t.ok(await d.getByRole('radio',{name:S.permanent}).isChecked(),'permanent not default');await submit(v);const a=(await v.calls('request_role'))[0]?.args;t.ok(a&&Object.keys(a).join(',')==='roleOid,roleName'&&a.roleName===role().name,'unexpected permanent args');
 });
 for(const n of [7,30,90,17])check(`ac05.days-${n}`,'7.2 AC5','day validity sends host-zone end of day only',async t=>{
  const v=await catalog(t);const d=await open(t,v);await d.getByRole('radio',{name:S.days,exact:true}).check();
@@ -296,7 +296,7 @@ check('ac02.typing-while-switching','7.2 AC2, AC3','typing during a target read 
  await v.frame.getByRole('searchbox',{name:S.search}).fill('database');
  t.ok(await v.button(S.reportLabel(rn,person())).isDisabled(),'old target became actionable');await v.release();await sleep(150);
  t.ok(!(await v.button(S.reportLabel(rn,person())).isDisabled()),'new target stayed disabled');
- await open(t,v,S.reportLabel(rn,person()));await submit(v);t.ok((await v.calls('request_role'))[0]?.args.userOid===report.call.arguments.forUser,'wrong requestee');
+ await open(t,v,S.reportLabel(rn,person()));await submit(v);const sent=(await v.calls('request_role'))[0]?.args;t.ok(sent?.userOid===report.call.arguments.forUser,'wrong requestee');t.ok(sent?.userName===report.result.structuredContent.forUserRef.name,'requestee name not sent');
 });
 check('ac02.failed-switch','7.2 AC2, 6.8','failed target read retains the snapshot but cannot request from the wrong catalog',async t=>{
  const report=fixture('report'),error=derive('invalid-field','target-refused',M.error('not-authorized')),v=await catalog(t,'manager',{tools:listTools(error)});

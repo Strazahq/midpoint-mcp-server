@@ -321,7 +321,8 @@ func viewFixtures() []viewFixture {
 		return fixtureSession{principal: oid, writes: true, reasonField: true}
 	}
 	decide := func(caseOID, id, decision string, comment ...string) map[string]any {
-		args := map[string]any{"caseOid": caseOID, "workItemId": id, "decision": decision}
+		names := map[string][2]string{fxCaseTwoStep: {"bstone", "db-admin"}, fxCaseManagers: {"bstone", "finance-reports"}}[caseOID]
+		args := map[string]any{"caseOid": caseOID, "userName": names[0], "roleName": names[1], "workItemId": id, "decision": decision}
 		if len(comment) > 0 {
 			args["comment"] = comment[0]
 		}

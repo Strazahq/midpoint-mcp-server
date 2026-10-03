@@ -244,6 +244,19 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
     access (S9, S10, S25), each with its own browser suite in
     `test/views/`. Open: firing each on a live midPoint 4.10 and in a real
     MCP Apps host; S15 (Open in midPoint links).
+  - **M10.4 — readable confirmations (2026-10-03, contract D38, S26)**: a
+    host's "allow this tool" card shows the call's arguments, which were OIDs
+    only. Every write tool also takes the midPoint `name` of the person and
+    the role (`userName`, `roleName`; the unique `name` attribute, owner's
+    choice, not display names), and the server refuses a name that doesn't
+    match its OID before any write. The four views send the names they hold.
+    AC: a write with a missing or wrong name is refused with `invalid-input`
+    and nothing is written, gate open or closed; the views' calls carry the
+    names; `go test ./...` and the four browser suites pass.
+  - **Next (owner, 2026-10-03)**: the readability redesign, direction A
+    inline and B (ledger) for expanded mode, with each role's origin (assignment
+    metadata) and "ends soon"; no new views. `list_recent_errors` comes as a
+    text tool only.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

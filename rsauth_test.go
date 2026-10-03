@@ -271,7 +271,7 @@ func TestResourceServerDecideWorkItemRunsAsCaller(t *testing.T) {
 	}
 	defer cs.Close()
 
-	out := callTool(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "approve"})
+	out := callTool(t, cs, "decide_work_item", map[string]any{"caseOid": "case-1", "userName": "", "roleName": "", "workItemId": "1", "decision": "approve"})
 	if out["applied"] != true {
 		t.Fatalf("applied = %v, want true", out["applied"])
 	}

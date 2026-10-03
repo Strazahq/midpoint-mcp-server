@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -54,7 +55,8 @@ func TestEmbeddedMyRequests(t *testing.T) {
 			if err := json.Unmarshal(b, &schema); err != nil {
 				t.Fatal(err)
 			}
-			if len(schema.Properties) != 1 || schema.Properties["caseOid"] == nil || len(schema.Required) != 1 || schema.Required[0] != "caseOid" {
+			want := []string{"caseOid", "userName", "roleName"}
+			if len(schema.Properties) != len(want) || !slices.Equal(schema.Required, want) {
 				t.Fatalf("cancel schema %s", b)
 			}
 		}

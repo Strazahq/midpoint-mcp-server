@@ -122,7 +122,7 @@ const (
 // the error text is what it was before codes existed.
 func TestErrorCodes(t *testing.T) {
 	decide := func(id string) map[string]any {
-		return map[string]any{"caseOid": "case-1", "workItemId": id, "decision": "approve"}
+		return map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": id, "decision": "approve"}
 	}
 	for _, tc := range []struct {
 		name   string
@@ -149,7 +149,7 @@ func TestErrorCodes(t *testing.T) {
 			tool: "list_work_items", code: midpoint.CodeSharedCredential, text: midpoint.ErrNoCallerIdentity.Error()},
 		{name: "not requestable", routes: map[string]route{
 			"GET /ws/rest/roles/role-priv": {200, `{"role":{"oid":"role-priv","name":"Privileged"}}`}},
-			tool: "request_role", args: map[string]any{"roleOid": "role-priv"}, code: midpoint.CodeNotRequestable},
+			tool: "request_role", args: map[string]any{"roleOid": "role-priv", "roleName": "Privileged"}, code: midpoint.CodeNotRequestable},
 		{name: "case closed", routes: map[string]route{"GET /ws/rest/cases/case-1": decideCase("closed", myDoneWorkItem)},
 			tool: "decide_work_item", args: decide("1"), code: midpoint.CodeRequestClosed},
 		{name: "work item closed", routes: map[string]route{"GET /ws/rest/cases/case-1": decideCase("open", myDoneWorkItem, othersWorkItem)},
@@ -159,7 +159,7 @@ func TestErrorCodes(t *testing.T) {
 		{name: "no such work item", routes: map[string]route{"GET /ws/rest/cases/case-1": decideCase("open", myWorkItem)},
 			tool: "decide_work_item", args: decide("9"), code: midpoint.CodeNotInInbox},
 		{name: "unknown decision",
-			tool: "decide_work_item", args: map[string]any{"caseOid": "case-1", "workItemId": "1", "decision": "maybe"},
+			tool: "decide_work_item", args: map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "maybe"},
 			code: midpoint.CodeInvalidInput, text: `decision must be "approve" or "reject", got "maybe"`},
 		{name: "missing argument",
 			tool: "decide_work_item", args: map[string]any{"caseOid": "case-1", "workItemId": "1"},
@@ -168,7 +168,7 @@ func TestErrorCodes(t *testing.T) {
 			tool: "list_work_items", args: map[string]any{"limit": "ten"}, code: midpoint.CodeInvalidInput},
 		{name: "not assigned", routes: map[string]route{
 			"GET /ws/rest/users/u-jane": {200, `{"user":{"oid":"u-jane","name":"jane","assignment":[]}}`}},
-			tool: "unassign_role", args: map[string]any{"userOid": "u-jane", "roleOid": "role-su"},
+			tool: "unassign_role", args: map[string]any{"userOid": "u-jane", "userName": "jane", "roleOid": "role-su", "roleName": "Superuser"},
 			code: midpoint.CodeNotAssigned, text: "user u-jane has no direct assignment to role-su"},
 		{name: "audit script refused", routes: map[string]route{"POST /ws/rest/rpc/executeScript": {403, ""}},
 			tool: "search_audit", code: midpoint.CodeAuditUnavailable,

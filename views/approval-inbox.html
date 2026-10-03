@@ -1132,7 +1132,8 @@ function submitDialog(){
   if (d.decision === 'reject' && !cm){ d.error = true; render({focus:'dlg-comment'}); announce(ts('confirm.comment.requiredError'), true); return; }
   d.error = false; d.working = true; d.at = Date.now();
   render({focus:'dlg-box'});
-  const args = {caseOid:d.it.caseOid, workItemId:d.it.id, decision:d.decision};
+  /* names as midPoint gives them (S38): the host's confirmation shows these, the server checks them against the OIDs */
+  const args = {caseOid:d.it.caseOid, userName:d.it.context.requestee.name, roleName:d.it.context.target.name, workItemId:d.it.id, decision:d.decision};
   if (cm) args.comment = cm.slice(0, MAX_COMMENT);
   callTool('decide_work_item', args).then(r => {
     const k = wk(d.it), row = decideRow(r, d.decision);

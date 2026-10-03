@@ -303,6 +303,9 @@ type DecidableWorkItem struct {
 	Subject  Subject
 	Case     CaseSummary
 	WorkItem WorkItem
+	// Object and Target name the case's objectRef and targetRef the way the
+	// inbox does, read as the subject.
+	Object, Target ObjectRef
 }
 
 // CheckDecidable resolves the subject the way ListWorkItems does and reads the
@@ -359,9 +362,19 @@ func (c *Client) CheckDecidable(ctx context.Context, caseOID, workItemID string)
 				"(the identity this server acts as, %s mode); only work items in that identity's approval inbox "+
 				"(list_work_items) can be decided", workItemID, label, assigned, subj.Name, subj.Mode)}
 		}
+		r := newRefReader(c)
+		var object, target ObjectRef
+		if cj.ObjectRef != nil {
+			object = r.objectRef(ctx, *cj.ObjectRef, true)
+		}
+		if cj.TargetRef != nil {
+			target = r.objectRef(ctx, *cj.TargetRef, false)
+		}
 		return DecidableWorkItem{
 			Subject: subj,
 			Case:    s,
+			Object:  object,
+			Target:  target,
 			WorkItem: WorkItem{
 				CaseOID:   cj.OID,
 				ID:        wi.ID.s,

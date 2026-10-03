@@ -75,7 +75,9 @@ type requestRoleInput struct {
 	ValidTo   string         `json:"validTo,omitempty" jsonschema:"end in RFC 3339 with offset; after the start and in the future"`
 	Fields    map[string]any `json:"fields,omitempty" jsonschema:"values keyed by local names from list_requestable_roles form.items"`
 	RoleOID   string         `json:"roleOid" jsonschema:"OID of the role to request"`
+	RoleName  string         `json:"roleName" jsonschema:"the role's midPoint name (its unique name attribute, not the display name); must match roleOid"`
 	UserOID   string         `json:"userOid,omitempty" jsonschema:"OID of the user the role is for; defaults to the authenticated user (self-service)"`
+	UserName  string         `json:"userName,omitempty" jsonschema:"the user's midPoint name (their login, not the full name); required with userOid and must match it"`
 }
 
 func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
@@ -86,7 +88,7 @@ func registerRequestRole(server *mcp.Server, client *midpoint.Client, allowWrite
 			"decides whether that opens an approval case or executes immediately — so by default this refuses roles " +
 			"that midPoint's catalog does not flag requestable (see list_requestable_roles), because for those it " +
 			"would grant rather than request. Use assign_role for a deliberate grant. The requester is always the " +
-			"authenticated user. Respects the write gate.",
+			"authenticated user. " + nameArgsNote + " Respects the write gate.",
 	}, viewTool("request_role", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in requestRoleInput) (*mcp.CallToolResult, requestRoleOutput, error) {
 		res, out, err := requestRole(ctx, client, allowWrites, in)
 		return res, out, err
@@ -115,6 +117,14 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 		return nil, requestRoleOutput{}, err
 	}
 	user, role := client.RequestRefs(ctx, target, in.RoleOID)
+	if err := confirmRef("roleName", "role", in.RoleName, &role); err != nil {
+		return nil, requestRoleOutput{}, err
+	}
+	if strings.TrimSpace(in.UserOID) != "" || strings.TrimSpace(in.UserName) != "" {
+		if err := confirmRef("userName", "user", in.UserName, &user); err != nil {
+			return nil, requestRoleOutput{}, err
+		}
+	}
 	req := requestOutcome{Role: role, User: user, Approvers: []midpoint.ObjectRef{}, Fields: fields}
 	if in.ValidFrom != "" || in.ValidTo != "" {
 		req.Validity = &midpoint.Validity{ValidFrom: in.ValidFrom, ValidTo: in.ValidTo}
@@ -237,6 +247,8 @@ func registerGetCase(server *mcp.Server, client *midpoint.Client, info serverInf
 type decideWorkItemInput struct {
 	CaseOID    string `json:"caseOid" jsonschema:"OID of the case (caseOid from list_work_items or get_case)"`
 	WorkItemID string `json:"workItemId" jsonschema:"id of the work item within the case (id from list_work_items or get_case)"`
+	UserName   string `json:"userName" jsonschema:"midPoint name (login) of the person the request is for; empty only when midPoint doesn't show you their name"`
+	RoleName   string `json:"roleName" jsonschema:"midPoint name of the role (or other object) the request adds or removes; empty only when midPoint doesn't show you its name"`
 	Decision   string `json:"decision" jsonschema:"approve or reject"`
 	Comment    string `json:"comment,omitempty" jsonschema:"optional comment recorded with the decision"`
 }
@@ -277,7 +289,7 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 		Description: "Approve or reject an open approval work item assigned to the authenticated user, with an " +
 			"optional comment. Before writing anything it reads the case as that user and refuses a work item that is " +
 			"not open or not in their approval inbox (list_work_items). The decision executes as that user, and the " +
-			"result names the case, the outcome midPoint recorded, and the identity it ran as. Respects the write gate.",
+			"result names the case, the outcome midPoint recorded, and the identity it ran as. " + nameArgsNote + " Respects the write gate.",
 	}, viewTool("decide_work_item", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in decideWorkItemInput) (*mcp.CallToolResult, decideWorkItemOutput, error) {
 		approve, err := parseDecision(in.Decision)
 		if err != nil {
@@ -292,6 +304,12 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 		// approve" a work item that is not the caller's to decide is a false promise.
 		d, err := client.CheckDecidable(ctx, in.CaseOID, in.WorkItemID)
 		if err != nil {
+			return nil, decideWorkItemOutput{}, err
+		}
+		if err := confirmRef("userName", "person", in.UserName, &d.Object); err != nil {
+			return nil, decideWorkItemOutput{}, err
+		}
+		if err := confirmRef("roleName", "role", in.RoleName, &d.Target); err != nil {
 			return nil, decideWorkItemOutput{}, err
 		}
 		plan, err := client.PlanCompleteWorkItem(d.WorkItem.CaseOID, d.WorkItem.ID, approve, in.Comment)

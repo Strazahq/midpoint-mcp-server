@@ -3,6 +3,8 @@
     "arguments": {
       "caseOid": "40000000-0000-0000-0000-000000000001",
       "decision": "reject",
+      "roleName": "db-admin",
+      "userName": "bstone",
       "workItemId": "6"
     },
     "name": "decide_work_item"
