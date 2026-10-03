@@ -125,7 +125,7 @@ export const S = {
   hostRefused: "The assistant app didn't allow this action.",
 
   // 10.8
-  status: { waiting: 'Waiting', approved: 'Approved', rejected: 'Rejected', closed: 'Closed', personDisabled: 'Account turned off' },
+  status: { waiting: 'Waiting', approved: 'Approved', rejected: 'Rejected', closed: 'Closed', personDisabled: 'Account off' },
 
   // 10.9 (the forms the inbox needs)
   time: { todayAt: (t) => `today, ${t}`, tomorrowAt: (t) => `tomorrow, ${t}`, today: 'today', tomorrow: 'tomorrow' },

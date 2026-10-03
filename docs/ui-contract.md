@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Status** | Draft for review. Nothing in this document is implemented yet. |
-| **Contract version** | `1.0-draft.10` (2026-10-03) |
+| **Contract version** | `1.0-draft.11` (2026-10-03) |
 | **Targets** | MCP Apps extension `io.modelcontextprotocol/ui`, stable revision **2026-01-26**; the midPoint 4.10 GUI look |
 | **Build first** | [Requests to approve](#71-requests-to-approve--build-first) (the approval inbox) |
 | **Writes** | Plain REST only; approver comments are the only comments ([6.5.1](#651-comment-storage)) |
@@ -16,6 +16,33 @@ that views, tool changes, and any intermediary between host and server can be
 built and reviewed separately against one written agreement.
 
 ## Revision history
+
+**1.0-draft.11 (2026-10-03)**, the owner's D39: readable views. The owner found
+the built views "extremely hard to read, everything same element same color".
+A redesign mockup was reviewed by two independent reviewers (a line manager on
+a phone, and a UX and accessibility reviewer), and their fixes are folded in.
+
+- **Look** (6.4, 6.9, 6.10): midPoint blue stays the primary colour, but the
+  AdminLTE palette is no longer binding. There are three text levels; colour
+  means status only. People are circles with initials and things are
+  rounded squares with their kind's glyph, in one tint. Status is a pill
+  with a colour, a glyph and a word. Section headings are uppercase with
+  counts. The type scale has 11 to 17 px and weight 600.
+- **Layout A** (inline): items show their facts as label and value ("Asked
+  by", "How long", "Why you"). Write actions are outlined or filled buttons
+  of at least 36 px (40 px under 470 px). Approve is a green fill and Reject
+  a red outline, and on a removal they read "Approve removal" and "Reject
+  removal".
+- **Layout B** (full screen): a ledger of one row per item. The open row
+  shows its card; tables carry column headers from 560 px and inline labels
+  below that.
+- **Words**: `inbox.item.step` reads "Approval 1 of 2". The why lines are
+  short facts ("You manage Bob Stone"). Status wording is "Not active"
+  instead of "not in effect".
+- **Server** (S27): `get_user_assignments` gives each assignment its
+  `origin`: created when and by whom, requested by, approved by, and the
+  approvers' comments, from midPoint's value metadata **[live]** on 4.10.3.
+  My team's access says "approved by …" from it.
 
 **1.0-draft.10 (2026-10-03)**, the owner's D38
 ([section 11](#11-decisions-and-open-questions)): readable confirmations.
@@ -1457,29 +1484,41 @@ the slot is absent or `allowed`.
 Every person, role, team, service, account and request shown has a small icon
 and its name (owner decision 11, draft.8 D31).
 
-- **One neutral icon per kind** [default], drawn for this project as inline
-  SVG (16x16 viewBox, `currentColor`, owner decision 10): person (`User`),
-  role (`Role`), team (`Org`), service (`Service`), account (`Resource`),
-  request (`Case`), and a dot for anything else. Drawn in `--mp-text-muted` on
-  `--mp-canvas-subtle` inside a 24 px circle with a `--mp-border` ring (20 px
-  in dense rows). No archetype or type colours: **red appears only where it
-  means danger** (risk `high` or `critical`, an overdue decision, an error).
+- **Shape says kind, one tint** (D39, replacing draft.8's neutral discs): a
+  person (`User`) is a circle with their initials (first letters of the first
+  and last word of the shown name, drawn by CSS from `data-initials`, never
+  DOM text) on `--mp-avatar-bg`; an unreadable person shows the person glyph.
+  Everything else is a rounded square (radius 8; 32 px, 22 px inline or in
+  dense rows, 44 px for the person header) with its kind's glyph (16x16
+  viewBox, `currentColor`, owner decision 10: role, team, service, account,
+  request, a dot otherwise) in `--mp-tile-fg` on `--mp-tile-bg`. No archetype
+  or type colours: colour means status, and **red appears only where it means
+  danger** (risk `high` or `critical`, an overdue decision, a rejection, an
+  error).
 - The icon is decorative (`aria-hidden="true"`); the name next to it, as
   [4.5](#45-shared-shapes) says, carries the meaning (never an OID, never a
   login name next to a full name). **No kind label** appears anywhere, on the
   surface or in Details (D15, D28).
-- **Status** [default]: a disabled or archived assignment shows a muted note
-  in words, `status.disabled` ("Turned off, not in effect") or
-  `status.archived` ("Archived, not in effect"), not a coloured chip; a
-  disabled person shows `status.personDisabled` ("Account turned off"). An
-  enabled person or object shows nothing.
+- **Status pills** (D39): a status is a pill with a colour, a glyph and a word,
+  so nothing depends on colour alone. The tones are:
+  - danger soft: high or critical risk, rejected;
+  - danger solid (`mp-chip--alarm`): an overdue decision only;
+  - warning: waiting, or ends within 30 days;
+  - success: approved, or you have it;
+  - info: starts later;
+  - neutral: turned off, archived, withdrawn, medium risk, a relation.
+
+  A disabled or archived assignment shows the neutral pill with
+  `status.disabled` or `status.archived`, with no strikethrough. A disabled
+  person shows `status.personDisabled`. An enabled person or object shows
+  nothing.
 - **Risk chips** (D10): shown **only when a role's `riskLevel` is set**. midPoint
   stores `riskLevel` as free text on `AbstractRoleType` and does nothing else
   with it **[source]** (`common-core-3.xsd:7445`); the docs recommend the values
   `low`, `medium`, `high` and `critical`. Text `inbox.item.risk` or
   `requestAccess.role.risk` with the raw value; fill by value,
-  case-insensitive: `critical` or `high` uses `--mp-danger-fill`, anything
-  else (including `medium`, `low` and numbers) uses `--mp-secondary`. Draft.7
+  case-insensitive: `critical` or `high` is the danger pill with the alert glyph, anything
+  else (including `medium`, `low` and numbers) the neutral pill (D39). Draft.7
   (D19) took the warning fill away from `medium`: on the inbox card it sits
   next to the decision clock, whose warning style means "under 4 hours". For
   the same reason the case status `status.case.waiting` is a neutral outline
@@ -1763,54 +1802,44 @@ in a view these mean a bug or a damaged result, not a person's mistake.
 
 ### 6.9 Theming tokens
 
-Owner decision 3: midPoint look, light and dark following the host theme.
+Owner decision 3, revised by D39: midPoint blue, light and dark following the host theme.
 
 - Theme: `hostContext.theme` sets `data-theme` on the root element; the view
   follows `ui/notifications/host-context-changed` live. Without a host theme,
   the view follows `prefers-color-scheme`.
 - Host style variables [default]: only `--font-sans` and `--font-mono` are
-  adopted. Colour variables are not: the midPoint palette is binding.
+  adopted. Colour variables are not: the palette below is binding.
   `styles.css.fonts` is not applied (it would need network access the view's
   CSP forbids).
-- The light theme is midPoint's GUI palette (AdminLTE 3.2 on Bootstrap 4, with
-  midPoint's overrides). The dark theme is midPoint's GUI dark mode (AdminLTE's
-  `.dark-mode` alternative variables, which midPoint switches on with a body
-  class), with text colours lifted where the GUI's values fail WCAG AA on the
-  dark background. Contrast ratios below were computed with the WCAG formula.
+- The palette (D39) keeps midPoint's primary blue and its alert panel tints, and
+  adds a neutral ink scale, one tint for kind tiles, and soft and solid status
+  tones. The dark theme is its own palette, not AdminLTE's dark mode. Contrast
+  ratios were computed with the WCAG formula by the draft.11 accessibility
+  review; the view suites check every rendered text pair in both themes.
 
-| Token | Light | Dark | midPoint origin | Contrast notes |
-| --- | --- | --- | --- | --- |
-| `--mp-canvas` | `#ffffff` | `#454d55` | card white; dark = `lighten($dark, 7.5%)` (AdminLTE `$dark-main-bg`, midPoint tiles) | |
-| `--mp-canvas-subtle` | `#f4f6f9` | `#343a40` | AdminLTE `$main-bg`; `$dark` (`$gray-800`) | |
-| `--mp-stripe` | `#f9f9f9` | `#4e565e` | `$table-stripe-bg-color`; `rgba(#fff, .05)` on canvas | |
-| `--mp-text` | `#495057` | `#ffffff` | `$body-color` = `$gray-700`; dark-mode body `$white` | 8.18 / 8.59 |
-| `--mp-text-strong` | `#30353a` | `#ffffff` | `$text-color` | 12.38 / 8.59 |
-| `--mp-text-muted` | `#595959` | `#ced4da` | `$text-dark-dimmed-color`; `$gray-400` | 7.00 / 5.75. midPoint's `$text-dimmed-color` `#757575` is 4.38:1 on stripes, so not used for text |
-| `--mp-label` | `#357da7` | `#99c5de` | `$text-label-color`; dark = `lighten(#3c8dbc, 25%)` | 4.52 / 4.66. AdminLTE's `$lightblue-alt` (+20%, `#86bad8`) is 4.10, lifted |
-| `--mp-link` | `#206f9d` | `#99c5de` | `$primary` = `$lightblue` | 5.49 / 4.66 |
-| `--mp-border` | `#dee2e6` | `#6c757d` | `$gray-300`; tile dark border `$secondary-alt` | decorative only |
-| `--mp-divider` | `#dddddd` | `#61686e` | `$table-divider-color` | decorative only |
-| `--mp-control-border` | `#6c757d` | `#adb5bd` | `$gray-600`; `$gray-500` | 4.69 / 4.14 (3:1 needed). midPoint's input border `$gray-400` is 1.49:1, lifted |
-| `--mp-primary` | `#206f9d` | `#3f6791` | `$primary`; `$primary-alt` | on-primary 5.49 / 5.90 |
-| `--mp-on-primary` | `#ffffff` | `#ffffff` | | |
-| `--mp-secondary` | `#627383` | `#6c757d` | `$midpoint-secondary`; `$secondary-alt` | white on it 4.88 / 4.69 |
-| `--mp-success-fill` | `#198754` | `#198754` | `$green` | white 4.53 |
-| `--mp-danger-fill` | `#dc3545` | `#dc3545` | `$red` | white 4.53. AdminLTE `$red-alt` `#e74c3c` is 3.82 with white, not used |
-| `--mp-warning-fill` | `#ffc107` | `#ffc107` | `$yellow` | text on it `#1f2d3d` 8.58 (`$yiq-text-dark`) |
-| `--mp-info-fill` | `#008099` | `#008099` | `$cyan` | white 4.62 |
-| `--mp-success-text` | `#198754` | `#59e0a1` | `$green`; dark = `lighten($green, 30%)` | 4.53 / 5.15 |
-| `--mp-danger-text` | `#dc3545` | `#f3b7bd` | `$red`; dark = `lighten($red, 30%)` | 4.53 / 5.04 |
-| `--mp-warning-text` | `#856404` | `#ffc107` | Bootstrap alert text level; `$yellow` | 4.96 on its panel / 5.27 |
-| `--mp-success-panel` | `#d1e7dd` | `#3c5955` | Bootstrap 4 alert background (80 % white mix); dark = 20 % fill on canvas | body text 6.30 / white 7.63 |
-| `--mp-danger-panel` | `#f8d7da` | `#634852` | same | 6.12 / 8.14 |
-| `--mp-warning-panel` | `#fff3cd` | `#6a6445` | same | 7.38 / 5.96 |
-| `--mp-info-panel` | `#cce6eb` | `#375763` | same | 6.26 / 7.76 |
-| `--mp-focus` | `#ffa836` | `#ffa836` | midPoint `:focus-visible` outline | on dark 4.46; on white only 1.93, see [6.12](#612-accessibility) |
-| `--mp-focus-inner` | `#30353a` | none | | 12.38 on white |
-| `--mp-on-dark-badge` | `#1f2d3d` | `#1f2d3d` | `$yiq-text-dark` | badge foreground option |
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `--mp-canvas` | `#ffffff` | `#1a1f25` | view background |
+| `--mp-card` | `#ffffff` | `#20262d` | cards, lists, outlined buttons |
+| `--mp-canvas-subtle` | `#f5f7fa` | `#272e36` | quotes, Details, hovered rows |
+| `--mp-text-strong` | `#16202b` | `#edf1f5` | titles, values, names |
+| `--mp-text` | `#465361` | `#c0c9d2` | descriptions, body |
+| `--mp-text-muted` | `#5b6673` | `#97a3ae` | labels, meta (5.05+ / 5.34+ on every surface) |
+| `--mp-primary`, `--mp-link` | `#1f6fa3` | `#5aa6dc` | primary buttons, links; on-primary `#ffffff` / `#0b1a26` |
+| `--mp-primary-soft` | `#e6f1f8` | `#1b3446` | the open ledger row |
+| `--mp-border` | `#e2e7ed` | `#313942` | decorative |
+| `--mp-control-border` | `#8a96a3` | `#6b7682` | inputs and outlined buttons (3:1) |
+| `--mp-tile-bg` / `--mp-tile-fg` | `#e6f1f8` / `#1f6fa3` | `#1b3446` / `#8cc4ea` | kind tiles |
+| `--mp-avatar-bg` / `--mp-avatar-fg` | `#e7ebf0` / `#3d4a58` | `#2f3740` / `#d5dde5` | initials |
+| `--mp-success-text` / `-soft` / `-fill` | `#126b33` / `#e1f4e7` / `#126b33` | `#6fdc97` / `#163b25` / `#6fdc97` | approved; Approve (on-success `#fff` / `#0b1a26`) |
+| `--mp-danger-text` / `-soft` / `-fill` | `#b4232a` / `#fde6e6` / `#b4232a` | `#ff9b9b` / `#4a1d20` / `#ff9b9b` | risk, rejected, Reject; solid fill only when overdue |
+| `--mp-warning-text` / `-soft` | `#8a4b06` / `#fdf0cf` | `#f5c35b` / `#3f3013` | waiting, ends soon, under 4 hours |
+| `--mp-info-text` / `-soft` | `#1d4fc4` / `#e5ecfd` | `#9cb8ff` / `#1e2c52` | starts later |
+| `--mp-neutral-text` / `-soft` | `#4f5964` / `#eceff2` | `#aeb7c0` / `#2b3138` | neutral pills |
+| `--mp-*-panel` | `#d1e7dd`, `#f8d7da`, `#fff3cd`, `#cce6eb` | `#3c5955`, `#634852`, `#6a6445`, `#375763` | outcome and error panels (midPoint's alert tints), text `--mp-text-strong` |
+| `--mp-focus` | `#ffa836` | `#ffa836` | `:focus-visible` outline, inner ring `--mp-text-strong` in light |
 
-Status chips use the `*-fill` tokens with white text (dark text on warning) in
-both themes, as midPoint's badges do, plus a glyph and a word.
+Status pills use the soft tones with the matching text tone, plus a glyph and a word (D39).
 
 **Text on tinted surfaces** (MUST). On tinted panels, quote backgrounds, card
 bands and striped rows, labels and links use `--mp-text` or `--mp-text-strong`,
@@ -1831,13 +1860,15 @@ underlined so they remain recognisable without their colour.
 - Monospace (details disclosures): `SFMono-Regular, Menlo, Monaco, Consolas,
   "Liberation Mono", "Courier New", monospace`, unless the host provides
   `--font-mono`.
-- Sizes [default]: base 14 px, line height 1.5; view title 16 px bold; section
-  titles 14 px bold; secondary text 12 px (the minimum). Weights 400 and 700
-  only (midPoint ships 300, 400, 700).
-- Spacing on a 4 px grid; card padding 12 px (16 px from 560 px width); row
-  minimum height 40 px.
-- Radius: controls 4 px (`$border-radius: .25rem`), cards 8 px (midPoint
-  `.rounded-xl`); badges round.
+- Sizes (D39): base 14 px, line height 1.5; view title 17 px; item titles 15 to
+  16 px; descriptions 13 to 14 px; meta 12 to 13 px; pills 12 px; uppercase
+  labels and section headings 11 to 13 px with letter spacing (the only text
+  under 12 px). Weights 400, 600 and 700.
+- Spacing on a 4 px grid; card padding 14 px (16 px from 560 px width); the
+  body is indented under the avatar (58 px) from 470 px. Buttons are at least
+  36 px high (40 px under 470 px), tool buttons 32 px.
+- Radius: controls 8 px, cards and lists 12 px, tiles 8 px (6 px small), pills
+  and avatars round.
 - Motion: none beyond 100 ms opacity or colour transitions, disabled under
   `prefers-reduced-motion: reduce`.
 
@@ -2105,7 +2136,8 @@ agents: the view ignores it (D37).
 3. Summary line `inbox.summary` ("3 requests waiting for your decision").
 4. Cards (D14): items with a `deadline` first, soonest first; then the rest,
    oldest `requestedAt` first (falling back to `createdAt`) [default]. Each
-   work item is one card with three bands and one disclosure. **The surface
+   work item is one card (head, body, footer) and one disclosure; D39 sets
+   their look (see **Draft.11 look** below). **The surface
    (header band and body) answers the decision questions in plain words; the
    Details hold the metadata.**
    - **Header band** (D33): the role's icon and a title that **leads with the
@@ -2146,9 +2178,9 @@ agents: the view ignores it (D37).
         or `inbox.item.why.roleOwner` by `reason`; for `assigned`,
         `inbox.item.why.step` when `stage.name` is known, else
         `inbox.item.why.assigned`.
-     6. **Which step** (D37): `inbox.item.step` ("Step 1 of 2") from
+     6. **Which step** (D37): `inbox.item.step` ("Approval 1 of 2", D39) from
         `stage.number` and `stage.count`, on every card: a one-step request
-        reads "Step 1 of 1", which tells the approver theirs is the last
+        reads "Approval 1 of 1", which tells the approver theirs is the last
         step (owner). Without `stage.count`, no step line [default]. Nothing about other approvers: the view ignores
         `coAssignees`, `stageApprovers` and `stage.strategy`, which stay in
         the result and in the list text for agents (draft.7's "who else
@@ -2170,6 +2202,29 @@ agents: the view ignores it (D37).
      (primary; not offered for an unreadable requestee, D36), with the
      accessible names `inbox.action.rejectLabel` and
      `inbox.action.approveLabel`.
+   - **Draft.11 look** (D39), which wins where the text above differs:
+     - The head holds the requestee's avatar, then the title, whose target
+       name follows its kind tile. The target's description sits under the
+       title (body item 1 moves there).
+     - Under the title is one row of pills: the risk chip; the clock (neutral,
+       warning under 4 hours, solid danger `inbox.item.overdue` once overdue,
+       always with the clock glyph); `inbox.item.removal` (neutral, minus
+       glyph) for a removal; and the step line in muted text with the layers
+       glyph.
+     - Body items 2, 3 and 5 are a label and value list (`dl`). The labels are
+       `inbox.fact.askedBy`, `inbox.fact.howLong` and `inbox.fact.why`. The
+       values are `inbox.item.selfRequested` ("Bob Stone, for themselves"),
+       `inbox.item.requestedBy` (the requester's avatar and name), the access
+       phrase, and the short why lines ("You manage Bob Stone").
+     - Reject is a red outline and Approve a green fill. For `change`
+       `delete` they read `inbox.action.rejectRemoval` and
+       `inbox.action.approveRemoval`, with the accessible names
+       `inbox.action.rejectRemovalLabel` and
+       `inbox.action.approveRemovalLabel`.
+     - **Full screen (B)**: the cards become a ledger. Each request is a row
+       button (`aria-expanded`) holding the avatar, title, pills and step
+       line, with `inbox.row.decided` once decided. The first row (or the one
+       the person opened) shows its card below without the head.
    - **Details** (one disclosure, closed by default; D28: **only what the card
      doesn't show**), in this order:
      1. `inbox.item.requestedAt` with the absolute time and the relative form
@@ -2250,7 +2305,7 @@ text is unchanged (a complete sentence: what, as whom, recorded outcome); its
 - [ ] First paint comes from the entry result alone; no extra call before the list shows.
 - [ ] In resource-server mode the header has no identity line; personal mode shows `header.mode.personal`.
 - [ ] Each card's surface shows, without opening Details: a title leading with the person ("Carol Diaz → Release manager", spoken "Carol Diaz, access to Release manager"), the risk chip only when `riskLevel` is set, the decision clock (neutral; warning under 4 hours; danger overdue; "today" / "tomorrow"), what the role allows (2 lines), who asked (no login, no kind; an unreadable person named once), how long (always for a request for access, "No end date" included), the reason (3 lines), or "No reason given" when the deployment has a reason field and a request for access left it empty, why it is in this inbox (approver or owner of the role found from the approver's own memberships), and the step line ("Step 1 of 2") when the number of steps is known, with nothing about other approvers (D37).
-- [ ] The surface contains no archetype or type label, stage number outside the step line ("Step 1 of 2", D37), relation, OID or login name; cards are sorted by decision deadline, then age.
+- [ ] The surface contains no archetype or type label, stage number outside the step line ("Approval 1 of 2", D37, D39), relation, OID or login name; cards are sorted by decision deadline, then age.
 - [ ] Details hold only: the requested time, the requestee's roles in effect (included ones with "Comes with …"), the approval steps with one line per step and only its state, without people's names ("Step 1, Team leads" with "Waiting", D37), and one "Open in midPoint" line when links are on; no kind labels, no rows the card already shows; `get_case` is called once, the first time a card's Details open, and never on a read-only host.
 - [ ] A card whose requestee can't be read offers Reject but no Approve, and shows `inbox.item.cantApprove`.
 - [ ] Approve opens a dialog with the title naming role and person, one sentence matching the step (last step, more steps, or unknown; never chosen from other approvers), and an optional comment; no summary rows and no OIDs; Cancel and Esc return focus to the Approve button.
@@ -2485,6 +2540,26 @@ with `validFrom`, `validTo` and `fields`. `request_role` text is unchanged
 (complete sentences for pending and granted outcomes, the dry-run text
 otherwise).
 
+**Draft.11 look** (D39), which wins where the layout above differs:
+
+- A manager picks "Myself" or a report from pill chips with initials avatars.
+  A real radio sits under each chip.
+- The list heading names the target: `requestAccess.list.title` replaces
+  `requestAccess.target.selfOnly`. The search box is 36 px with the search
+  glyph, and the approval hint moves under the list.
+- Each role row shows a tile, the name (15 px, 600), and a risk pill. High or
+  critical risk is danger with the alert glyph; other values are neutral. The
+  description below is plain text, clamped to 2 lines. Top right is an
+  outlined Request button, or instead a status pill: `requestAccess.role.requested`
+  (warning, clock) or `requestAccess.role.granted` (success, check). The
+  outcome panels stay as they are.
+- In the request dialog, How long is an equal-width segmented control built
+  from the radios, stacked under 470 px. The labels are uppercase and the
+  summary is a facts list. Cancel is outlined; the submit button is primary.
+- **Full screen (B)**: a ledger with the columns `requestAccess.column.role`,
+  `.risk` and `.status`, plus the action, from 560 px. Under 560 px each value
+  carries an inline label ("Risk: high") and empty cells are hidden.
+
 **Acceptance criteria**
 
 - [ ] Non-managers see only "Myself"; managers see their direct reports from `list_my_team`.
@@ -2627,6 +2702,28 @@ deployments usually grant it, [8.1](#81-deployment-requirements)),
 **Text fallback.** With S13, `list_my_requests` text names each case with its
 OID and state, and `get_case` text lists its work items; `cancel_request` text
 is a complete sentence (S16).
+
+**Draft.11 look** (D39), which wins where the layout above differs:
+
+- The Waiting and Finished headings are uppercase with a count. Each region is
+  still named by the word alone.
+- A waiting request is a card: tile, name (16 px, 700), "for X" when it is for
+  someone else, and the `status.case.waiting` pill (warning, clock; this
+  replaces draft.8's neutral outline).
+  - Facts: `myRequests.fact.nowWith` (the names, plus a muted
+    `myRequests.row.step` "Approval n of m" read from the case's `stage`),
+    `myRequests.fact.howLong` and `myRequests.fact.asked`.
+  - Footer: the Details link and an outlined Withdraw button.
+- A finished request is a row with its status pill and one muted meta line:
+  finished when, `myRequests.row.by` once the work items are known, requested
+  when, and how long. The pills are approved (success, check), rejected
+  (danger, x), withdrawn (neutral, minus) and closed (neutral, lock). A
+  rejection's comment is a quote ("Comment from X"), untrusted text.
+- The timeline (6.15) gets one status dot per step: done, waiting, rejected,
+  closed, or not started.
+- **Full screen (B)**: a ledger with the columns `myRequests.col.request`,
+  Asked and `myRequests.col.state`, Waiting and Finished bands, and the
+  Details link and Withdraw. Under 560 px it stacks with inline labels.
 
 **Acceptance criteria**
 
@@ -2784,6 +2881,39 @@ call `unassign_role`; direct assignment lines carry their validity.
 keeps today's explained summary). `unassign_role` text is unchanged
 ("Applied: SUMMARY (status=…)." or the dry-run text).
 
+**Draft.11 look** (D39), which wins where the layout above differs:
+
+- The person picker stays a radio group, shown as chips with initials. A
+  turned-off person carries the `status.personDisabled` pill ("Account off")
+  as the chip's description.
+- The person card has a large avatar, the name (18 px), the relation line, and
+  "Request access for X" as a primary button.
+- The section headings are uppercase with counts: Roles,
+  `review.section.inherited` ("Comes with other roles", with
+  `review.inherited.hint`), `review.section.orgs` ("Teams") and Other access.
+  Each section is a bordered list.
+- A role row shows a tile, the name (15 px, 600), and one status pill, in this
+  order of priority:
+  - `review.role.starts` (info), because a future start is also reported as
+    disabled;
+  - else `status.disabled` or `status.archived` (neutral, no strikethrough);
+  - else `review.role.endsIn` (warning) within 30 days.
+
+  Under the name come the plain description and one meta line built from
+  `review.role.since` (`origin.createdAt`, left out before the start),
+  `review.role.until` and the role's provenance (S27):
+  - `review.role.approvedBy` from `approvedBy` (the acting identity reads
+    "you");
+  - else `review.role.requestedBy`, when the requester isn't the person;
+  - else `review.role.addedBy` from `createdBy`.
+
+  An unreadable person is not named. Approval comments are not shown.
+  Remove is an outlined button at the top right of the row.
+- **Full screen (B)**: one ledger with the columns `review.col.access`,
+  `review.col.since` and `review.col.until` from 560 px, and a band per
+  section. Under 560 px the dates carry inline labels and empty cells are
+  hidden.
+
 **Acceptance criteria**
 
 - [ ] A `list_my_team` entry shows the team picker with the first report selected and read with exactly one `get_user_assignments` call; no managed org shows `review.team.noOrgs`, nobody visible shows `review.team.noneVisible`.
@@ -2868,6 +2998,7 @@ All additive. Text changes only where S13 says so. Numbered for reference.
 | S24 | **Readable chat** (D26): the server sends `instructions` in its `initialize` result (today it sends none), in substance: "When you write to a person, name people, roles and requests by their display names. OIDs are identifiers for tool calls; mention one only when the person asks or when two objects would otherwise be confused." A shorter sentence closes the description of every tool, since every tool's text carries OIDs: "When you write to a person, name people, roles and requests by their display names rather than OIDs." Where a tool's description has the untrusted-text sentence of 4.8 rule 9, this one comes after it. Text and `structuredContent` are unchanged | server, the list and read tools | unit: `initialize` carries the instructions; golden descriptions |
 | S25 | **Draft.8 data** (D28, D30, D32): `server.requestReason`; `RoleMembership.via` and `effectiveMembership[].via` from the `roleMembershipRef` value metadata `provenance/assignmentPath` (first segment's `targetRef` when the path has two or more segments); role `description` on `get_user_assignments` targets; `get_case` `stages[]` from `approvalContext/approvalSchema/stage`; `requesteeAccess.roles` limited to memberships in effect | `get_user_assignments`, `list_work_items`, `get_case`, all view-bearing results (`server`) | **[live]** 4.10.3: assignment path metadata on `roleMembershipRef` (two segments for an induced role, the direct role first); `approvalSchema/stage[]` with `name` and `evaluationStrategy`. **[live]** 4.10.3 (M10.2): the metadata is returned when read as a person holding only the stock End user and Approver roles, and as a manager |
 | S26 | **Names on writes** (D38): `decide_work_item`, `cancel_request`, `request_role`, `unassign_role`, `assign_role` and `recompute_user` take `userName` and `roleName` (`recompute_user` only `userName`; `request_role` needs `userName` only with `userOid`), the midPoint `name` of the objects their OIDs point to. The server names those objects the way the list results do, read as the acting identity, falling back to the name midPoint stores in the reference when the object can't be read. It compares case-insensitively and refuses a missing or different name, and a name where midPoint shows none, before any write and before the dry-run preview, with `invalid-input`. | the six write tools | unit, views |
+| S27 | **Assignment origin** (D39): `get_user_assignments` gives each assignment an optional `origin` with `createdAt`, `createdBy`, `requestedAt`, `requestedBy`, `approvedBy[]` and `approvalComments[]`. These come from the assignment's value metadata (4.10: `@metadata/storage` and `@metadata/process`; before 4.10 the `metadata` container), which a plain GET returns to anyone who may read the assignment **[live]** on 4.10.3. People are named as the caller. The comments are text by people, untrusted in the tool's text. | `get_user_assignments` | unit, views |
 
 **S16 `cancel_request` in detail.**
 
@@ -3234,9 +3365,9 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 
 | Key | English |
 | --- | --- |
-| `status.disabled` | Turned off, not in effect |
-| `status.archived` | Archived, not in effect |
-| `status.personDisabled` | Account turned off |
+| `status.disabled` | Turned off |
+| `status.archived` | Archived |
+| `status.personDisabled` | Account off |
 | `status.case.waiting` | Waiting |
 | `status.case.approved` | Approved |
 | `status.case.rejected` | Rejected |
@@ -3288,8 +3419,8 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `inbox.item.change.delete` | {requestee}: remove {target} |
 | `inbox.item.change.modify` | {requestee}: change {target} |
 | `inbox.item.change.unknown` | {requestee}: request about {target} |
-| `inbox.item.requestedBy` | Requested by {requester} |
-| `inbox.item.selfRequested` | Requested by {requestee} for themselves |
+| `inbox.item.requestedBy` | {requester} |
+| `inbox.item.selfRequested` | {requestee}, for themselves |
 | `inbox.item.requestedAt` | Requested {time} |
 | `inbox.item.deadline` | Decide by {time} |
 | `inbox.item.overdue` | Decision overdue since {time} |
@@ -3298,12 +3429,17 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `inbox.item.noReason` | No reason given |
 | `inbox.item.cantApprove` | You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you. |
 | `inbox.item.risk` | Risk: {level} |
-| `inbox.item.why.manager` | You're asked because you manage {requestee}. |
-| `inbox.item.why.roleApprover` | You're asked because you approve requests for {target}. |
-| `inbox.item.why.roleOwner` | You're asked because you own {target}. |
-| `inbox.item.why.step` | You're asked for the "{name}" step. |
-| `inbox.item.why.assigned` | midPoint sent this request to you. |
-| `inbox.item.step` | Step {number} of {count} |
+| `inbox.item.why.manager` | You manage {requestee} |
+| `inbox.item.why.roleApprover` | You approve requests for {target} |
+| `inbox.item.why.roleOwner` | You own {target} |
+| `inbox.item.why.step` | You approve the "{name}" step |
+| `inbox.item.why.assigned` | midPoint sent it to you |
+| `inbox.item.step` | Approval {number} of {count} |
+| `inbox.item.removal` | Removal |
+| `inbox.row.decided` | Decided |
+| `inbox.fact.askedBy` | Asked by |
+| `inbox.fact.howLong` | How long |
+| `inbox.fact.why` | Why you |
 | `inbox.item.currentRoles` | {requestee} has {count, plural, one {# role} other {# roles}} in effect now, including ones that come with other roles |
 | `inbox.item.currentRolesHidden` | You can't see {requestee}'s current roles. |
 | `inbox.item.currentRolesHiddenPerson` | You can't see this person's current roles. |
@@ -3312,6 +3448,10 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `inbox.action.reject` | Reject |
 | `inbox.action.approveLabel` | Approve {target} for {requestee} |
 | `inbox.action.rejectLabel` | Reject {target} for {requestee} |
+| `inbox.action.approveRemoval` | Approve removal |
+| `inbox.action.rejectRemoval` | Reject removal |
+| `inbox.action.approveRemovalLabel` | Approve removal of {target} from {requestee} |
+| `inbox.action.rejectRemovalLabel` | Reject removal of {target} from {requestee} |
 | `inbox.action.details` | Details |
 | `inbox.action.hideDetails` | Hide details |
 | `inbox.details.history` | Approval steps |
@@ -3333,7 +3473,11 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `requestAccess.loading` | Loading roles you can request… |
 | `requestAccess.target.label` | Request for |
 | `requestAccess.target.self` | Myself |
-| `requestAccess.target.selfOnly` | Roles you can request for yourself |
+| `requestAccess.list.title` | {target, select, self {Roles you can request for yourself} other {Roles you can request for {user}}} ({count}) |
+| `requestAccess.role.granted` | Granted |
+| `requestAccess.column.role` | Role |
+| `requestAccess.column.risk` | Risk |
+| `requestAccess.column.status` | Status |
 | `requestAccess.hint.self` | Requests are usually approved by your manager ({names}). |
 | `requestAccess.hint.selfNoManager` | midPoint decides who approves your requests. |
 | `requestAccess.hint.report` | Requests for {user} usually go to their manager. That may be you. |
@@ -3385,7 +3529,14 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `myRequests.group.closed` | Finished |
 | `myRequests.row.forOther` | for {user} |
 | `myRequests.row.requested` | Requested {time} |
-| `myRequests.row.waitingFor` | Waiting for {names} |
+| `myRequests.row.waitingFor` | Now with {names} |
+| `myRequests.row.step` | Approval {number} of {count} |
+| `myRequests.row.by` | by {name} |
+| `myRequests.fact.nowWith` | Now with |
+| `myRequests.fact.howLong` | How long |
+| `myRequests.fact.asked` | Asked |
+| `myRequests.col.request` | Request |
+| `myRequests.col.state` | State |
 | `myRequests.row.closed` | Finished {time} |
 | `myRequests.action.details` | Details |
 | `myRequests.action.hideDetails` | Hide details |
@@ -3411,11 +3562,21 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `review.relation.self` | This is your own access. Removing your own roles isn't offered here. |
 | `review.relation.other` | You can see this person's access, but they aren't your direct report. |
 | `review.section.roles` | Roles |
-| `review.section.inherited` | Included with other access |
-| `review.section.orgs` | Teams and departments |
+| `review.section.inherited` | Comes with other roles |
+| `review.section.orgs` | Teams |
 | `review.section.other` | Other access |
 | `review.other.account` | Account in {name} |
-| `review.inherited.hint` | These come with other roles or teams, so they can't be removed on their own. |
+| `review.inherited.hint` | These can't be removed on their own. |
+| `review.role.starts` | Starts {date} |
+| `review.role.endsIn` | {count, plural, =0 {Ends today} =1 {Ends tomorrow} other {Ends in # days}} |
+| `review.role.since` | Since {date} |
+| `review.role.until` | {first, select, yes {Until {date}} other {until {date}}} |
+| `review.role.approvedBy` | {first, select, yes {Approved by {name}} other {approved by {name}}} |
+| `review.role.requestedBy` | {first, select, yes {Requested by {name}} other {requested by {name}}} |
+| `review.role.addedBy` | {first, select, yes {Added by {name}} other {added by {name}}} |
+| `review.col.access` | Access |
+| `review.col.since` | Since |
+| `review.col.until` | Until |
 | `review.org.manager` | Manager |
 | `review.org.member` | Member |
 | `review.link.approver` | Approves requests for it |
@@ -3451,9 +3612,6 @@ Removed in draft.7: the view was cut (D24).
 | Key | English |
 | --- | --- |
 | `validity.permanent` | No end date |
-| `validity.until` | Until {date} |
-| `validity.from` | From {date} |
-| `validity.fromUntil` | From {from} until {to} |
 | `validity.request.days` | Access for {count, plural, one {# day} other {# days}} (ends {date}) |
 | `validity.request.fromDays` | Access from {from} for {count, plural, one {# day} other {# days}} (ends {to}) |
 | `validity.request.fromNoEnd` | Access from {date}, no end date |
@@ -3555,6 +3713,7 @@ midPoint is searched automatically only when the loaded list was cut off.
 | --- | --- | --- |
 | D37 | You decide your own part only (owner: "u approve ur thing only"). The inbox card says which step the request is at, "Step N of M" (`inbox.item.step`, from `stage.number` and `stage.count`, which approvers can read), and nothing about who else decides. Without `stage.count`, no step line [default]. The approve dialog's sentence follows the steps only: last step, more steps, or unknown; never other approvers. Because the view no longer knows whether others in the same step must still agree, `confirm.approve.bodyFinal` speaks about the last step, not "the last approval needed". `coAssignees`, `stageApprovers`, `stage.strategy` and `nextApprovers` stay in the results (the first three also in the list text) for agents; views ignore all four. The owner's answers on the draft.9 review: (1) the approver's "Approval steps" in Details name no people, one line per step ("Step 1" or "Step 1, Team leads") with only its state, no decided-by and no comments; the requester's timeline (V3) stays as in draft.8; (2) after an approval that leaves the case open the outcome is always `inbox.outcome.approvedOpen`, and `inbox.outcome.approvedNext` is removed; (3) "Step 1 of 1" is shown for a one-step request, the same line on every card, telling the approver theirs is the last step. Supersedes D20 for the card; narrows D14, D15 and, for V1, D28. | 6.5, 6.15, 7.1, 10.6, 10.10, 10.11, S8, S23 |
 | D38 | Readable confirmations (owner, 2026-10-03: the phone's "allow this tool" card showed only OIDs). Every write tool also takes the midPoint `name` of the person and the role it changes, and the server refuses the call when a name doesn't match its OID, so the card can't show one thing while the call does another. The owner chose the `name` attribute over display names because midPoint keeps it unique, so the check never has to guess. | S26; 7.1 to 7.4 |
+| D39 | Readable views (owner, 2026-10-03: "extremely hard to read, everything same element same color"). After two independent reviews of a mockup, the views take layout A inline (labelled facts, avatars and one-tint kind tiles, status pills, real buttons) and layout B in full screen (a ledger). Colour means status only; midPoint blue stays primary; the AdminLTE palette is no longer binding (revises owner decision 3 and D31). The reviewers' fixes are in: inline labels under 560 px, outlined write buttons of at least 36 px, a distinct overdue pill, "Approve removal", plain words, and the contrast fixes. | 6.4, 6.9, 6.10, 7.1 to 7.4, 10; S27 |
 
 **Open questions** (draft.8, D35; shown in the mockup's review mode):
 

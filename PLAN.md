@@ -253,10 +253,16 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
     AC: a write with a missing or wrong name is refused with `invalid-input`
     and nothing is written, gate open or closed; the views' calls carry the
     names; `go test ./...` and the four browser suites pass.
-  - **Next (owner, 2026-10-03)**: the readability redesign, direction A
-    inline and B (ledger) for expanded mode, with each role's origin (assignment
-    metadata) and "ends soon"; no new views. `list_recent_errors` comes as a
-    text tool only.
+  - **M10.5 — readable views (2026-10-03, contract draft.11, D39, S27)**:
+    the four views take the reviewed redesign: layout A inline, B (ledger) in
+    full screen, colour for status only, initials avatars and one-tint kind
+    tiles, status pills, real buttons, labelled facts, and each role's origin
+    and "ends soon" in My team's access. Two independent reviewers validated
+    the mockup first (a line manager on a phone, and UX and accessibility);
+    their fixes are in. AC: the four browser suites pass with the new
+    strings, palette and layout, including contrast in both themes and no
+    overflow at 320 px; `go test ./...` passes. Next: `list_recent_errors`
+    as a text tool only; no new views.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

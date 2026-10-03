@@ -18,6 +18,21 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- The four views are redesigned for readability (contract 1.0-draft.11, D39),
+  after two independent reviews of a mockup. The changes:
+  - Colour now means status only, and midPoint blue stays the primary colour.
+  - There are three text levels.
+  - People are circles with initials; roles, teams and accounts are rounded
+    squares in one tint.
+  - Status is a pill with a colour, a glyph and a word. Section headings
+    carry counts.
+  - Write actions are real buttons of at least 36 px.
+  - Facts read as label and value ("Asked by", "How long", "Why you").
+  - A removal's buttons say "Approve removal".
+  - Full screen shows a ledger of rows.
+  - Both themes have new tokens that pass WCAG AA.
+
+  My team's access shows where each role came from ("approved by you").
 - **Breaking for tool callers:** the write tools take the midPoint names of
   what they change next to the OIDs: `decide_work_item`, `cancel_request`,
   `unassign_role` and `assign_role` require `userName` and `roleName`,

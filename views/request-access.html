@@ -473,7 +473,7 @@ const CAT = {
   "error.notFound": "midPoint couldn't find this item. It may have been deleted.",
   "error.midpointUnavailable": "midPoint didn't answer. Try again in a moment.",
   "error.hostRefused": "The assistant app didn't allow this action.",
-  "status.personDisabled": "Account turned off",
+  "status.personDisabled": "Account off",
   "time.justNow": "just now",
   "time.minutesAgo": "{count, plural, one {# minute ago} other {# minutes ago}}",
   "time.hoursAgo": "{count, plural, one {# hour ago} other {# hours ago}}",
@@ -841,7 +841,8 @@ function badge(r, o){
   o = o || {};
   return h('span', {class:'mp-badge'}, disc(r, o.size), h('span', {class:'mp-badge-text'}, h('span', {class:'mp-badge-name'}, o.nameNode || dispName(r))));
 }
-const personStatus = r => r && r.status === 'disabled' ? h('span', {class:'mp-status-note'}, t('status.personDisabled')) : null;
+/* 6.4 (D39): a turned-off person is a neutral pill, the same in every view */
+const personStatus = r => r && r.status === 'disabled' ? h('span', {class:'mp-chip mp-chip--meta'}, icon('ban', 12), t('status.personDisabled')) : null;
 /* a person inside a sentence: icon and name, no kind and no login (D15, D16) */
 const inlBadge = r => h('span', {class:'mp-inline'}, disc(r, 'sm'), h('span', null, dispName(r)), personStatus(r));
 const chip = (kind, ic, text) => h('span', {class:'mp-chip mp-chip--' + kind}, ic ? icon(ic, 12) : null, text);

@@ -78,7 +78,7 @@ export const S = {
   "error.hostRefused": "The assistant app didn't allow this action.",
   "status.disabled": "Turned off, not in effect",
   "status.archived": "Archived, not in effect",
-  "status.personDisabled": "Account turned off",
+  "status.personDisabled": "Account off",
   "status.case.waiting": "Waiting",
   "status.case.approved": "Approved",
   "status.case.rejected": "Rejected",
