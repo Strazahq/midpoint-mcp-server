@@ -177,6 +177,7 @@ const SCENARIOS = [
     entry: 'access-review.team',
     try: 'The view opens Bob Stone first (it reads `get_user_assignments`). Press Remove on Database admin: the host asks before `unassign_role` runs. Pick Mia Kovac to read her access.',
     recorded: 'removing Database admin from Bob Stone',
+    next: 'requestFor',
     answers: {
       whoami: [{ fx: 'access-review.whoami' }],
       list_my_team: [{ fx: 'access-review.team' }],
@@ -187,6 +188,28 @@ const SCENARIOS = [
         { when: { oid: JANE }, fx: 'access-review.self' },
       ],
       unassign_role: [{ when: { userOid: BOB, roleOid: DB_ADMIN }, fx: 'access-review.removed', set: 'removed' }],
+    },
+  },
+  {
+    id: 'requestFor',
+    group: 'Manager',
+    short: 'Jane Doe · asks on behalf of Bob',
+    hint: 'Request a role for Bob Stone.',
+    title: 'Request access for a team member',
+    persona: 'Jane Doe, manager of Bob Stone',
+    view: 'request-access',
+    user: 'Show me the roles I can request for Bob Stone.',
+    assistant: 'These are the roles you can request for Bob Stone. Pick one and it goes to approval, in his name.',
+    entry: 'request-access.report',
+    try: 'Press Request on a role, then Send request. The host asks before `request_role` runs, with Bob\'s midPoint name next to his ID.',
+    recorded: 'no request for Bob made by his manager, so the host adapts the recording of Bob\'s own request',
+    answers: {
+      whoami: [{ fx: 'access-review.whoami' }],
+      list_my_managers: [{ fx: 'request-access.managers' }],
+      list_my_team: [{ fx: 'request-access.team' }],
+      list_requestable_roles: [{ when: { forUser: BOB }, fx: 'request-access.report' }, { fx: 'request-access.manager' }],
+      get_case: [{ fx: 'request-access.case' }],
+      request_role: [],
     },
   },
 ];
@@ -205,6 +228,8 @@ const need = (name) => {
   if (!fx.call || !fx.result) throw new Error(`fixture ${name}: no call or result`);
   fixtures[name] = { call: fx.call, about: fx.about ?? '', result: fx.result };
 };
+// Recordings of writes that the host adapts when a call has no exact recording.
+for (const name of ['decide.approve-open', 'decide.approve-next', 'decide.reject-open', 'request-access.pending', 'access-review.removed']) need(name);
 for (const s of SCENARIOS) {
   if (!VIEWS[s.view]) throw new Error(`scenario ${s.id}: unknown view ${s.view}`);
   need(s.entry);

@@ -31,8 +31,11 @@ every tool call is answered from recorded test data.
   "Allow the midpoint server to run …?" with the arguments listed, the
   midPoint names (`userName`, `roleName`) marked next to the IDs. Allow answers
   with the recorded result; Deny answers with a JSON-RPC error, which the view
-  shows as the host refusing. A write the recordings don't cover is answered
-  with an error and a note saying so.
+  shows as the host refusing. A write the recordings don't cover exactly is
+  answered with the recording of the closest call to the same tool, rewritten
+  to the call's IDs, names and acting person, and the host note says so.
+- A message a view sends to the chat (Track this request, Request access for
+  Bob Stone) continues the chat in the scenario that answers it.
 - The scenarios are listed on the left like a chat app's conversations,
   titled by what the person asks and grouped by role (a drawer on narrow
   screens). One line above the chat says who you are and what to try, with the

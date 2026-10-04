@@ -114,6 +114,7 @@
       this.sentTheme = null;
       this.seenIds = new Set();
       this.asks = []; // write calls waiting for the person's answer
+      this.removed = new Set(); // roles removed by an adapted unassign_role
       this.asking = null;
       this.timers = new Set();
       this.dead = false;
@@ -404,7 +405,81 @@
         this.later(() => this.respondError(id, -32603, `No recorded answer for ${name} in this demo`), READ_DELAY);
         return;
       }
-      this.later(() => this.respond(id, clone(DATA.fixtures[a.fx].result)), READ_DELAY);
+      this.later(() => this.respond(id, this.afterRemovals(name, clone(DATA.fixtures[a.fx].result))), READ_DELAY);
+    }
+
+    // afterRemovals keeps a person's access consistent with roles removed
+    // earlier in this chat.
+    afterRemovals(name, result) {
+      const sc = result && result.structuredContent;
+      if (name !== 'get_user_assignments' || !this.removed.size || !sc) return result;
+      if (Array.isArray(sc.assignments)) sc.assignments = sc.assignments.filter((x) => !this.removed.has(x.targetOid));
+      if (Array.isArray(sc.effective)) sc.effective = sc.effective.filter((x) => !this.removed.has(x.oid));
+      return result;
+    }
+
+    actingRef() {
+      const sc = this.entry.result && this.entry.result.structuredContent;
+      return (sc && sc.acting) || {};
+    }
+
+    // adapt answers a write that has no exact recording with the recording of
+    // the closest call to the same tool: the same decision, then the most
+    // arguments in common. IDs, midPoint names, display names, case names and
+    // the acting person are rewritten to the call's.
+    adapt(call) {
+      const args = call.args;
+      const score = (f) => {
+        const a = f.call.arguments || {};
+        let n = 0;
+        for (const k of Object.keys(args)) if (JSON.stringify(a[k]) === JSON.stringify(args[k])) n += 1;
+        return n;
+      };
+      const cands = Object.entries(DATA.fixtures)
+        .filter(([, f]) => f.call.name === call.name && f.result && !f.result.isError)
+        .filter(([, f]) => (f.call.arguments || {}).decision === args.decision)
+        .sort((x, y) => score(y[1]) - score(x[1]));
+      if (!cands.length) return null;
+      const [fxName, f] = cands[0];
+      const old = f.call.arguments || {};
+      const pairs = new Map();
+      const add = (o, n) => {
+        if (typeof o === 'string' && typeof n === 'string' && o && n && o !== n && !pairs.has(o)) pairs.set(o, n);
+      };
+      for (const k of Object.keys(args)) add(old[k], args[k]);
+      for (const k of Object.keys(args)) {
+        if (!/Oid$/.test(k) || typeof old[k] !== 'string' || old[k] === args[k]) continue;
+        const o = lookup(old[k]);
+        const n = lookup(args[k]);
+        add(o.displayName, n.displayName);
+        add(o.name, n.name);
+        add(o.case, n.case);
+      }
+      const subs = [...pairs].filter(([o]) => o.length >= 3 && !/^\d+$/.test(o)).sort((x, y) => y[0].length - x[0].length);
+      const text = (t) => subs.reduce((acc, [o, n]) => acc.split(o).join(n), t);
+      const walk = (v) => {
+        if (typeof v === 'string') return pairs.has(v) ? pairs.get(v) : text(v);
+        if (Array.isArray(v)) return v.map(walk);
+        if (v && typeof v === 'object') {
+          const out = {};
+          for (const [k, x] of Object.entries(v)) out[k] = walk(x);
+          return out;
+        }
+        return v;
+      };
+      const result = walk(clone(f.result));
+      // Who acted is this chat's person, not the recording's; only the acting
+      // and subject fields and the "as <name> (" phrase change, so a person the
+      // request is about keeps their name.
+      const sc = result.structuredContent || {};
+      const was = (f.result.structuredContent || {}).subject || (f.result.structuredContent || {}).acting || {};
+      const now = this.actingRef();
+      if (sc.acting && now.oid) sc.acting = clone(now);
+      if (sc.subject && now.name) sc.subject = { ...sc.subject, name: now.name, oid: now.oid };
+      if (was.name && now.name && was.name !== now.name) {
+        result.content = arr(result.content).map((c) => (c && c.type === 'text' ? { ...c, text: c.text.split(` as ${was.name} (`).join(` as ${now.name} (`) } : c));
+      }
+      return { fx: fxName, result };
     }
 
     // askNext shows the permission prompt for the next waiting write.
@@ -471,14 +546,29 @@
           );
           this.later(() => this.respond(call.id, clone(fx.result)), WRITE_DELAY);
         } else {
-          this.event(
-            'ev-unrecorded',
-            details(
-              h('span', null, h('b', null, 'Allowed'), ' ', code(call.name), ', but this demo has no recording for these arguments'),
-              h('p', null, 'So the host answered with an error, which the view reads as a refusal. Recorded in this scenario: ', ticks(this.scn.recorded), '.'),
-            ),
-          );
-          this.later(() => this.respondError(call.id, -32603, 'No recorded answer for this call in the demo.'), WRITE_DELAY);
+          const ad = this.adapt(call);
+          if (ad) {
+            if (call.name === 'unassign_role' && typeof call.args.roleOid === 'string') this.removed.add(call.args.roleOid);
+            this.event(
+              'ev-allowed',
+              details(
+                h('span', null, h('b', null, 'Allowed'), ' ', code(call.name), ': adapted from ', fxTag(ad.fx)),
+                h('p', null, 'There is no recording for exactly these arguments, so the host answered with the recording of the closest call, rewritten to the IDs and names of this one.'),
+                h('span', { class: 'lab' }, 'Result text'),
+                h('pre', { class: 'json' }, textOf(ad.result)),
+              ),
+            );
+            this.later(() => this.respond(call.id, ad.result), WRITE_DELAY);
+          } else {
+            this.event(
+              'ev-unrecorded',
+              details(
+                h('span', null, h('b', null, 'Allowed'), ' ', code(call.name), ', but this demo has nothing to answer it with'),
+                h('p', null, 'So the host answered with an error, which the view reads as a refusal.'),
+              ),
+            );
+            this.later(() => this.respondError(call.id, -32603, 'No recorded answer for this call in the demo.'), WRITE_DELAY);
+          }
         }
       }
       // Give focus back to the view, so the focus it moves to its outcome lands.
@@ -494,17 +584,14 @@
         .join('\n');
       this.add(h('li', { class: 'msg-user' }, h('span', { class: 'who' }, 'Sent by the view (ui/message)'), h('div', { class: 'bubble' }, text || '(no text)')));
       const next = this.scn.next ? scenarioById(this.scn.next) : null;
-      this.event(
-        'plain',
-        h(
-          'div',
-          null,
-          h('span', null, 'A chat app would now pass this to the assistant as your next message; this demo stops here.'),
-          next
-            ? h('div', { class: 'goto' }, h('button', { type: 'button', class: 'btn-link', onclick: () => go(next.id, true) }, `Continue with the next scenario: ${next.title}`))
-            : null,
-        ),
-      );
+      if (next) {
+        // A chat app passes the view's message on as your next question; the
+        // demo continues with the scenario that answers it.
+        this.event('plain', h('span', null, 'The view sent this as your next message. Continuing with: ', h('b', null, next.title), '…'));
+        this.later(() => go(next.id, true, text), 1400);
+      } else {
+        this.event('plain', h('span', null, 'A chat app would now pass this to the assistant as your next message.'));
+      }
     }
 
     contextUpdate(p) {
@@ -522,6 +609,25 @@
   }
 
   // --- helpers ---
+  // lookup finds what the recordings call an object or a case, by OID.
+  const lookups = new Map();
+  function lookup(oid) {
+    if (lookups.has(oid)) return lookups.get(oid);
+    const found = {};
+    const visit = (v) => {
+      if (Array.isArray(v)) return v.forEach(visit);
+      if (!v || typeof v !== 'object') return;
+      if (v.oid === oid) {
+        if (!found.displayName && typeof v.displayName === 'string') found.displayName = v.displayName;
+        if (!found.name && typeof v.name === 'string') found.name = v.name;
+      }
+      if (v.caseOid === oid && !found.case && typeof v.case === 'string') found.case = v.case;
+      Object.values(v).forEach(visit);
+    };
+    Object.values(DATA.fixtures).forEach((f) => visit(f.result && f.result.structuredContent));
+    lookups.set(oid, found);
+    return found;
+  }
   function arr(v) {
     return Array.isArray(v) ? v : [];
   }
@@ -637,7 +743,7 @@
   function renderNext(scn) {
     const bar = $('nextbar');
     bar.textContent = '';
-    const i = DATA.scenarios.indexOf(scn);
+    const i = DATA.scenarios.findIndex((x) => x.id === scn.id);
     const next = DATA.scenarios[i + 1];
     bar.append(h('span', { class: 'next-count' }, `Scenario ${i + 1} of ${DATA.scenarios.length}`));
     if (next) bar.append(h('button', { type: 'button', class: 'btn-link next', onclick: () => go(next.id, true) }, `Next: ${next.title} →`));
@@ -684,8 +790,9 @@
     $('scrim').hidden = !open;
   }
 
-  function go(id, focusChat) {
-    const scn = scenarioById(id) || DATA.scenarios[0];
+  function go(id, focusChat, userText) {
+    const found = scenarioById(id) || DATA.scenarios[0];
+    const scn = userText ? { ...found, user: userText } : found;
     if (session) session.dispose();
     setDrawer(false);
     try {
@@ -694,6 +801,7 @@
       // a page opened from disk may refuse; the scenario still runs
     }
     session = new Session(scn);
+    markCurrent(found);
     if (focusChat) {
       $('chat').focus({ preventScroll: true });
       window.scrollTo({ top: 0 });
