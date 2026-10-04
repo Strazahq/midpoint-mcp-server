@@ -252,6 +252,23 @@ They are definitions, not anyone's data. Without them the server starts with
 a warning and requests carry no fields. In personal mode the reads run as the
 person, who usually may not read schemas, so requests carry no fields there.
 
+**The request access preview** (D44). To offer each person what midPoint would
+let them request, the server reads the request rules of the roles the person
+holds, as the service account itself: `POST /ws/rest/abstractRoles/search` with
+the person's role OIDs, 250 per call. That takes model read on
+`AbstractRoleType`, limited to the items `name`, `displayName`,
+`authorization`, `lifecycleState`, `activation` and `delegable`;
+`examples/role-mcp-rs-service.xml` carries it as "read-request-rules".
+Verified on 4.10.3 (2026-10-04): with it the search answers with exactly those
+items; without it midPoint answers an empty list (not 403), and the server
+then lists the roles flagged requestable. People can't do this read
+themselves reliably: stock End user may fetch roles one by one but not search
+them, which midPoint itself calls "too broad for production use", and each
+call made as a person with many roles costs midPoint about a second (1,000
+roles: 99 seconds for 100 fetches, measured). The server assumes archetypes
+carry no request rules, which matches common practice; their rules are read
+anyway when the grant allows.
+
 **What a request carried, for approvers.** The fields a request carries are on
 the assignment value midPoint parks in the approval case, which midPoint's
 stock Approver role lets an approver read. The comment typed in midPoint's own

@@ -339,6 +339,31 @@ Send.
 `requests.formItems` and `requests.justificationItem` from 0.5 are ignored, with
 a warning.
 
+### The request access preview
+
+midPoint can let each person request different roles, for different people,
+with different relations and fields. Its own Request access page asks midPoint
+internally; REST can't ask. So the server works it out from the same source:
+the request rules (`#assign` authorizations) of the roles the person holds.
+
+1. It reads the person's record, as the person, for their memberships.
+2. It reads those roles' rules **as the server's own account**, which needs one
+   narrow read: `name`, `displayName`, `authorization`, `lifecycleState`,
+   `activation` and `delegable` of roles, orgs, services and archetypes
+   (`examples/role-mcp-rs-service.xml`, "read-request-rules"). Definitions,
+   not people's data. Nothing is cached.
+3. It asks midPoint, as the person, which roles and people each rule names.
+4. It offers a role when a rule allows it and none denies it, and names those
+   rules ("End user › assign-requestable-roles"), so anyone can check the
+   offer against midPoint's configuration.
+
+Relations other than member are offered only where a rule names them; a rule
+without a relation means member here, as on midPoint's page, although
+midPoint's server would accept any. Where the server can't evaluate a rule
+exactly (a script in a filter, an unusual selector), it shows more and says
+so; midPoint decides on submit, as always. Without the grant, or in personal
+mode, the dialog lists the roles flagged requestable, as before.
+
 ## Know the limits and risks
 
 - **People can see more here than in midPoint's own pages.** The server is a

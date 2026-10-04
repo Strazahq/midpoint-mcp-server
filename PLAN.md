@@ -301,6 +301,17 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
 
   AC: each step fired on eval where midPoint behaviour is involved;
   `go test ./...` and the four view suites pass; CHANGELOG per step.
+- **M13 — request access preview (2026-10-04, contract draft.14, D44,
+  D45, S31)**. The owner's biggest pain point: offer each person what
+  midPoint's request rules let them request, as midPoint's own page does, over
+  REST and without caching. The engine reads memberships as the person and the
+  roles' `#assign` rules as the service account (narrow read), evaluates
+  selectors through midPoint searches, combines as midPoint's server checks,
+  and names the rules behind every offer. Relations other than member only
+  where a rule names them. Out of scope: midPoint failing to apply an approved
+  request for someone else (midPoint's bug). AC: engine and tool tests, the
+  request-access view suite, and a live parity test on 4.10 comparing every
+  prediction with midPoint's real 204/403.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

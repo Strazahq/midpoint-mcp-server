@@ -39,7 +39,10 @@
     midPoint's End user role does not have that (docs/authorization.md);
   - drop the "read-request-fields" authorization and #getObjects and
     #getExtensionSchema if requests should carry no fields. Without them the
-    server starts with a warning and the request dialog has no fields.
+    server starts with a warning and the request dialog has no fields;
+  - drop the "read-request-rules" authorization if the request dialog should
+    list the roles flagged requestable instead of what each person's request
+    rules allow (docs/authorization.md, "The request access preview").
 
   Verified on midPoint 4.10.3 (2026-10-04) with exactly this shape (REST
   entry, #proxy, correlation read, no other model rights): impersonated calls
@@ -161,6 +164,29 @@
         <object>
             <type>LookupTableType</type>
         </object>
+    </authorization>
+    <!--
+      Request access preview: the server reads the request rules (#assign
+      authorizations) of the roles a person holds, as this account itself, to
+      offer each person what midPoint would let them request. Only these items
+      of roles, orgs, services and archetypes: definitions, not people's data.
+      Verified on 4.10.3 (2026-10-04): with this grant the rules search
+      answers with exactly these items; without it midPoint answers an empty
+      list, and the server falls back to the roles flagged requestable.
+    -->
+    <authorization>
+        <name>read-request-rules</name>
+        <description>Lets midpoint-mcp-server read the request rules of the roles people hold.</description>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#read</action>
+        <object>
+            <type>AbstractRoleType</type>
+        </object>
+        <item>name</item>
+        <item>displayName</item>
+        <item>authorization</item>
+        <item>lifecycleState</item>
+        <item>activation</item>
+        <item>delegable</item>
     </authorization>
     <authorization>
         <name>read-extension-schema-files</name>

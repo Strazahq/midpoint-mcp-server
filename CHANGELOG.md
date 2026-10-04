@@ -8,6 +8,17 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- The request dialog offers what midPoint's request rules let each person
+  request (D44, D45, S31): which roles, for whom, as which relation, with
+  which fields and dates, each with the rules that allow it ("End user ›
+  assign-requestable-roles"). The server reads the person's roles' `#assign`
+  authorizations as its own account, asks midPoint which roles and people
+  each rule names, and combines them as midPoint's server checks; midPoint
+  still decides on submit. Relations other than member only where a rule
+  names them. New tool `list_request_targets`; `request_role` takes
+  `relation`. Without the new narrow read for the service account
+  (`examples/role-mcp-rs-service.xml`, verified on 4.10.3), or in personal
+  mode, the dialog lists the roles flagged requestable, as before.
 - When midPoint refuses a change, the person sees midPoint's reason (D42,
   S29). Examples are a policy rule's own message ("Requests for this role need
   a justification") and a missing permission. midPoint enforces these rules on
