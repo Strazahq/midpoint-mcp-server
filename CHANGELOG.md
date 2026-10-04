@@ -8,6 +8,9 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- `docs/authorization.md` suggests granting the Withdraw rule through a role
+  induced by archetypes, and says to import the role first; importing the
+  archetypes first gives a harmless HTTP 240 dangling-reference warning.
 - The demo page reads like a chat app. The scenarios are a conversation list
   on the left, grouped by role, and a drawer on phones. One line above the chat
   says who you are and what to try. "Next" under each chat leads to the

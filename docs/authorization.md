@@ -234,6 +234,12 @@ midPoint's own GUI needs the same model right for its cancel button.
 </authorization>
 ```
 
+One way to grant it is a role holding only this rule, induced by the archetypes
+your people have. Import that role before the archetypes. An archetype imported
+first points at a role that does not exist yet, and midPoint answers HTTP 240
+with a dangling-reference warning. The warning is harmless: the inducement
+works once the role is there. Seen on 4.10.3 (2026-10-04).
+
 When the settings file sets `requests.formItems`, the server also reads midPoint's
 extension schemas at startup, as the service account itself, from `/ws/rest/schemas`
 and `/ws/schema`. Neither example role was verified with that setting.
