@@ -85,6 +85,12 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   seventh scenario shows a manager requesting access for a team member.
 - The demo opens at computer width (860 px). On a phone the column still fits the
   screen. A size chosen on an earlier visit no longer overrides the default.
+- The demo's Get access scenarios show midPoint's request rules (D44, D45):
+  "Request for" from the rules, "Why you can request this" on each role, and
+  an eighth scenario in which Jane Doe asks for Release manager as its
+  approver, the one relation her rule names. Bob Stone's catalog and Jane's
+  request for Bob now come from the rules recordings. One new recording:
+  Jane's own managers (none).
 
 ### Fixed
 

@@ -22,6 +22,7 @@ const BOB = '10000000-0000-0000-0000-0000000000b1';
 const MIA = '10000000-0000-0000-0000-0000000000a2';
 const JANE = '10000000-0000-0000-0000-0000000000c1';
 const DB_ADMIN = '20000000-0000-0000-0000-0000000000f1';
+const RELEASE = '20000000-0000-0000-0000-0000000000d1'; // Release manager, requestable as its approver
 
 // Tools that change midPoint. A call to one of these makes the host ask
 // first; every other call is read-only and answered straight away.
@@ -127,16 +128,16 @@ const SCENARIOS = [
     persona: 'Bob Stone, a member of dev-ops',
     view: 'request-access',
     user: 'I need admin access to the production databases.',
-    assistant: 'Here are the roles you can request. Database administrator fits; request it here and it goes to approval.',
-    entry: 'request-access.catalog',
-    try: 'Press Request on Database administrator, then Send request. The host asks before `request_role` runs. Afterwards, Track this request hands a message back to the chat.',
+    assistant: 'Here are the roles your midPoint rules let you request. Database administrator fits; request it here and it goes to approval.',
+    entry: 'request-access.rules',
+    try: 'Press Request on Database administrator; "Why you can request this" names the midPoint rule that allows it. Send request: the host asks before `request_role` runs. Afterwards, Track this request hands a message back to the chat.',
     recorded: 'requesting Database administrator',
     next: 'withdraw',
     answers: {
       whoami: [{ fx: 'request-access.identity' }],
       list_my_managers: [{ fx: 'request-access.managers' }],
-      list_my_team: [{ fx: 'request-access.team' }],
-      list_requestable_roles: [{ fx: 'request-access.catalog' }],
+      list_request_targets: [{ fx: 'request-access.targets-self' }],
+      list_requestable_roles: [{ fx: 'request-access.rules' }],
       get_case: [{ fx: 'request-access.case' }],
       request_role: [{ when: { roleOid: DB_ADMIN }, fx: 'request-access.pending', set: 'requested' }],
     },
@@ -162,6 +163,28 @@ const SCENARIOS = [
       ],
       get_case: [{ when: { oid: CASE_DB_ADMIN }, fx: 'my-requests.case' }],
       cancel_request: [{ when: { caseOid: CASE_DB_ADMIN }, fx: 'my-requests.withdrawn', set: 'withdrawn' }],
+    },
+  },
+  {
+    id: 'relation',
+    group: 'Requester',
+    short: 'Jane Doe · asks to approve releases',
+    hint: 'Request Release manager as its approver.',
+    title: 'Ask to approve requests for a role',
+    persona: 'Jane Doe, a team lead who also approves app roles',
+    view: 'request-access',
+    user: 'I should be the one approving Release manager requests.',
+    assistant: 'Your midPoint rules let you request Release manager as its approver. Request it here and it goes to approval.',
+    entry: 'request-access.rules-manager',
+    try: 'Press Request on Release manager. "Request to" offers only Approve requests for it, because that is the one relation your rules name for it; "Why you can request this" shows the rule. Send request: the host asks before `request_role` runs, with the relation. "Request for" lists the people your rules let you request for.',
+    recorded: 'requesting Release manager as its approver (other requests are adapted from Bob Stone\'s own)',
+    answers: {
+      whoami: [{ fx: 'access-review.whoami' }],
+      list_my_managers: [{ fx: 'request-access.managers-manager' }],
+      list_request_targets: [{ fx: 'request-access.targets' }],
+      list_requestable_roles: [{ when: { forUser: BOB }, fx: 'request-access.rules-report' }, { fx: 'request-access.rules-manager' }],
+      get_case: [{ fx: 'request-access.case' }],
+      request_role: [{ when: { roleOid: RELEASE, relation: 'approver' }, fx: 'request-access.pending-approver', set: 'requested' }],
     },
   },
   {
@@ -199,17 +222,17 @@ const SCENARIOS = [
     persona: 'Jane Doe, manager of Bob Stone',
     view: 'request-access',
     user: 'Show me the roles I can request for Bob Stone.',
-    assistant: 'These are the roles you can request for Bob Stone. Pick one and it goes to approval, in his name.',
-    entry: 'request-access.report',
-    try: 'Press Request on a role, then Send request. The host asks before `request_role` runs, with Bob\'s midPoint name next to his ID.',
+    assistant: 'These are the roles your midPoint rules let you request for Bob Stone. Pick one and it goes to approval, in his name.',
+    entry: 'request-access.rules-report',
+    try: '"Request for" lists Myself and the people your rules let you request for. Press Request on a role: "Why you can request this" names the rule (Team lead). Send request: the host asks before `request_role` runs, with Bob\'s midPoint name next to his ID. Pick Myself to see your own catalog.',
     recorded: 'no request for Bob made by his manager, so the host adapts the recording of Bob\'s own request',
     answers: {
       whoami: [{ fx: 'access-review.whoami' }],
-      list_my_managers: [{ fx: 'request-access.managers' }],
-      list_my_team: [{ fx: 'request-access.team' }],
-      list_requestable_roles: [{ when: { forUser: BOB }, fx: 'request-access.report' }, { fx: 'request-access.manager' }],
+      list_my_managers: [{ fx: 'request-access.managers-manager' }],
+      list_request_targets: [{ fx: 'request-access.targets' }],
+      list_requestable_roles: [{ when: { forUser: BOB }, fx: 'request-access.rules-report' }, { fx: 'request-access.rules-manager' }],
       get_case: [{ fx: 'request-access.case' }],
-      request_role: [],
+      request_role: [{ when: { roleOid: RELEASE, relation: 'approver' }, fx: 'request-access.pending-approver' }],
     },
   },
 ];

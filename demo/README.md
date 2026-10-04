@@ -12,17 +12,24 @@ every tool call is answered from recorded test data.
 
 ## What it shows
 
-- Six scenarios, picked at the top:
+- Eight scenarios, picked on the left:
 
   | Scenario | Person | View | Opened by | Writes it can answer |
   | --- | --- | --- | --- | --- |
   | Approve or reject a request | Dana Lee | Requests to approve | `inbox.approver` | approve: `decide.approve-next`, reject: `decide.reject-open` |
   | A manager's inbox | Jane Doe | Requests to approve | `inbox.manager` | approve Finance reports: `decide.approve-open` |
   | Claim a request offered to a group | Dana Lee | Requests to approve | `inbox.offered` | `claim.claimed` (list re-read: `inbox.claimed`), `release.released` |
-  | Ask for a role | Bob Stone | Get access | `request-access.catalog` | Database administrator: `request-access.pending` |
+  | Ask for a role | Bob Stone | Get access | `request-access.rules` | Database administrator: `request-access.pending` |
   | Check on and withdraw a request | Bob Stone | My requests | `my-requests.list` | `my-requests.withdrawn` (list re-read: `my-requests.closed`) |
+  | Ask to approve requests for a role | Jane Doe | Get access | `request-access.rules-manager` | Release manager as approver: `request-access.pending-approver` |
   | Review a team member's access | Jane Doe | My team's access | `access-review.team` | remove Database admin: `access-review.removed` (re-read: `access-review.after`) |
+  | Request access for a team member | Jane Doe | Get access | `request-access.rules-report` | none recorded for Bob: adapted from `request-access.pending` |
 
+- **Request rules.** The three Get access scenarios run as a server that
+  can read midPoint's request rules: "Request for" lists the people the rules
+  name, each role's "Why you can request this" names the rules that allow
+  it, and Release manager is offered to Jane Doe only as its approver,
+  because that is the relation her rule names.
 - **Read-only calls** the view makes (`whoami`, `get_case`, `list_my_team`,
   `get_user_assignments`, …) are answered straight away and noted under the
   view.

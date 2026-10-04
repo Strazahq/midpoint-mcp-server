@@ -287,6 +287,7 @@ func TestWriteRequestAccessViewFixtures(t *testing.T) {
 		{name: "dry-catalog", tool: "list_requestable_roles"},
 		{name: "team", tool: "list_my_team", manager: true, writes: true},
 		{name: "managers", tool: "list_my_managers", writes: true},
+		{name: "managers-manager", tool: "list_my_managers", manager: true, writes: true},
 		{name: "identity", tool: "whoami", writes: true},
 		{name: "pending", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, writes: true},
 		{name: "granted", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, writes: true, granted: true},
