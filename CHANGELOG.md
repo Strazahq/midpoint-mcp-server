@@ -27,6 +27,9 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
     page doesn't show it either. `docs/authorization.md` says how to grant it.
 
   `get_user_assignments` also gives an assignment's `requestComment`.
+- The README has a "Know the limits and risks" section. Its first point:
+  people can see more through this server than in midPoint's own pages,
+  because hiding something only in the GUI isn't a security boundary.
 
 ### Changed
 

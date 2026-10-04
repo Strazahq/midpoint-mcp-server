@@ -339,6 +339,40 @@ Send.
 `requests.formItems` and `requests.justificationItem` from 0.5 are ignored, with
 a warning.
 
+## Know the limits and risks
+
+- **People can see more here than in midPoint's own pages.** The server is a
+  REST client. It shows what midPoint's model and REST permissions allow, and
+  nothing that only midPoint's pages apply. If a deployment hides an item or a
+  panel only in the GUI, for example with UI authorizations
+  (`authorization-ui-3`), `adminGuiConfiguration` visibility, or Request access
+  settings, while the person may still read it through the model, this server
+  shows it. Any other REST client can read it too. Hiding something in the GUI
+  is not a security boundary. To keep something from a person, take away the
+  model permission.
+- **midPoint is the only enforcer.** The server never grants anything itself.
+  Every change is a plain REST request as the person, and midPoint applies that
+  person's authorizations and its policy rules. A view can therefore offer
+  something midPoint then refuses. When it does, the person sees midPoint's
+  reason.
+- **REST can't do everything midPoint's own Request access page does.** It
+  can't say beforehand which fields a person may fill. It can't preview
+  conflicting roles, and it can't carry the request comment. See
+  [Request fields](#request-fields).
+- **The server checks required request fields; midPoint doesn't.** midPoint
+  leaves required assignment fields unchecked on the server. A REST client
+  other than this one can leave them empty.
+- **In shared mode the service account is the blast radius.** Anyone holding
+  its credentials can act as every person inside its `#proxy` scope. Keep that
+  scope narrow, and keep the account's own rights to what
+  [docs/authorization.md](docs/authorization.md) lists.
+- **Text from midPoint is written by other people.** Descriptions, comments,
+  request fields and midPoint's refusal messages reach the assistant marked as
+  untrusted, but a model can still be swayed by them. Leave writes off
+  (`MIDPOINT_MCP_ALLOW_WRITES` unset) unless people confirm each write in their
+  assistant app, which MCP hosts ask for by default.
+- **midPoint 4.10 only**, see [midPoint versions](#midpoint-versions).
+
 ## Connect a client or run it in a container
 
 ### VS Code
