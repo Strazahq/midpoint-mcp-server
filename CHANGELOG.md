@@ -6,6 +6,8 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-04
+
 ### Added
 
 - An interactive demo, `demo/index.html`, built by `node demo/build.mjs` from the
