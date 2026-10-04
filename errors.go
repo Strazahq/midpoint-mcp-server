@@ -1,8 +1,10 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -23,6 +25,9 @@ type errorPayload struct {
 	V     int    `json:"v"`
 	Code  string `json:"code"`
 	Field string `json:"field,omitempty"`
+	// Reason is midPoint's message for people about a refusal (D42): a
+	// policy rule's own text, for example. Untrusted text from midPoint.
+	Reason string `json:"reason,omitempty"`
 }
 
 // errorCodes is the receiving middleware that codes every tool error result.
@@ -52,6 +57,7 @@ func errorCodes(next mcp.MethodHandler) mcp.MethodHandler {
 			out.Meta = mcp.Meta{}
 		}
 		out.Meta[errorMetaKey] = classifyError(r.GetError())
+		out.Content = withMidpointSaid(r.Content, r.GetError())
 		return &out, nil
 	}
 }
@@ -64,5 +70,28 @@ func classifyError(err error) errorPayload {
 	} else if err != nil && strings.HasPrefix(err.Error(), sdkValidationPrefix) {
 		p.Code = midpoint.CodeInvalidInput
 	}
+	p.Reason, _ = midpoint.MidpointSaid(err)
 	return p
+}
+
+// withMidpointSaid adds what midPoint said about a refusal under the error's
+// text, as an untrusted line (D42): its reason for people when it gave one,
+// else its technical message. The content is copied, not changed in place.
+func withMidpointSaid(content []mcp.Content, err error) []mcp.Content {
+	reason, message := midpoint.MidpointSaid(err)
+	said := cmp.Or(reason, message)
+	if said == "" || len(content) == 0 {
+		return content
+	}
+	tc, ok := content[0].(*mcp.TextContent)
+	if !ok {
+		return content
+	}
+	t := newListText(tc.Text)
+	t.untrusted(fieldAnswer, fromMidpointAnswer, said)
+	out := slices.Clone(content)
+	text := *tc
+	text.Text = t.String()
+	out[0] = &text
+	return out
 }

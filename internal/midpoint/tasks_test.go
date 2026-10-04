@@ -3,7 +3,6 @@ package midpoint
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -271,17 +270,16 @@ func TestApplyTaskAction(t *testing.T) {
 	}
 
 	_, _, err = c.ApplyTaskAction(ctx, Plan{Method: http.MethodPost, Path: "/tasks/state/resume"})
-	var ae *ActionError
-	if !errors.As(err, &ae) || !strings.HasPrefix(ae.Message, "Attempted to resume non-recurring task that was not suspended.") {
-		t.Fatalf("500: %v", err)
+	if _, said := MidpointSaid(err); !strings.HasPrefix(said, "Attempted to resume non-recurring task that was not suspended.") {
+		t.Fatalf("500: %v (midPoint said %q)", err, said)
 	}
 	if code, _ := ErrorCode(err); code != CodeMidpointUnavailable || err.Error() != "midPoint /tasks/state/resume: unexpected status 500 Internal Server Error" {
 		t.Errorf("500 text %q code %s", err, code)
 	}
 
 	_, _, err = c.ApplyTaskAction(ctx, Plan{Method: http.MethodPost, Path: "/tasks/denied/suspend"})
-	if errors.As(err, &ae) {
-		t.Errorf("an HTML 403 became an ActionError: %v", err)
+	if reason, said := MidpointSaid(err); reason != "" || said != "" {
+		t.Errorf("an HTML 403 said %q / %q: %v", reason, said, err)
 	}
 	if code, _ := ErrorCode(err); code != CodeNotAuthorized {
 		t.Errorf("403 code %s", code)

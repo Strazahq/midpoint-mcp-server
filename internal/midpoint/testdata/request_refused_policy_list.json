@@ -1,0 +1,46 @@
+{
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+    "@type": "c:OperationResultType",
+    "operation": "modifyObjectPatch",
+    "status": "fatal_error",
+    "message": "Could not modify object. Assignment of role \"Database admin\" (relation default) is to be added; Requests for this role need a justification, except from managers.",
+    "userFriendlyMessage": {
+      "@type": "c:LocalizableMessageListType",
+      "message": [
+        {
+          "@type": "c:SingleLocalizableMessageType",
+          "key": "DefaultPolicyConstraint.assignmentModification.toBeAdded",
+          "argument": [
+            {
+              "localizable": {
+                "@type": "c:SingleLocalizableMessageType",
+                "key": "ObjectSpecification",
+                "argument": [
+                  {
+                    "localizable": {
+                      "@type": "c:SingleLocalizableMessageType",
+                      "key": "ObjectTypeLowercase.RoleType",
+                      "fallbackMessage": "RoleType"
+                    }
+                  },
+                  {
+                    "value": "Database admin"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "@type": "c:SingleLocalizableMessageType",
+          "fallbackMessage": "Requests for this role need a justification, except from managers."
+        }
+      ],
+      "separator": {
+        "@type": "c:SingleLocalizableMessageType",
+        "fallbackMessage": "; "
+      }
+    }
+  }
+}

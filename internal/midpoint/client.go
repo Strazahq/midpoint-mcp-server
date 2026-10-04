@@ -144,7 +144,12 @@ func (c *Client) doFull(ctx context.Context, method, path string, query url.Valu
 
 	out := rawResponse{StatusCode: resp.StatusCode, Header: resp.Header, Body: respBody}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return out, &StatusError{Path: path, StatusCode: resp.StatusCode, Status: resp.Status}
+		se := &StatusError{Path: path, StatusCode: resp.StatusCode, Status: resp.Status}
+		if r, ok := decodeOpResult(respBody); ok {
+			se.Message = answerText(r.message(), maxAnswerMessage)
+			se.Reason = readableReason(r.reason())
+		}
+		return out, se
 	}
 	return out, nil
 }

@@ -6,6 +6,19 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+### Added
+
+- When midPoint refuses a change, the person sees midPoint's reason (D42,
+  S29). Examples are a policy rule's own message ("Requests for this role need
+  a justification") and a missing permission. midPoint enforces these rules on
+  REST requests just as its GUI does (fired on 4.10.3), but the server used to
+  drop its answer and show only "unexpected status 409".
+  - The error payload gains `reason`. The views show it under the error
+    sentence and announce it with the sentence.
+  - The error's text gains one untrusted line with what midPoint said.
+  - HTTP 409 now has its own code, `refused` ("midPoint refused this.").
+  - The answers are recorded from midPoint 4.10.3 with neutral names.
+
 ### Changed
 
 - `docs/authorization.md` suggests granting the Withdraw rule through a role

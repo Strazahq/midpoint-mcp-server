@@ -23,6 +23,7 @@ const (
 	CodeInvalidField        = "invalid-field"        // a request form item failed validation (S21)
 	CodeInvalidValidity     = "invalid-validity"     // a requested validity failed validation (S22)
 	CodeNotAuthorized       = "not-authorized"       // HTTP 401 or 403 from midPoint
+	CodeRefused             = "refused"              // HTTP 409 from midPoint: a policy rule, or a conflict
 	CodeNotFound            = "not-found"            // HTTP 404 from midPoint
 	CodeMidpointUnavailable = "midpoint-unavailable" // HTTP 5xx, or midPoint not reached
 	CodeInternal            = "internal"             // anything else
@@ -40,11 +41,19 @@ func (e *CodedError) Error() string { return e.Err.Error() }
 func (e *CodedError) Unwrap() error { return e.Err }
 
 // StatusError is a non-2xx answer from midPoint. Its text names the REST path
-// and the status line, never the base URL.
+// and the status line, never the base URL. What midPoint said about it comes
+// from the operation result it answered with; both are untrusted text from
+// midPoint, on one line, without addresses.
 type StatusError struct {
 	Path       string
 	StatusCode int
 	Status     string // the status line, e.g. "404 Not Found"
+	// Message is the result's message, or a failed sub-result's: midPoint's
+	// technical account of the failure, or "".
+	Message string
+	// Reason is the result's message meant for people (its
+	// userFriendlyMessage), with objects named and not "type:oid(name)", or "".
+	Reason string
 }
 
 func (e *StatusError) Error() string {
@@ -64,10 +73,23 @@ func (e *StatusError) code() (string, string) {
 		return CodeNotAuthorized, ""
 	case e.StatusCode == http.StatusNotFound:
 		return CodeNotFound, ""
+	case e.StatusCode == http.StatusConflict:
+		return CodeRefused, ""
 	case e.StatusCode >= 500:
 		return CodeMidpointUnavailable, ""
 	}
 	return CodeInternal, ""
+}
+
+// MidpointSaid returns what midPoint said about the first status error in
+// err's chain: its reason for people and its technical message, either ""
+// when midPoint said nothing or the error is not midPoint's answer.
+func MidpointSaid(err error) (reason, message string) {
+	var se *StatusError
+	if !errors.As(err, &se) {
+		return "", ""
+	}
+	return se.Reason, se.Message
 }
 
 // ErrorCode returns the code of the first coded error in err's chain, or ""

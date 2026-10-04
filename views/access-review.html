@@ -464,6 +464,8 @@ const CAT = {
 'error.notAssigned':`This role is no longer directly assigned to this person.`,
 'error.invalidInput':`The server rejected the request as incomplete or invalid.`,
 'error.notAuthorized':`midPoint says you aren't allowed to do this.`,
+'error.refused':`midPoint refused this.`,
+'error.reason':`midPoint's reason: {reason}`,
 'error.notFound':`midPoint couldn't find this item. It may have been deleted.`,
 'error.midpointUnavailable':`midPoint didn't answer. Try again in a moment.`,
 'error.hostRefused':`The assistant app didn't allow this action.`,
@@ -914,7 +916,7 @@ function openLink(oid, type, text, o){
 const ERR_CODES = {'shared-credential':'error.sharedCredential', 'not-requestable':'error.notRequestable', 'not-your-request':'error.notYourRequest',
   'request-closed':'error.requestClosed', 'already-decided':'error.alreadyDecided', 'not-in-inbox':'error.notInInbox', 'not-assigned':'error.notAssigned',
   'invalid-input':'error.invalidInput', 'invalid-field':'error.invalidField', 'invalid-validity':'error.invalidValidity',
-  'not-authorized':'error.notAuthorized', 'not-found':'error.notFound', 'midpoint-unavailable':'error.midpointUnavailable', internal:'error.generic'};
+  'not-authorized':'error.notAuthorized', refused:'error.refused', 'not-found':'error.notFound', 'midpoint-unavailable':'error.midpointUnavailable', internal:'error.generic'};
 const ERR_TEXT = [
   [['shared/technical account'], 'error.sharedCredential'],
   [['is not flagged requestable'], 'error.notRequestable'],
@@ -927,6 +929,7 @@ const ERR_TEXT = [
   [['invalid request field'], 'error.invalidField'],
   [['invalid validity'], 'error.invalidValidity'],
   [['unexpected status 401', 'unexpected status 403'], 'error.notAuthorized'],
+  [['unexpected status 409'], 'error.refused'],
   [['unexpected status 404'], 'error.notFound'],
   [['unexpected status 5', 'calling midPoint'], 'error.midpointUnavailable']
 ];
@@ -939,6 +942,13 @@ function classify(err){
 }
 /* defence in depth for S14: any address left in raw text is replaced */
 const redact = text => String(text).replace(/https?:\/\/[^\s"']*/g, ts('common.redacted'));
+/* D42: midPoint's own reason for a refusal: untrusted text from midPoint, shown as text, never markup */
+function reasonOf(err){
+  const m = isObj(err.meta) ? err.meta[ERR_KEY] : null;
+  if (!isObj(m) || m.v !== 1 || typeof m.reason !== 'string') return '';
+  return redact(m.reason.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').trim()).slice(0, 300);
+}
+const errSay = err => { const r = reasonOf(err); return ts(classify(err)) + (r ? ' ' + ts('error.reason', {reason:r}) : ''); };
 function disclosure(k, detailNodes){
   const open = !!S.open[k], id = 'd-' + idOf(k);
   const det = h('div', {class:'mp-details', id}, detailNodes); det.hidden = !open;
@@ -951,6 +961,7 @@ function errorBlock(err, k, refresh){
   const [btn, det] = disclosure('err:' + k, [h('span', {class:'mp-details-lab'}, t('common.detailsTool', {tool:err.tool})), '\n', redact(err.text)]);
   return h('div', {class:'mp-panel mp-panel--danger'},
     h('p', {class:'mp-panel-title'}, icon('alert'), t(classify(err))),
+    reasonOf(err) ? h('p', {class:'mp-reason'}, ts('error.reason', {reason:reasonOf(err)})) : null,
     h('div', {class:'mp-actions'}, btn, refresh && canCall() ? refreshButton('refresh2') : null), det);
 }
 
@@ -1089,7 +1100,7 @@ function outcomeEl(row){
   else node = h('div', {class:'mp-panel mp-panel--' + row.tone, role:'status'}, h('p', {class:'mp-panel-title'}, icon(row.tone === 'success' ? 'check' : row.tone === 'warning' ? 'alert' : 'clock'), t(row.key, row.p)));
   return h('div', {class:'mp-outcome', tabindex:'-1', 'data-k':'outcome'}, node);
 }
-const outcomeSay = row => row.error ? ts(classify(row.error)) : row.slot ? ts(row.slot.decision === 'held' ? 'strip.held.title' : 'strip.denied.title') : row.preview ? ts('dryrun.result.title') : row.key ? ts(row.key, row.p) : ts(row.mismatch ? 'state.versionMismatch' : 'state.textOnly');
+const outcomeSay = row => row.error ? errSay(row.error) : row.slot ? ts(row.slot.decision === 'held' ? 'strip.held.title' : 'strip.denied.title') : row.preview ? ts('dryrun.result.title') : row.key ? ts(row.key, row.p) : ts(row.mismatch ? 'state.versionMismatch' : 'state.textOnly');
 function modelContext(res){
   if (!S.init || !isObj(S.caps.updateModelContext)) return;
   const content = arr(res.content).filter(c => isObj(c) && c.type === 'text' && typeof c.text === 'string').map(c => ({type:'text', text:c.text}));
@@ -1297,7 +1308,7 @@ function readAnswer(r, tool, picker){
     if (picker) S.pickerError = err;
     else if (S.data || S.phase === 'loaded') S.readError = err;
     else { S.phase = 'error'; S.entryError = err; }
-    announce(ts(classify(err)), true); return null;
+    announce(errSay(err), true); return null;
   };
   if (r.error !== undefined) return fail(rpcErr(tool, r.error));
   const res = r.result, slot = slotOf(res), sc = res.structuredContent;

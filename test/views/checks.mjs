@@ -1217,6 +1217,19 @@ check('errors.details-redacted', '6.8', 'technical details: Tool line and the ra
   t.ok(await v.visible(v.button(S.hideDetails)), `the toggle does not read "${S.hideDetails}" when open`);
 });
 
+check('errors.reason', '6.8, D42', "midPoint's reason for a refusal shows under the sentence as text, addresses removed, and is announced with it", async (t) => {
+  const said = 'Only <b>Finance</b> may approve this; see https://idm.example.test/policy';
+  const fx = derive('error.decide.not-authorized', 'reason', (r) => { r._meta['midpoint-mcp-server/error'].reason = said; });
+  const { v, e, card } = await inbox(t, 'inbox.approver', { tools: { decide_work_item: [{ result: fx.result }] } });
+  if (!card) return;
+  await approve(t, v, card, e);
+  const shown = S.reason(`Only <b>Finance</b> may approve this; see ${S.redacted}`);
+  t.ok(await v.waitFor(card.getByText(shown, { exact: true }).or(v.frame.getByText(shown, { exact: true }))), 'reason not shown as text');
+  t.ok(!(await v.text()).includes('https://'), 'an address in the reason is shown');
+  await sleep(150);
+  t.ok(await inLiveRegion(v.frame, `${S.errorByCode['not-authorized']} ${shown}`, 'assertive'), 'reason not announced with the sentence');
+});
+
 check('errors.fallback-by-text', '6.8', 'an error without a code is classified by its text', async (t) => {
   const fx = derive('error.decide.not-authorized', 'error-without-code', M.errorWithoutCode);
   const { v, e, card } = await inbox(t, 'inbox.approver', { tools: { decide_work_item: [{ result: fx.result }] } });

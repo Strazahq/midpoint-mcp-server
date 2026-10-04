@@ -276,6 +276,29 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   Each was fired against midPoint 4.10.3 (throwaway objects deleted). AC:
   `go test ./...` and the four view suites pass; the integration-tagged live
   tests pass against a 4.10 instance.
+- **M12 — midPoint is the judge of a request (2026-10-04, contract
+  draft.12+, D42)**. The owner challenged the `requests.formItems` settings
+  list: midPoint can make the fields differ per person and per role, and policy
+  rules can demand anything. So the server must not re-implement those rules.
+  What was fired on 4.10.3: policy rules and `assign` field restrictions are
+  enforced on a REST request (409 or 403, before any approval case). midPoint's
+  REST API cannot say beforehand which fields a person may fill, and cannot
+  carry the request comment.
+  1. **Refusal reasons** (S29, done): midPoint's `userFriendlyMessage`
+     reaches the view and the assistant. 409 is coded `refused`.
+  2. **Approvers see what was asked**: the requester's comment from requests
+     made in midPoint's GUI (the case's creation event) and every filled
+     assignment field, labelled.
+  3. **No field settings**: drop `requests.formItems` and
+     `requests.justificationItem`. The dialog offers the assignment fields of
+     midPoint's schema. The "required" mark comes from the schema and the
+     requester's archetype template, as midPoint's own page does. midPoint
+     decides on Send.
+  4. **Docs**: README and authorization docs list the REST limits (per-person
+     field visibility, relation choice, conflict preview, request comment).
+
+  AC: each step fired on eval where midPoint behaviour is involved;
+  `go test ./...` and the four view suites pass; CHANGELOG per step.
 - **M7 (sketch) — delegation & deputy**: hand your work items / access to a
   deputy while away (midPoint's `deputy` relation); list/create/revoke
   delegations. Needs live shape verification.

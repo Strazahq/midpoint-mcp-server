@@ -120,11 +120,13 @@ export const S = {
     'not-assigned': 'This role is no longer directly assigned to this person.',
     'invalid-input': 'The server rejected the request as incomplete or invalid.',
     'not-authorized': "midPoint says you aren't allowed to do this.",
+    refused: 'midPoint refused this.',
     'not-found': "midPoint couldn't find this item. It may have been deleted.",
     'midpoint-unavailable': "midPoint didn't answer. Try again in a moment.",
     internal: "midPoint couldn't complete this.",
   },
   hostRefused: "The assistant app didn't allow this action.",
+  reason: (r) => `midPoint's reason: ${r}`,
 
   // 10.8
   status: { waiting: 'Waiting', approved: 'Approved', rejected: 'Rejected', closed: 'Closed', personDisabled: 'Account off' },

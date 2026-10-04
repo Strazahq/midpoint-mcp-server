@@ -89,6 +89,9 @@ var (
 	fieldJustification = untrustedField{"justification", 200}
 	fieldComment       = untrustedField{"comment", 200}
 	fieldMessage       = untrustedField{"message", 160}
+	// fieldAnswer is what midPoint said about a refusal (D42), already cut
+	// to 600 characters by the client.
+	fieldAnswer = untrustedField{"message", 600}
 )
 
 // textSource names who wrote an untrusted text, as its marker says it.

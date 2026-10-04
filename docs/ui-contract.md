@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| **Status** | Draft. Implemented on main: the four views of chapter 7 (draft.11 look) and the server changes S1 to S28, each checked by the browser suites in `test/views/` and by `go test`. Not yet tried in a real MCP Apps host against a live midPoint. |
-| **Contract version** | `1.0-draft.11` (2026-10-03) |
+| **Status** | Draft. Implemented on main: the four views of chapter 7 (draft.11 look) and the server changes S1 to S29, each checked by the browser suites in `test/views/` and by `go test`. Not yet tried in a real MCP Apps host against a live midPoint. |
+| **Contract version** | `1.0-draft.12` (2026-10-04) |
 | **Targets** | MCP Apps extension `io.modelcontextprotocol/ui`, stable revision **2026-01-26**; the midPoint 4.10 GUI look |
 | **Build first** | [Requests to approve](#71-requests-to-approve--build-first) (the approval inbox) |
 | **Writes** | Plain REST only; approver comments are the only comments ([6.5.1](#651-comment-storage)) |
@@ -16,6 +16,22 @@ that views, tool changes, and any intermediary between host and server can be
 built and reviewed separately against one written agreement.
 
 ## Revision history
+
+**1.0-draft.12 (2026-10-04)**, the owner's D42: midPoint is the judge of a
+request, and its reason reaches the person. The owner pointed out that the
+fields a request needs, and who must fill them, can differ per person, and
+that policy rules can demand anything; the server must not re-implement them.
+midPoint enforces them on a REST request as it does in its GUI (fired on
+4.10.3: an enforcement rule answers 409 with the rule's message before any
+approval case exists; an `assign` authorization without a field answers 403),
+but the server dropped midPoint's answer and showed a bare status.
+
+- **Errors** (6.8, S29): an error from midPoint carries what midPoint said. Its
+  message for people (the operation result's `userFriendlyMessage`) travels in
+  the error payload as `reason` and shows under the sentence as
+  `error.reason`; its technical message, or the reason, follows the error's
+  text on an untrusted line. HTTP 409 gets the new code `refused`
+  (`error.refused`).
 
 **1.0-draft.11 (2026-10-03)**, the owner's D39: readable views. The owner found
 the built views "extremely hard to read, everything same element same color".
@@ -1754,7 +1770,7 @@ Friendly sentence plus expandable details [default].
   `common.redacted`. Defence in depth for S14, which removes URLs at the source.
 - **Classification by code** (owner decision, S18). Every error result this
   server produces carries `_meta["midpoint-mcp-server/error"]` =
-  `{"v": 1, "code": "<code>", "field"?: "<item name>"}` (the server's own key, in the same
+  `{"v": 1, "code": "<code>", "field"?: "<item name>", "reason"?: "<text>"}` (the server's own key, in the same
   one-label-prefix form as the intermediary slot). A view maps the code to
   its string with the table below. A missing or unknown code, or a payload
   that fails validation, falls back to the text match.
@@ -1779,8 +1795,9 @@ Friendly sentence plus expandable details [default].
 | `invalid-validity` | `error.invalidValidity` | `invalid validity` | `request_role` validity validation (S22) |
 | `not-authorized` | `error.notAuthorized` | `unexpected status 401` or `unexpected status 403` | `client.go` `doFull`, as a `StatusError` (`internal/midpoint/errors.go`) |
 | `not-found` | `error.notFound` | `unexpected status 404` | `client.go` `doFull`, as a `StatusError` |
+| `refused` (draft.12) | `error.refused` | `unexpected status 409` | `client.go` `doFull`: midPoint refused the change, as a `StatusError`. A policy rule's enforcement answers 409 **[live]**, and so do a duplicate object and a concurrent change |
 | `midpoint-unavailable` | `error.midpointUnavailable` | `unexpected status 5` or `calling midPoint` | `client.go` `doFull`: a 5xx `StatusError`, midPoint not reached (`calling midPoint …`), or its answer not read to the end (`reading … response`, which the text fallback doesn't match) |
-| `internal` | `error.generic` | anything else | any other failure, including the input checks in the note below and midPoint answers other than 401, 403, 404 and 5xx (a 400, for example) |
+| `internal` | `error.generic` | anything else | any other failure, including the input checks in the note below and midPoint answers other than 401, 403, 404, 409 and 5xx (a 400, for example) |
 | none (host-side) | `error.hostRefused` | a JSON-RPC error on a view's `tools/call` | the host refused or failed the call |
 
 **Input checks coded `internal` today** (draft.9, from the S18 code):
@@ -1808,6 +1825,23 @@ in a view these mean a bug or a damaged result, not a person's mistake.
 - Error text from the server can contain login names and OIDs; it is shown
   only inside the technical details disclosure, the one place where raw server
   text appears (D16). The same holds for the dry-run request.
+- **midPoint's reason** (D42, draft.12). When midPoint answered an error with
+  a message meant for people, the payload's `reason` holds it, and the view
+  shows it under the sentence as `error.reason` and announces it with the
+  sentence. It is untrusted text from midPoint, shown as text, never markup;
+  the view removes control characters, replaces addresses with
+  `common.redacted` and cuts it at 300 characters. The server takes it from
+  the operation result's `userFriendlyMessage` (its fallback text, or the
+  readable parts of a message list; a part with only a localization key is
+  left out), names objects instead of midPoint's `type:oid(name)`, and removes
+  addresses. A policy rule's own message arrives this way **[live]**; so does
+  an authorization refusal ("User 'bob' not authorized for operation with
+  assignment on bob with target Database admin" **[live]**). A failure with no
+  such message (a broken script in a rule, for example) has no `reason`; its
+  technical message stays in the details.
+- **The error's text** (S29) ends with one line of what midPoint said, its
+  reason or else its technical message, marked as untrusted text from
+  midPoint's answer (4.8 rule 9), so an assistant can tell the person why.
 
 ### 6.9 Theming tokens
 
@@ -3010,6 +3044,7 @@ All additive. Text changes only where S13 says so. Numbered for reference.
 | S26 | **Names on writes** (D38): `decide_work_item`, `cancel_request`, `request_role`, `unassign_role`, `assign_role` and `recompute_user` take `userName` and `roleName` (`recompute_user` only `userName`; `request_role` needs `userName` only with `userOid`), the midPoint `name` of the objects their OIDs point to. The server names those objects the way the list results do, read as the acting identity, falling back to the name midPoint stores in the reference when the object can't be read. It compares case-insensitively and refuses a missing or different name, and a name where midPoint shows none, before any write and before the dry-run preview, with `invalid-input`. | the six write tools | unit, views |
 | S27 | **Assignment origin** (D39): `get_user_assignments` gives each assignment an optional `origin` with `createdAt`, `createdBy`, `requestedAt`, `requestedBy`, `approvedBy[]` and `approvalComments[]`. These come from the assignment's value metadata (4.10: `@metadata/storage` and `@metadata/process`; before 4.10 the `metadata` container), which a plain GET returns to anyone who may read the assignment **[live]** on 4.10.3. People are named as the caller. The comments are text by people, untrusted in the tool's text. | `get_user_assignments` | unit, views |
 | S28 | **Claim and release** (D40): `list_work_items` items gain `offered`, `claimed` and `offeredTo`, and `context.reason` gains `group`. New write tools `claim_work_item` and `release_work_item` (`POST /cases/{oid}/workItems/{id}/claim`, `/release`; write gate, dry run, D38 names) check the case before writing, because midPoint answers a claim or release on a closed item with 204 and changes nothing **[live]**. `decide_work_item` refuses an unclaimed offered item with `not-claimed`. `get_case` work items gain `offeredTo`. | `list_work_items`, `claim_work_item`, `release_work_item`, `decide_work_item`, `get_case` | unit, views, live |
+| S29 | **midPoint's answer on errors** (D42): every non-2xx answer keeps what midPoint said in its operation result: the technical `message` (or a failed sub-result's) and the message for people, `userFriendlyMessage`, made readable. Both are cut, one line, without addresses. The error payload gains `reason`; the error's text gains an untrusted line. HTTP 409 is coded `refused`. The untrusted message line the task and resource tools added on a refusal is this line now. | all tools | unit (recorded 409, 403, 400 answers), views, live |
 
 **S16 `cancel_request` in detail.**
 
@@ -3366,6 +3401,8 @@ the join rules of [6.11](#611-dates-times-numbers-lists-of-names).
 | `error.notAssigned` | This role is no longer directly assigned to this person. |
 | `error.invalidInput` | The server rejected the request as incomplete or invalid. |
 | `error.notAuthorized` | midPoint says you aren't allowed to do this. |
+| `error.refused` | midPoint refused this. |
+| `error.reason` | midPoint's reason: {reason} |
 | `error.notFound` | midPoint couldn't find this item. It may have been deleted. |
 | `error.midpointUnavailable` | midPoint didn't answer. Try again in a moment. |
 | `error.hostRefused` | The assistant app didn't allow this action. |
@@ -3751,6 +3788,7 @@ midPoint is searched automatically only when the loaded list was cut off.
 | D39 | Readable views (owner, 2026-10-03: "extremely hard to read, everything same element same color"). After two independent reviews of a mockup, the views take layout A inline (labelled facts, avatars and one-tint kind tiles, status pills, real buttons) and layout B in full screen (a ledger). Colour means status only; midPoint blue stays primary; the AdminLTE palette is no longer binding (revises owner decision 3 and D31). The reviewers' fixes are in: inline labels under 560 px, outlined write buttons of at least 36 px, a distinct overdue pill, "Approve removal", plain words, and the contrast fixes. | 6.4, 6.9, 6.10, 7.1 to 7.4, 10; S27 |
 | D40 | Approvals offered to a group (settles Q4). An approval step whose approver is an org or role offers its work item to that group (`candidateRef`, no assignee, midPoint's default `byClaimingWorkItem`) **[live]** on 4.10.3. With `groupExpansion` `onWorkItemCreation` midPoint instead creates one work item per member, each assigned directly, and the inbox shows those as ordinary cards **[live]** (one org of two members gave two assigned items). Approvers found through `approverRelation`, a user `approverRef` or a manager expression are users, so their items are assigned directly too **[source]** (`ApprovalSchemaHelper.java:47`, `StageComputeHelper.java:115`). The view never guesses: it reads `assigneeRef` and `candidateRef`. The inbox lists those items as `offered` with `offeredTo`; the card shows "Offered to {group}" and Claim; once claimed it is a normal card with Release. midPoint checks the claim itself: a `candidateRef` must be the person or one of their `roleMembershipRef` targets **[source]**. To see such an item an approver needs `read` on CaseType `workItem` with `candidateAssignee` `self`, the same as midPoint's own claimable-items page, and the server account needs `rest-3#claimWorkItem` and `#releaseWorkItem` (docs/authorization.md). | 7.1, 6.8; S28 |
 | D41 | Names first in write results (owner, 2026-10-04: "if user is approving on phone he has no idea whos 40 guid"). Every write tool's text starts with a sentence in names ("Would assign role End user to Carol Jensen (carol).", "Approved Database admin for Bob Stone (bstone), requested by bstone …"). The OIDs, the case and the REST request follow on their own `Case:` and `Request:` lines. The structured result is unchanged. | 4.4, S26 |
+| D42 | midPoint is the judge of a request (owner, 2026-10-04: "u can have each assignment different BASED ON THE user requesting", "u can make custom policy rules etc. so this might not be handled by mcp"). The server does not re-implement who must fill what or who may request what: midPoint enforces its authorizations and policy rules on the REST request as in its GUI, and the server passes midPoint's reason to the person and the assistant. What midPoint's GUI decides before Send but REST cannot ask (the fields a person may fill, relation choices, conflict preview, the request comment) is listed as a REST limit, not imitated. | 6.8, S29 |
 
 **Open questions** (draft.8, D35; shown in the mockup's review mode):
 

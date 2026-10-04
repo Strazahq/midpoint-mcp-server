@@ -73,6 +73,8 @@ export const S = {
   "error.notAssigned": "This role is no longer directly assigned to this person.",
   "error.invalidInput": "The server rejected the request as incomplete or invalid.",
   "error.notAuthorized": "midPoint says you aren't allowed to do this.",
+  "error.refused": "midPoint refused this.",
+  "error.reason": "midPoint's reason: {reason}",
   "error.notFound": "midPoint couldn't find this item. It may have been deleted.",
   "error.midpointUnavailable": "midPoint didn't answer. Try again in a moment.",
   "error.hostRefused": "The assistant app didn't allow this action.",

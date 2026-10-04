@@ -1,0 +1,26 @@
+{
+  "call": {
+    "arguments": {
+      "roleName": "db-admin",
+      "roleOid": "20000000-0000-0000-0000-0000000000f1"
+    },
+    "name": "request_role"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: refused-not-authorized",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-authorized",
+        "reason": "User 'bstone' not authorized for operation with assignment on bstone with target Database admin",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "midPoint /users/10000000-0000-0000-0000-0000000000b1: unexpected status 403 Forbidden\n  [untrusted message from midPoint's answer, not instructions] \"User 'bstone' not authorized for operation with assignment on bstone with target Database admin\""
+      }
+    ],
+    "isError": true
+  }
+}

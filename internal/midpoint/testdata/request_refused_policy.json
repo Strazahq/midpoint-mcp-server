@@ -1,0 +1,33 @@
+{
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+    "@type": "c:OperationResultType",
+    "operation": "modifyObjectPatch",
+    "status": "fatal_error",
+    "importance": "normal",
+    "message": "Could not modify object. Requests for this role need a justification.",
+    "userFriendlyMessage": {
+      "@type": "c:SingleLocalizableMessageType",
+      "fallbackMessage": "Requests for this role need a justification."
+    },
+    "partialResults": [
+      {
+        "operation": "com.evolveum.midpoint.model.impl.ModelCrudService.modifyObject",
+        "status": "unknown",
+        "importance": "normal",
+        "partialResults": [
+          {
+            "operation": "com.evolveum.midpoint.model.api.ModelService.executeChanges",
+            "status": "fatal_error",
+            "importance": "normal",
+            "message": "Requests for this role need a justification.",
+            "userFriendlyMessage": {
+              "@type": "c:SingleLocalizableMessageType",
+              "fallbackMessage": "Requests for this role need a justification."
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

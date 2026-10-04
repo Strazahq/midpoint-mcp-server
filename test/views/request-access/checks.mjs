@@ -93,6 +93,12 @@ check('ac06.required','7.2 AC6','required field blocks submission and receives f
 check('ac06.integer','7.2 AC6','integer field rejects fraction without a call',async t=>{
  const v=await catalog(t,'form'),d=await open(t,v);await form(v);await d.getByLabel(S.ticket,{exact:true}).fill('7.5');await d.getByRole('button',{name:S.submit}).click();t.ok(await v.hasText(S.whole,{within:d}),'integer error');t.ok((await v.calls('request_role')).length===0,'fraction sent');
 });
+for(const [name,sentence,reason] of [['refused',S.refused,'Requests for this role need a justification.'],['refused-not-authorized',S.denied,"User 'bstone' not authorized for operation with assignment on bstone with target Database admin"]])check(`d42.${name}`,'7.2, 6.8, D42',"a midPoint refusal shows its sentence and midPoint's own reason, and announces both",async t=>{
+ const v=await catalog(t,'catalog',{tools:writeTools(name)});await open(t,v);await submit(v);
+ t.ok(await v.waitFor(sentence),'sentence absent');t.ok(await v.waitFor(S.reason(reason)),'reason absent');await sleep(150);
+ t.ok(await inLiveRegion(v.frame,sentence+' '+S.reason(reason),'assertive'),'reason not announced');
+ t.ok(!(await v.frame.locator('body').innerText()).includes('20000000-0000-0000-0000-0000000000f1'),'an OID shown outside the details');
+});
 for(const error of ['invalid-field','invalid-validity'])check(`ac07.${error}`,'7.2 AC7','server refusal restores draft and focuses the refused input',async t=>{
  const v=await catalog(t,'form',{tools:writeTools(error)}),d=await open(t,v);await form(v);await d.getByLabel(S.justification,{exact:true}).fill('Needed for reporting');await d.getByRole('radio',{name:S.days,exact:true}).check();await d.getByRole('radio',{name:'7 days',exact:true}).check();await submit(v);
  t.ok(await v.waitFor(error==='invalid-field'?S.invalidField:S.invalidValidity),'refusal not shown');const again=await open(t,v);

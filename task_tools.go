@@ -3,7 +3,6 @@ package main
 import (
 	"cmp"
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -223,7 +222,7 @@ func registerTaskAction(server *mcp.Server, client *midpoint.Client, allowWrites
 
 		status, message, err := client.ApplyTaskAction(ctx, plan)
 		if err != nil {
-			return nil, taskActionOutput{}, actionError(err)
+			return nil, taskActionOutput{}, err
 		}
 		out := taskActionOutput{writeOutput: writeOutput{
 			Applied:  true,
@@ -265,28 +264,6 @@ func appendText(res *mcp.CallToolResult, line string) {
 	}
 	res.Content = append(res.Content, &mcp.TextContent{Text: line})
 }
-
-// actionError puts the message midPoint gave with a refusal under the error's
-// text, as untrusted text. Its code stays the refusal's.
-func actionError(err error) error {
-	var ae *midpoint.ActionError
-	if !errors.As(err, &ae) || ae.Message == "" {
-		return err
-	}
-	t := newListText(err.Error())
-	t.untrusted(fieldMessage, fromMidpointAnswer, ae.Message)
-	return &explainedError{text: t.String(), err: err}
-}
-
-// explainedError is an error with text added; it unwraps to the error, so its
-// code is the error's.
-type explainedError struct {
-	text string
-	err  error
-}
-
-func (e *explainedError) Error() string { return e.text }
-func (e *explainedError) Unwrap() error { return e.err }
 
 // --- test_resource ---
 
@@ -335,7 +312,7 @@ func registerTestResource(server *mcp.Server, client *midpoint.Client, allowWrit
 
 		test, err := client.TestResource(ctx, plan)
 		if err != nil {
-			return nil, testResourceOutput{}, actionError(err)
+			return nil, testResourceOutput{}, err
 		}
 		out := testResourceOutput{
 			writeOutput: writeOutput{

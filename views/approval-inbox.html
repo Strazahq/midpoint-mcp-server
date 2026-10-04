@@ -387,6 +387,8 @@ const CAT = {
 'error.notAssigned':`This role is no longer directly assigned to this person.`,
 'error.invalidInput':`The server rejected the request as incomplete or invalid.`,
 'error.notAuthorized':`midPoint says you aren't allowed to do this.`,
+'error.refused':`midPoint refused this.`,
+'error.reason':`midPoint's reason: {reason}`,
 'error.notFound':`midPoint couldn't find this item. It may have been deleted.`,
 'error.midpointUnavailable':`midPoint didn't answer. Try again in a moment.`,
 'error.hostRefused':`The assistant app didn't allow this action.`,
@@ -896,7 +898,7 @@ function openLink(oid, type, text){
 const ERR_CODES = {'shared-credential':'error.sharedCredential', 'not-requestable':'error.notRequestable', 'not-your-request':'error.notYourRequest',
   'request-closed':'error.requestClosed', 'already-decided':'error.alreadyDecided', 'not-in-inbox':'error.notInInbox', 'not-claimed':'error.notClaimed', 'not-assigned':'error.notAssigned',
   'invalid-input':'error.invalidInput', 'invalid-field':'error.invalidField', 'invalid-validity':'error.invalidValidity',
-  'not-authorized':'error.notAuthorized', 'not-found':'error.notFound', 'midpoint-unavailable':'error.midpointUnavailable', internal:'error.generic'};
+  'not-authorized':'error.notAuthorized', refused:'error.refused', 'not-found':'error.notFound', 'midpoint-unavailable':'error.midpointUnavailable', internal:'error.generic'};
 const ERR_TEXT = [
   [['shared/technical account'], 'error.sharedCredential'],
   [['is not flagged requestable'], 'error.notRequestable'],
@@ -910,6 +912,7 @@ const ERR_TEXT = [
   [['invalid request field'], 'error.invalidField'],
   [['invalid validity'], 'error.invalidValidity'],
   [['unexpected status 401', 'unexpected status 403'], 'error.notAuthorized'],
+  [['unexpected status 409'], 'error.refused'],
   [['unexpected status 404'], 'error.notFound'],
   [['unexpected status 5', 'calling midPoint'], 'error.midpointUnavailable']
 ];
@@ -922,6 +925,13 @@ function classify(err){
 }
 /* defence in depth for S14: any address left in raw text is replaced */
 const redact = text => String(text).replace(/https?:\/\/[^\s"']*/g, ts('common.redacted'));
+/* D42: midPoint's own reason for a refusal: untrusted text from midPoint, shown as text, never markup */
+function reasonOf(err){
+  const m = isObj(err.meta) ? err.meta[ERR_KEY] : null;
+  if (!isObj(m) || m.v !== 1 || typeof m.reason !== 'string') return '';
+  return redact(m.reason.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').trim()).slice(0, 300);
+}
+const errSay = err => { const r = reasonOf(err); return ts(classify(err)) + (r ? ' ' + ts('error.reason', {reason:r}) : ''); };
 function disclosure(k, detailNodes){
   const open = !!S.open[k], id = 'd-' + idOf(k);
   const det = h('div', {class:'mp-details', id}, detailNodes); det.hidden = !open;
@@ -934,6 +944,7 @@ function errorBlock(err, k, refresh){
   const [btn, det] = disclosure('err:' + k, [h('span', {class:'mp-details-lab'}, t('common.detailsTool', {tool:err.tool})), '\n', redact(err.text)]);
   return h('div', {class:'mp-panel mp-panel--danger'},
     h('p', {class:'mp-panel-title'}, icon('alert'), t(classify(err))),
+    reasonOf(err) ? h('p', {class:'mp-reason'}, ts('error.reason', {reason:reasonOf(err)})) : null,
     h('div', {class:'mp-actions'}, btn, refresh && canCall() ? refreshButton('refresh2') : null), det);
 }
 
@@ -1069,7 +1080,7 @@ function rowOutcome(k, row){
     h('p', {class:'mp-panel-title'}, icon(row.tone === 'warning' ? 'alert' : 'check'), outcomeText(row)));
 }
 const rowSay = row => row.slot ? ts(row.slot.decision === 'held' ? 'strip.held.title' : 'strip.denied.title')
-  : row.preview ? ts('dryrun.result.title') : row.error ? ts(classify(row.error)) : outcomeText(row).textContent;
+  : row.preview ? ts('dryrun.result.title') : row.error ? errSay(row.error) : outcomeText(row).textContent;
 /* 6.14: after a write started in the view, the assistant gets the write tool's own text, nothing else */
 function modelContext(res){
   if (!S.init || !isObj(S.caps.updateModelContext)) return;
@@ -1414,7 +1425,7 @@ function onListAnswer(r, userRefresh){
   if (userRefresh) S.notice = null;
   /* with no list on screen (the entry was an error, a held or denied call, or cancelled) the answer replaces that state */
   const fresh = S.phase !== 'loaded';
-  const fail = err => { if (fresh){ S.phase = 'error'; S.entryError = err; } else S.refreshNote = err; announce(ts(classify(err)), true); };
+  const fail = err => { if (fresh){ S.phase = 'error'; S.entryError = err; } else S.refreshNote = err; announce(errSay(err), true); };
   if (r.error !== undefined) return fail(rpcErr('list_work_items', r.error));
   const res = r.result, slot = slotOf(res);
   if (blocked(slot)){

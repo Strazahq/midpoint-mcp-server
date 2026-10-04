@@ -1,0 +1,26 @@
+{
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+    "@type": "c:OperationResultType",
+    "operation": "modifyObjectPatch",
+    "status": "fatal_error",
+    "importance": "normal",
+    "message": "Could not modify object. Groovy Evaluation Failed: No such property: undefinedVariable for class: (new)_expression_in_assignment_state_constraint_null_(AFTER)",
+    "partialResults": [
+      {
+        "operation": "com.evolveum.midpoint.model.impl.ModelCrudService.modifyObject",
+        "status": "fatal_error",
+        "importance": "normal",
+        "message": "Groovy Evaluation Failed: No such property: undefinedVariable for class: (new)_expression_in_assignment_state_constraint_null_(AFTER)",
+        "partialResults": [
+          {
+            "operation": "com.evolveum.midpoint.model.api.ModelService.executeChanges",
+            "status": "fatal_error",
+            "importance": "normal",
+            "message": "Groovy Evaluation Failed: No such property: undefinedVariable for class: (new)_expression_in_assignment_state_constraint_null_(AFTER)"
+          }
+        ]
+      }
+    ]
+  }
+}

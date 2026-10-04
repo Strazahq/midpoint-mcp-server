@@ -5,7 +5,6 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -394,18 +393,8 @@ func resumeHint(task TaskSummary) string {
 	return ""
 }
 
-// ActionError is a task or resource action midPoint refused: its status, and
-// the message of the operation result it answered with (text from midPoint,
-// untrusted). Its text and code are the status error's.
-type ActionError struct {
-	*StatusError
-	Message string
-}
-
-func (e *ActionError) Unwrap() error { return e.StatusError }
-
-// applyForResult sends a plan and returns midPoint's status and body. A refusal
-// becomes an ActionError when midPoint explained it in an operation result.
+// applyForResult sends a plan and returns midPoint's status and body. A
+// refusal is the status error, which carries midPoint's message.
 func (c *Client) applyForResult(ctx context.Context, p Plan) (int, []byte, error) {
 	var body []byte
 	if p.Body != nil {
@@ -416,12 +405,6 @@ func (c *Client) applyForResult(ctx context.Context, p Plan) (int, []byte, error
 		body = b
 	}
 	resp, err := c.doFull(ctx, p.Method, p.Path, p.Query, body)
-	var se *StatusError
-	if errors.As(err, &se) {
-		if r, ok := decodeOpResult(resp.Body); ok && r.message() != "" {
-			return resp.StatusCode, resp.Body, &ActionError{StatusError: se, Message: r.message()}
-		}
-	}
 	return resp.StatusCode, resp.Body, err
 }
 
@@ -437,67 +420,6 @@ func (c *Client) ApplyTaskAction(ctx context.Context, p Plan) (status int, messa
 		message = r.message()
 	}
 	return status, message, nil
-}
-
-// --- operation results ---
-
-// opResultJSON is midPoint's OperationResultType, as far as it is read here.
-type opResultJSON struct {
-	Operation      string    `json:"operation"`
-	Status         string    `json:"status"`
-	Message        string    `json:"message"`
-	PartialResults flexSlice `json:"partialResults"`
-}
-
-// decodeOpResult reads an operation result answered as a REST body, wrapped as
-// {"object":{"@type":"c:OperationResultType",...}}.
-func decodeOpResult(body []byte) (opResultJSON, bool) {
-	body = bytes.TrimSpace(body)
-	if len(body) == 0 || body[0] != '{' {
-		return opResultJSON{}, false
-	}
-	var env struct {
-		Object json.RawMessage `json:"object"`
-	}
-	if json.Unmarshal(body, &env) != nil || len(env.Object) == 0 {
-		return opResultJSON{}, false
-	}
-	var r opResultJSON
-	if json.Unmarshal(env.Object, &r) != nil || r.Status == "" {
-		return opResultJSON{}, false
-	}
-	return r, true
-}
-
-func (r opResultJSON) children() []opResultJSON {
-	out := make([]opResultJSON, 0, len(r.PartialResults))
-	for _, raw := range r.PartialResults {
-		var p opResultJSON
-		if json.Unmarshal(raw, &p) == nil {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
-// message is the result's own message, or else the first message of a
-// sub-result with the same status (depth first), so a failed result whose top
-// says nothing still tells why.
-func (r opResultJSON) message() string {
-	if m := strings.TrimSpace(r.Message); m != "" {
-		return m
-	}
-	if r.Status == "" || r.Status == "success" {
-		return ""
-	}
-	for _, p := range r.children() {
-		if p.Status == r.Status {
-			if m := p.message(); m != "" {
-				return m
-			}
-		}
-	}
-	return ""
 }
 
 // --- decoding ---

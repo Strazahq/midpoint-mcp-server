@@ -10,7 +10,7 @@ export const S={
  form:'Request details',justification:'Justification',project:'Project code (required)',ack:'Policy acknowledged (required)',ticket:'Change ticket',needed:'Needed on',handover:'Handover time',
  required:'Fill in Project code.',whole:'Enter a whole number.',dateError:'Enter a valid date.',
  invalidField:'Some request details are missing or not valid. Check the marked field.',invalidValidity:"The chosen dates aren't valid. Check how long the role should be valid and try again.",notRequestable:"This role can't be requested: midPoint's catalog doesn't offer it for request.",
- denied:"midPoint says you aren't allowed to do this.",hostRefused:"The assistant app didn't allow this action.",unavailable:"midPoint didn't answer. Try again in a moment.",
+ denied:"midPoint says you aren't allowed to do this.",refused:'midPoint refused this.',reason:r=>`midPoint's reason: ${r}`,hostRefused:"The assistant app didn't allow this action.",unavailable:"midPoint didn't answer. Try again in a moment.",
  preview:'Preview: nothing was changed',previewBanner:'Preview only',readOnly:'This app can show this view but not act from it. To make changes, ask the assistant.',
  pending:"Request sent. It's waiting for approval.",pendingWith:n=>`Request sent. It's waiting for approval by ${n}.`,granted:(r,u)=>`${r} was granted to ${u} right away: no approval was required.`,track:'Track this request',handoff:'Show me my access requests.',
  noMatch:q=>`No role matches "${q}".`,searching:q=>`Searching midPoint for "${q}"…`,results:q=>`Roles in midPoint matching "${q}"`,limit:n=>`Showing the first ${n} roles. Type to search all of them.`,

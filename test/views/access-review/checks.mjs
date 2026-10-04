@@ -229,6 +229,11 @@ check('ac09.not-assigned','7.4 AC9','not-assigned error disables just that role 
  t.ok(await v.frame.getByRole('button',{name:s('common.refresh'),exact:true}).count()===2,'Refresh not suggested by error');
  t.ok(await inLiveRegion(v.frame,s('error.notAssigned'),'assertive'),'write error not announced');
 });
+check('ac09.reason','7.4 AC9, 6.8, D42',"midPoint's reason for a refusal shows under the sentence and is announced",async t=>{
+ const reason='Roles granted by policy cannot be removed by hand.',fx=fixture('not-authorized');fx.result._meta['midpoint-mcp-server/error'].reason=reason;
+ const v=await person(t,'person',{tools:{unassign_role:[{result:fx.result}]}});await submit(t,v);const shown=s('error.reason',{reason});
+ t.ok(await v.waitFor(shown),'reason missing');t.ok(await inLiveRegion(v.frame,s('error.notAuthorized')+' '+shown,'assertive'),'reason not announced');
+});
 check('ac09.refused','7.4 AC9, owner rule','midPoint permission refusal shown; Remove remains available',async t=>{
  const v=await person(t,'person',{tools:{unassign_role:answers('not-authorized')}});await submit(t,v);t.ok(await v.waitFor(s('error.notAuthorized')),'refusal missing');
  t.ok(await v.button(remove).isEnabled(),'refusal hid or disabled button');t.ok((await v.calls('get_user_assignments')).length===0,'failed write re-read');

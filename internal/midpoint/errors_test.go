@@ -21,7 +21,7 @@ func TestStatusErrorCodes(t *testing.T) {
 		{http.StatusUnauthorized, CodeNotAuthorized},
 		{http.StatusForbidden, CodeNotAuthorized},
 		{http.StatusNotFound, CodeNotFound},
-		{http.StatusConflict, CodeInternal},
+		{http.StatusConflict, CodeRefused},
 		{http.StatusInternalServerError, CodeMidpointUnavailable},
 		{http.StatusBadGateway, CodeMidpointUnavailable},
 		{http.StatusServiceUnavailable, CodeMidpointUnavailable},
@@ -91,5 +91,64 @@ func TestErrorCode(t *testing.T) {
 	}
 	if err := fmt.Errorf("x: %w", ErrNoCallerIdentity); !errors.Is(err, ErrNoCallerIdentity) {
 		t.Error("a wrapped ErrNoCallerIdentity is no longer recognised")
+	}
+}
+
+// midPoint's refusals say why (D42). The answers are recorded from midPoint
+// 4.10.3 (S29), with names and OIDs neutral; the list form was seen live when
+// a rule's constraints were combined.
+func TestStatusErrorSays(t *testing.T) {
+	for _, tc := range []struct {
+		file, code, reason, message string
+		status                      int
+	}{
+		{"request_refused_policy.json", CodeRefused,
+			"Requests for this role need a justification.",
+			"Could not modify object. Requests for this role need a justification.", http.StatusConflict},
+		{"request_refused_policy_list.json", CodeRefused,
+			"Requests for this role need a justification, except from managers.",
+			`Could not modify object. Assignment of role "Database admin" (relation default) is to be added; Requests for this role need a justification, except from managers.`,
+			http.StatusConflict},
+		{"request_refused_authorization.json", CodeNotAuthorized,
+			"User 'bstone' not authorized for operation with assignment on bstone with target Database admin",
+			"Could not modify object. User ''bstone'' not authorized for operation with assignment on user:10000000-0000-0000-0000-0000000000b1(bstone) with target role:20000000-0000-0000-0000-0000000000f1(Database admin)",
+			http.StatusForbidden},
+		{"request_failed_expression.json", CodeInternal, "",
+			"Could not modify object. Groovy Evaluation Failed: No such property: undefinedVariable for class: (new)_expression_in_assignment_state_constraint_null_(AFTER)",
+			http.StatusBadRequest},
+	} {
+		body := fixture(t, tc.file)
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(tc.status)
+			_, _ = w.Write(body)
+		}))
+		_, err := NewClient(Config{BaseURL: srv.URL, Username: "u", Password: "p"}).Self(context.Background())
+		srv.Close()
+		reason, message := MidpointSaid(err)
+		if reason != tc.reason || message != tc.message {
+			t.Errorf("%s:\nreason  %q\nwant    %q\nmessage %q\nwant    %q", tc.file, reason, tc.reason, message, tc.message)
+		}
+		if code, _ := ErrorCode(err); code != tc.code {
+			t.Errorf("%s: code %q, want %q", tc.file, code, tc.code)
+		}
+		if want := fmt.Sprintf("midPoint /self: unexpected status %d %s", tc.status, http.StatusText(tc.status)); err.Error() != want {
+			t.Errorf("%s: text %q changed", tc.file, err)
+		}
+	}
+}
+
+// Text from midPoint leaves the server on one line, without addresses, and cut.
+func TestAnswerText(t *testing.T) {
+	if got := answerText("Connection to ldaps://dir.example.com:636/ou=x failed\n\tretry", 100); got != "Connection to [address removed] failed retry" {
+		t.Errorf("answerText = %q", got)
+	}
+	if got := answerText(strings.Repeat("é", 10), 5); got != "éééé…" {
+		t.Errorf("cut = %q", got)
+	}
+	if got := readableReason("on user:10000000-0000-0000-0000-0000000000b1(bstone), not ''x''"); got != "on bstone, not 'x'" {
+		t.Errorf("readableReason = %q", got)
+	}
+	if r, m := MidpointSaid(errors.New("plain")); r != "" || m != "" {
+		t.Errorf("a plain error said %q %q", r, m)
 	}
 }

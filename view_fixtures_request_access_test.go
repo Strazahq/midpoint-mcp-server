@@ -22,6 +22,21 @@ import (
 // when an assignment delta starts approval. The cases themselves are recordings.
 func requestAccessSession(t *testing.T, manager, form, writes, granted bool) (*mcp.ClientSession, *[]recordedReq) {
 	t.Helper()
+	return requestAccessSessionWith(t, requestAccessOpts{manager: manager, form: form, writes: writes, granted: granted})
+}
+
+// requestAccessOpts shapes the fake midPoint of requestAccessSession. A
+// refusal answers the request PATCH with its status and a recorded midPoint
+// answer (D42).
+type requestAccessOpts struct {
+	manager, form, writes, granted bool
+	refuseStatus                   int
+	refuseFile                     string
+}
+
+func requestAccessSessionWith(t *testing.T, o requestAccessOpts) (*mcp.ClientSession, *[]recordedReq) {
+	t.Helper()
+	manager, form, writes, granted := o.manager, o.form, o.writes, o.granted
 	mp := approverPersona(t)
 	self := fxBstone
 	mp.self = testdataFile(t, "user_requestee.json")
@@ -66,6 +81,11 @@ func requestAccessSession(t *testing.T, manager, form, writes, granted bool) (*m
 		if r.Method == "PATCH" {
 			b, _ := io.ReadAll(r.Body)
 			calls = append(calls, recordedReq{r.Method, r.URL.Path, string(b)})
+			if o.refuseStatus != 0 {
+				w.WriteHeader(o.refuseStatus)
+				_, _ = io.WriteString(w, testdataFile(t, o.refuseFile))
+				return
+			}
 			w.WriteHeader(202)
 			return
 		}
@@ -165,6 +185,8 @@ func TestWriteRequestAccessViewFixtures(t *testing.T) {
 		name, tool                              string
 		args                                    map[string]any
 		manager, form, writes, granted, isError bool
+		refuseStatus                            int
+		refuseFile                              string
 	}{
 		{name: "catalog", tool: "list_requestable_roles", writes: true},
 		{name: "manager", tool: "list_requestable_roles", manager: true, writes: true},
@@ -180,10 +202,15 @@ func TestWriteRequestAccessViewFixtures(t *testing.T) {
 		{name: "preview", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}},
 		{name: "case", tool: "get_case", args: map[string]any{"oid": fxCaseTwoStep}, writes: true},
 		{name: "invalid-field", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, form: true, writes: true, isError: true},
+		{name: "refused", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, writes: true, isError: true,
+			refuseStatus: 409, refuseFile: "request_refused_policy.json"},
+		{name: "refused-not-authorized", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, writes: true, isError: true,
+			refuseStatus: 403, refuseFile: "request_refused_authorization.json"},
 		{name: "invalid-validity", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin", "validTo": "yesterday"}, writes: true, isError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cs, _ := requestAccessSession(t, tc.manager, tc.form, tc.writes, tc.granted)
+			cs, _ := requestAccessSessionWith(t, requestAccessOpts{manager: tc.manager, form: tc.form, writes: tc.writes, granted: tc.granted,
+				refuseStatus: tc.refuseStatus, refuseFile: tc.refuseFile})
 			if tc.args == nil {
 				tc.args = map[string]any{}
 			}

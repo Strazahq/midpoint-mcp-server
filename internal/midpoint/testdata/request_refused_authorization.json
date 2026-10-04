@@ -1,0 +1,83 @@
+{
+  "object": {
+    "@ns": "http://midpoint.evolveum.com/xml/ns/public/common/common-3",
+    "@type": "c:OperationResultType",
+    "operation": "modifyObjectPatch",
+    "status": "fatal_error",
+    "importance": "normal",
+    "message": "Could not modify object. User ''bstone'' not authorized for operation with assignment on user:10000000-0000-0000-0000-0000000000b1(bstone) with target role:20000000-0000-0000-0000-0000000000f1(Database admin)",
+    "userFriendlyMessage": {
+      "@type": "c:SingleLocalizableMessageType",
+      "key": "security.enforcer.message.notAuthorized.onObject.withTarget",
+      "argument": [
+        {
+          "value": "'bstone'"
+        },
+        {
+          "value": "with assignment"
+        },
+        {
+          "value": "user:10000000-0000-0000-0000-0000000000b1(bstone)"
+        },
+        {
+          "value": "role:20000000-0000-0000-0000-0000000000f1(Database admin)"
+        }
+      ],
+      "fallbackMessage": "User ''bstone'' not authorized for operation with assignment on user:10000000-0000-0000-0000-0000000000b1(bstone) with target role:20000000-0000-0000-0000-0000000000f1(Database admin)"
+    },
+    "partialResults": [
+      {
+        "operation": "com.evolveum.midpoint.model.impl.ModelCrudService.modifyObject",
+        "status": "fatal_error",
+        "importance": "normal",
+        "message": "User ''bstone'' not authorized for operation with assignment on user:10000000-0000-0000-0000-0000000000b1(bstone) with target role:20000000-0000-0000-0000-0000000000f1(Database admin)",
+        "userFriendlyMessage": {
+          "@type": "c:SingleLocalizableMessageType",
+          "key": "security.enforcer.message.notAuthorized.onObject.withTarget",
+          "argument": [
+            {
+              "value": "'bstone'"
+            },
+            {
+              "value": "with assignment"
+            },
+            {
+              "value": "user:10000000-0000-0000-0000-0000000000b1(bstone)"
+            },
+            {
+              "value": "role:20000000-0000-0000-0000-0000000000f1(Database admin)"
+            }
+          ],
+          "fallbackMessage": "User ''bstone'' not authorized for operation with assignment on user:10000000-0000-0000-0000-0000000000b1(bstone) with target role:20000000-0000-0000-0000-0000000000f1(Database admin)"
+        },
+        "partialResults": [
+          {
+            "operation": "com.evolveum.midpoint.model.api.ModelService.executeChanges",
+            "status": "fatal_error",
+            "importance": "normal",
+            "message": "User ''bstone'' not authorized for operation with assignment on user:10000000-0000-0000-0000-0000000000b1(bstone) with target role:20000000-0000-0000-0000-0000000000f1(Database admin)",
+            "userFriendlyMessage": {
+              "@type": "c:SingleLocalizableMessageType",
+              "key": "security.enforcer.message.notAuthorized.onObject.withTarget",
+              "argument": [
+                {
+                  "value": "'bstone'"
+                },
+                {
+                  "value": "with assignment"
+                },
+                {
+                  "value": "user:10000000-0000-0000-0000-0000000000b1(bstone)"
+                },
+                {
+                  "value": "role:20000000-0000-0000-0000-0000000000f1(Database admin)"
+                }
+              ],
+              "fallbackMessage": "User ''bstone'' not authorized for operation with assignment on user:10000000-0000-0000-0000-0000000000b1(bstone) with target role:20000000-0000-0000-0000-0000000000f1(Database admin)"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
