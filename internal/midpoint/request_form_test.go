@@ -221,7 +221,7 @@ func TestRequestValidityValidation(t *testing.T) {
 
 func TestRequestPlanOneAssignment(t *testing.T) {
 	c := formTestClient(t)
-	p, clean, err := c.PlanRequestRoleWithValues("person", "role", "2099-10-01T00:00:00+02:00", "2099-10-31T23:59:59+01:00", map[string]any{"projectCode": "P", "acknowledged": true})
+	p, clean, err := c.PlanRequestRoleWithValues("person", "role", "", "2099-10-01T00:00:00+02:00", "2099-10-31T23:59:59+01:00", map[string]any{"projectCode": "P", "acknowledged": true})
 	if err != nil {
 		t.Fatal(err)
 	}

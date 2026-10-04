@@ -120,9 +120,9 @@ func (m *previewMidpoint) serve(w http.ResponseWriter, r *http.Request) {
 			}
 		case "users":
 			switch {
-			case strings.Contains(f, `. inOrg "org-ops"`) && strings.Contains(f, `name = "bob"`):
+			case strings.Contains(f, `. inOrg "org-ops"`) && strings.Contains(f, `. inOid ("u-bob")`):
 				objs = []string{previewUsers["u-bob"]}
-			case f == `name = "bob"`:
+			case f == `. inOid ("u-bob")`:
 				objs = []string{previewUsers["u-bob"]}
 			case strings.HasPrefix(f, `. inOrg "org-ops"`):
 				objs = []string{previewUsers["u-bob"], previewUsers["u-mia"]}

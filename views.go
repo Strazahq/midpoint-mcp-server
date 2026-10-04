@@ -76,10 +76,11 @@ var toolViews = map[string]string{
 // Every tool that is neither here nor in toolViews is model-only in UI
 // sessions, so a host refuses a view that tries to call it.
 var viewCalledTools = map[string]bool{
-	"list_my_managers":  true,
-	"whoami":            true,
-	"claim_work_item":   true,
-	"release_work_item": true,
+	"list_my_managers":     true,
+	"list_request_targets": true,
+	"whoami":               true,
+	"claim_work_item":      true,
+	"release_work_item":    true,
 }
 
 // views is the set of views this build serves.

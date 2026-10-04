@@ -18,6 +18,7 @@ import (
 func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrites bool, info serverInfo) {
 	registerListRequestableRoles(server, client, info)
 	registerRequestRole(server, client, allowWrites, info)
+	registerListRequestTargets(server, client, info)
 	registerListMyRequests(server, client, info)
 	registerListWorkItems(server, client, info)
 	registerGetCase(server, client, info)
@@ -39,7 +40,8 @@ type listRequestableRolesOutput struct {
 	Query        string                `json:"query,omitempty"`
 	Form         *midpoint.RequestForm `json:"form,omitempty"`
 	viewFields
-	Roles   []midpoint.RoleSummary `json:"roles"`
+	Preview midpoint.CatalogBasis  `json:"preview" jsonschema:"how the roles were chosen: from midPoint's request rules for the caller (basis rules) or the roles flagged requestable"`
+	Roles   []midpoint.OfferedRole `json:"roles"`
 	Count   int                    `json:"count"`
 	ForUser string                 `json:"forUser,omitempty"`
 }
@@ -48,13 +50,16 @@ func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client, i
 	addTool(server, &mcp.Tool{
 		Name:  "list_requestable_roles",
 		Title: "List requestable roles",
-		Description: "List requestable roles (self-service, or for a report via forUser): roles flagged " +
-			"requestable in midPoint's catalog, filtered to what the caller is authorized to see. With forUser, " +
-			"returns roles that report does not already hold. Pair with request_role (which accepts the same target " +
-			"user) to submit one, then list_my_requests / list_work_items to track approval. " + untrustedTextNote,
+		Description: "List the roles the caller may request, for themselves or with forUser for someone else " +
+			"(list_request_targets says for whom). The roles come from midPoint's request rules for the caller (the " +
+			"#assign authorizations of their roles, read by the server's account): each role says the relations it may " +
+			"be requested with (default is member), whether start and end dates and which request fields may be set, " +
+			"and which rules allow it. When the rules can't be read, the roles flagged requestable are listed instead " +
+			"(preview.basis says which). Roles the person already holds are left out. midPoint still decides on " +
+			"submit. Pair with request_role, then list_my_requests / list_work_items to track approval. " + untrustedTextNote,
 	}, viewTool("list_requestable_roles", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in listRequestableRolesInput) (*mcp.CallToolResult, listRequestableRolesOutput, error) {
 		target := strings.TrimSpace(in.ForUser)
-		catalog, err := client.RequestableCatalog(ctx, target, in.Query, in.Limit)
+		catalog, err := client.RequestCatalogFor(ctx, target, in.Query, in.Limit)
 		if err != nil {
 			return nil, listRequestableRolesOutput{}, err
 		}
@@ -63,8 +68,15 @@ func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client, i
 		if target != "" {
 			msg = fmt.Sprintf("Found %d role(s) you can request for user %s.", len(roles), target)
 		}
+		if catalog.Basis.Basis == "rules" {
+			msg = fmt.Sprintf("Found %d role(s) your midPoint request rules let you request.", len(roles))
+			if target != "" {
+				msg = fmt.Sprintf("Found %d role(s) your midPoint request rules let you request for user %s.", len(roles), target)
+			}
+		}
 		form := client.RequestForm()
-		return text(requestCatalogText(msg, roles, form)), listRequestableRolesOutput{Roles: roles, Count: len(roles), ForUser: target, ForUserRef: catalog.ForUserRef, LimitReached: catalog.LimitReached, Query: catalog.Query, Form: form}, nil
+		return text(requestCatalogText(msg, catalog, form)), listRequestableRolesOutput{Roles: roles, Count: len(roles), ForUser: target, ForUserRef: catalog.ForUserRef,
+			LimitReached: catalog.LimitReached, Query: catalog.Query, Form: form, Preview: catalog.Basis}, nil
 	}))
 }
 
@@ -73,6 +85,7 @@ func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client, i
 type requestRoleInput struct {
 	ValidFrom string         `json:"validFrom,omitempty" jsonschema:"inclusive start in RFC 3339 with offset; no earlier than today"`
 	ValidTo   string         `json:"validTo,omitempty" jsonschema:"end in RFC 3339 with offset; after the start and in the future"`
+	Relation  string         `json:"relation,omitempty" jsonschema:"the relation to request: default (member, when left out), or one list_requestable_roles offers for this role, such as approver or owner"`
 	Fields    map[string]any `json:"fields,omitempty" jsonschema:"the request's fields: values keyed by the names in list_requestable_roles form.items (its Request form fields); a list for a multiple field, an option value for a choice. midPoint decides on submit who must fill what"`
 	RoleOID   string         `json:"roleOid" jsonschema:"OID of the role to request"`
 	RoleName  string         `json:"roleName" jsonschema:"the role's midPoint name (its unique name attribute, not the display name); must match roleOid"`
@@ -107,12 +120,12 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 	}
 
 	// Checked before the dry-run preview too: a preview that says "would
-	// request" for a role that would in fact be granted is the same lie.
-	if err := client.EnsureRequestable(ctx, in.RoleOID); err != nil {
+	// request" for a role the rules don't offer is the same lie (D44, D45).
+	if err := client.CheckRequestOffer(ctx, target, in.RoleOID, in.Relation); err != nil {
 		return nil, requestRoleOutput{}, err
 	}
 
-	plan, fields, err := client.PlanRequestRoleWithValues(target, in.RoleOID, in.ValidFrom, in.ValidTo, in.Fields)
+	plan, fields, err := client.PlanRequestRoleWithValues(target, in.RoleOID, in.Relation, in.ValidFrom, in.ValidTo, in.Fields)
 	if err != nil {
 		return nil, requestRoleOutput{}, err
 	}
@@ -125,8 +138,8 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 			return nil, requestRoleOutput{}, err
 		}
 	}
-	plan.Summary = fmt.Sprintf("Request role %s for %s (subject to approval policy)", thingLabel(role), personLabel(user))
-	req := requestOutcome{Role: role, User: user, Approvers: []midpoint.ObjectRef{}, Fields: fields}
+	plan.Summary = fmt.Sprintf("Request role %s%s for %s (subject to approval policy)", thingLabel(role), relationPhrase(in.Relation), personLabel(user))
+	req := requestOutcome{Role: role, User: user, Relation: relationName(in.Relation), Approvers: []midpoint.ObjectRef{}, Fields: fields}
 	if in.ValidFrom != "" || in.ValidTo != "" {
 		req.Validity = &midpoint.Validity{ValidFrom: in.ValidFrom, ValidTo: in.ValidTo}
 	}
@@ -423,6 +436,7 @@ func caseStateText(s string) string {
 type requestOutcome struct {
 	Role      midpoint.ObjectRef   `json:"role"`
 	User      midpoint.ObjectRef   `json:"user"`
+	Relation  string               `json:"relation" jsonschema:"the relation requested, by local name; default is member"`
 	Outcome   string               `json:"outcome"`
 	CaseOID   string               `json:"caseOid,omitempty"`
 	Approvers []midpoint.ObjectRef `json:"approvers"`
@@ -436,14 +450,32 @@ type requestRoleOutput struct {
 }
 
 // requestCatalogText keeps line one stable and names every role and form item.
-func requestCatalogText(first string, roles []midpoint.RoleSummary, form *midpoint.RequestForm) string {
+// With midPoint's request rules (D44) each role also says its relations,
+// what may be filled in, and the rules that allow it.
+func requestCatalogText(first string, cat midpoint.CatalogResult, form *midpoint.RequestForm) string {
 	t := newListText(first)
-	if form != nil {
+	rules := cat.Basis.Basis == "rules"
+	if form != nil || rules || cat.Basis.Reason != "" {
 		t.group("Roles:")
 	}
-	for _, r := range roles {
-		t.item(r.Name, textField{"oid", r.OID}, textField{"displayName", r.DisplayName}, textField{"risk", r.RiskLevel})
+	for _, r := range cat.Roles {
+		fields := []textField{{"oid", r.OID}, {"displayName", r.DisplayName}, {"risk", r.RiskLevel}}
+		if rules {
+			fields = append(fields, textField{"relations", strings.Join(r.Relations, "|")}, textField{"fields", offeredFields(r)},
+				textField{"dates", strconv.FormatBool(r.Validity)}, textField{"because", strings.Join(r.Because, "; ")})
+		}
+		t.item(r.Name, fields...)
 		t.untrusted(fieldDescription, fromRoleRecord, r.Description)
+	}
+	if rules && len(cat.Basis.Unsure) > 0 {
+		t.group("Rules the preview could not evaluate exactly:")
+		for _, u := range cat.Basis.Unsure {
+			t.item(u)
+		}
+	}
+	if !rules && cat.Basis.Reason != "" {
+		t.group("Request rules not used:")
+		t.item(cat.Basis.Reason)
 	}
 	if form != nil {
 		t.group("Request form fields:")
@@ -463,4 +495,86 @@ func requestCatalogText(first string, roles []midpoint.RoleSummary, form *midpoi
 		}
 	}
 	return t.String()
+}
+
+// offeredFields says which request fields a role offers: all, none, or their names.
+func offeredFields(r midpoint.OfferedRole) string {
+	switch {
+	case r.AllFields:
+		return "all"
+	case len(r.Fields) == 0:
+		return "none"
+	}
+	return strings.Join(r.Fields, ",")
+}
+
+// relationName is a requested relation's local name, "default" for member.
+func relationName(rel string) string {
+	if i := strings.LastIndexAny(rel, "#:"); i >= 0 {
+		rel = rel[i+1:]
+	}
+	if rel = strings.TrimSpace(rel); rel == "" {
+		return "default"
+	}
+	return rel
+}
+
+// relationPhrase says a relation other than member in a summary: " as approver".
+func relationPhrase(rel string) string {
+	if r := relationName(rel); r != "default" {
+		return " as " + r
+	}
+	return ""
+}
+
+// --- list_request_targets ---
+
+type listRequestTargetsInput struct {
+	Query string `json:"query,omitempty" jsonschema:"case-insensitive substring of the person's name or full name; at most 100 characters"`
+	Limit int    `json:"limit,omitempty" jsonschema:"maximum results, default 20, max 100"`
+}
+
+type listRequestTargetsOutput struct {
+	viewFields
+	Preview      midpoint.CatalogBasis    `json:"preview" jsonschema:"how the people were chosen: from midPoint's request rules for the caller (basis rules), or the caller alone"`
+	People       []midpoint.OfferedPerson `json:"people"`
+	Count        int                      `json:"count"`
+	LimitReached bool                     `json:"limitReached"`
+	Query        string                   `json:"query,omitempty"`
+}
+
+func registerListRequestTargets(server *mcp.Server, client *midpoint.Client, info serverInfo) {
+	addTool(server, &mcp.Tool{
+		Name:  "list_request_targets",
+		Title: "List whom I may request for",
+		Description: "List the people the caller may request roles for, according to midPoint's request rules for " +
+			"the caller (the #assign authorizations of their roles, read by the server's account): themselves, the " +
+			"people in orgs they manage, or whoever a rule names, each with the rules that allow it. Pass one as forUser " +
+			"to list_requestable_roles and as userOid to request_role. When the rules can't be read, only the caller is " +
+			"listed. midPoint still decides on submit.",
+	}, viewTool("list_request_targets", client, info, func(ctx context.Context, _ *mcp.CallToolRequest, in listRequestTargetsInput) (*mcp.CallToolResult, listRequestTargetsOutput, error) {
+		res, err := client.RequestTargets(ctx, in.Query, in.Limit)
+		if err != nil {
+			return nil, listRequestTargetsOutput{}, err
+		}
+		first := fmt.Sprintf("You may request roles for %d person(s), according to your midPoint request rules.", len(res.People))
+		if res.Basis.Basis != "rules" {
+			first = "You may request roles for yourself."
+		}
+		t := newListText(first)
+		for _, p := range res.People {
+			t.item(p.Name, textField{"oid", p.OID}, textField{"fullName", p.DisplayName}, textField{"because", strings.Join(p.Because, "; ")})
+		}
+		if len(res.Basis.Unsure) > 0 {
+			t.group("Rules the preview could not evaluate exactly:")
+			for _, u := range res.Basis.Unsure {
+				t.item(u)
+			}
+		}
+		if res.Basis.Reason != "" {
+			t.group("Request rules not used:")
+			t.item(res.Basis.Reason)
+		}
+		return text(t.String()), listRequestTargetsOutput{Preview: res.Basis, People: res.People, Count: len(res.People), LimitReached: res.LimitReached, Query: res.Query}, nil
+	}))
 }

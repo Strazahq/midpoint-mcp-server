@@ -394,8 +394,8 @@ func (p *Preview) inOrg(ctx context.Context, who person, org string, oneLevel bo
 	if oneLevel {
 		return matchNo
 	}
-	byName := "name = " + quoteQueryString(who.Name)
-	return p.c.searchConfirms(ctx, collUsers, ". inOrg "+quoteQueryString(org)+" and "+byName, byName)
+	byOID := ". inOid (" + quoteQueryString(who.OID) + ")"
+	return p.c.searchConfirms(ctx, collUsers, ". inOrg "+quoteQueryString(org)+" and "+byOID, byOID)
 }
 
 // filterNamesPerson asks midPoint whether a rule's filter names the user.
@@ -502,15 +502,15 @@ type OfferedRole struct {
 	RoleSummary
 	// Relations are the relations it may be requested with, by local name,
 	// "default" (member) first. Others only where a rule names them (D45).
-	Relations []string `json:"relations"`
+	Relations []string `json:"relations,omitempty"`
 	// AllFields is true when every request field may be filled; otherwise
 	// Fields names those that may.
-	AllFields bool     `json:"allFields"`
+	AllFields bool     `json:"allFields,omitempty"`
 	Fields    []string `json:"fields,omitempty"`
 	// Validity is true when start and end dates may be set.
-	Validity bool `json:"validity"`
+	Validity bool `json:"validity,omitempty"`
 	// Because names the rules that allow it.
-	Because []string `json:"because"`
+	Because []string `json:"because,omitempty"`
 }
 
 // RoleOffer is the catalog for one requestee.
@@ -529,6 +529,28 @@ const catalogMax = 200
 // RolesFor is what the requester may request for the requestee, matching an
 // optional name query, at most limit roles.
 func (p *Preview) RolesFor(ctx context.Context, who person, query string, limit int) (RoleOffer, error) {
+	return p.rolesFor(ctx, who, "", query, limit)
+}
+
+// RoleFor is the offer of one role for the requestee; ok is false when the
+// rules don't offer it.
+func (p *Preview) RoleFor(ctx context.Context, who person, roleOID string) (OfferedRole, []string, bool, error) {
+	offer, err := p.rolesFor(ctx, who, ". inOid ("+quoteQueryString(roleOID)+")", "", 1)
+	if err != nil || len(offer.Roles) == 0 {
+		return OfferedRole{}, offer.Unsure, false, err
+	}
+	return offer.Roles[0], offer.Unsure, true, nil
+}
+
+// Person reads a requestee as the requester; the requester is already read.
+func (p *Preview) Person(ctx context.Context, oid string) (person, error) {
+	if oid == "" || oid == p.Me.OID {
+		return p.Me, nil
+	}
+	return p.c.readPerson(ctx, oid)
+}
+
+func (p *Preview) rolesFor(ctx context.Context, who person, only, query string, limit int) (RoleOffer, error) {
 	offer := RoleOffer{Unsure: append([]string(nil), p.Unsure...)}
 	type found struct {
 		role  RoleSummary
@@ -545,7 +567,7 @@ func (p *Preview) RolesFor(ctx context.Context, who person, query string, limit 
 		if !m.sure {
 			offer.Unsure = append(offer.Unsure, rule.Label()+": who it is for")
 		}
-		set, sure, truncated, err := p.ruleTargets(ctx, rule, query)
+		set, sure, truncated, err := p.ruleTargets(ctx, rule, only, query)
 		if err != nil {
 			return RoleOffer{}, err
 		}
@@ -685,9 +707,9 @@ func relationApplies(r AssignRule, rel string) bool {
 
 // ruleTargets asks midPoint which roles a rule's "which" selectors name.
 // #all and #modify on assignments name every role the requester can see.
-func (p *Preview) ruleTargets(ctx context.Context, rule AssignRule, query string) (map[string]RoleSummary, bool, bool, error) {
+func (p *Preview) ruleTargets(ctx context.Context, rule AssignRule, only, query string) (map[string]RoleSummary, bool, bool, error) {
 	if rule.Kind != ruleAssign || len(rule.Target) == 0 {
-		return p.searchRoles(ctx, "", query)
+		return p.searchRoles(ctx, only, query)
 	}
 	out := map[string]RoleSummary{}
 	sure, truncated := true, false
@@ -698,6 +720,9 @@ func (p *Preview) ruleTargets(ctx context.Context, rule AssignRule, query string
 		}
 		if !ok {
 			filter, sure = "", false
+		}
+		if only != "" {
+			filter = strings.TrimPrefix(filter+" and "+only, " and ")
 		}
 		set, _, t, err := p.searchRoles(ctx, filter, query)
 		if err != nil {

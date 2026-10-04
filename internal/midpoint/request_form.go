@@ -630,9 +630,10 @@ func ValidateRequestValidity(from, to string, now time.Time) error {
 	return nil
 }
 
-// PlanRequestRoleWithValues validates and adds activation and extension values
-// to the same single assignment-add PATCH used by PlanRequestRole.
-func (c *Client) PlanRequestRoleWithValues(user, role, from, to string, fields map[string]any) (Plan, map[string]any, error) {
+// PlanRequestRoleWithValues validates and adds the relation, activation and
+// extension values to the same single assignment-add PATCH used by
+// PlanRequestRole. The relation is a local name; "" or "default" is member.
+func (c *Client) PlanRequestRoleWithValues(user, role, relation, from, to string, fields map[string]any) (Plan, map[string]any, error) {
 	if err := ValidateRequestValidity(from, to, time.Now()); err != nil {
 		return Plan{}, nil, err
 	}
@@ -644,7 +645,11 @@ func (c *Client) PlanRequestRoleWithValues(user, role, from, to string, fields m
 	if err != nil {
 		return Plan{}, nil, err
 	}
-	value := map[string]any{"targetRef": map[string]any{"oid": role, "type": "RoleType"}}
+	ref := map[string]any{"oid": role, "type": "RoleType"}
+	if rel := localName(relation); rel != "" && rel != "default" {
+		ref["relation"] = "org:" + rel
+	}
+	value := map[string]any{"targetRef": ref}
 	if from != "" || to != "" {
 		a := map[string]string{}
 		if from != "" {
