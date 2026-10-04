@@ -6,6 +6,15 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+### Changed
+
+- The demo page reads like a chat app. The scenarios are a conversation list
+  on the left, grouped by role, and a drawer on phones. One line above the chat
+  says who you are and what to try. "Next" under each chat leads to the
+  following scenario. View size is three icons on the view's edge, and "Text
+  the assistant reads" is a tab next to each view. The theme is one button. The
+  views and the recorded data are unchanged.
+
 ## [0.5.0] - 2026-10-04
 
 ### Added

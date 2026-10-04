@@ -33,13 +33,18 @@ every tool call is answered from recorded test data.
   with the recorded result; Deny answers with a JSON-RPC error, which the view
   shows as the host refusing. A write the recordings don't cover is answered
   with an error and a note saying so.
-- **What the model reads** shows the plain text of each result
-  (`content[0].text`) and what the view passes back with
-  `ui/update-model-context`.
+- The scenarios are listed on the left like a chat app's conversations,
+  titled by what the person asks and grouped by role (a drawer on narrow
+  screens). One line above the chat says who you are and what to try, with the
+  full directions under "How to try"; "Next" under the chat leads on.
+- **Text the assistant reads**, a tab next to each view, shows the plain text
+  of that result (`content[0].text`); host notes show what the view passes back
+  with `ui/update-model-context`.
 - Messages the view sends to the chat (`ui/message`), links it asks to open,
   and its Expand (fullscreen) request show up as host notes.
-- Width (phone 420, chat 640, expanded 860 px) and theme (auto, light, dark)
-  switches; the theme reaches the views as `host-context-changed`.
+- View size (phone 420, chat window 640, wide 860 px) as three icons on the
+  view's edge, and one theme button that cycles automatic, light and dark; the
+  theme reaches the views as `host-context-changed`.
 
 ## The data
 

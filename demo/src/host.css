@@ -84,48 +84,89 @@ code, pre { font-family: var(--mono); font-size: 12.5px; }
 .skip { position: absolute; left: 8px; top: -40px; background: var(--surface); padding: 6px 10px; border-radius: 6px; z-index: 10; }
 .skip:focus { top: 8px; }
 
-/* --- top bar --- */
-.top { background: var(--surface); border-bottom: 1px solid var(--border); }
-.top-inner { max-width: 1100px; margin: 0 auto; padding: 14px 16px 12px; }
-h1 { font-size: 17px; line-height: 1.3; margin: 0; font-weight: 650; letter-spacing: -.005em; }
+[hidden] { display: none !important; }
+
+/* --- layout: top bar, scenario list, chat --- */
+.top {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.brand { min-width: 0; flex: 1; }
+h1 { font-size: 16px; line-height: 1.3; margin: 0; font-weight: 650; letter-spacing: -.005em; }
 .title-sub { color: var(--muted); font-weight: 450; }
-.fine { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; max-width: 70ch; }
-.controls { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: flex-end; margin-top: 12px; }
-.ctl { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.ctl-label { font-size: 12px; color: var(--muted); font-weight: 550; }
-.ctl-scenario { flex: 1 1 240px; max-width: 380px; }
-select {
-  width: 100%; min-height: 36px; padding: 6px 30px 6px 10px; border: 1px solid var(--border); border-radius: 8px;
-  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23808690' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
-  -webkit-appearance: none; appearance: none;
+.fine { margin: 1px 0 0; color: var(--muted); font-size: 12px; max-width: 80ch; }
+.ibtn {
+  flex: none; width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); display: inline-grid; place-items: center; cursor: pointer;
 }
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
-.seg button {
-  border: 0; background: transparent; padding: 6px 11px; min-height: 34px; cursor: pointer; font-size: 13.5px; white-space: nowrap;
+.ibtn:hover { background: var(--surface-2); color: var(--text); }
+.menu { display: none; }
+.app-body { display: grid; grid-template-columns: 272px minmax(0, 1fr); align-items: start; }
+.side {
+  position: sticky; top: 57px; height: calc(100vh - 57px); overflow-y: auto; background: var(--surface);
+  border-right: 1px solid var(--border); padding: 8px 8px 24px;
 }
-.seg button + button { border-left: 1px solid var(--border); }
-.seg button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
-.seg button small { opacity: .75; font-size: 11.5px; margin-left: 4px; font-variant-numeric: tabular-nums; }
-.ctl-switches { flex-direction: row; align-items: center; gap: 14px; }
-.switch { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 0; cursor: pointer; font-size: 13.5px; min-height: 34px; }
-.switch-track { width: 34px; height: 20px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); position: relative; transition: background .15s; flex: none; }
-.switch-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
-.switch[aria-checked="true"] .switch-track { background: var(--accent); border-color: var(--accent); }
-.switch[aria-checked="true"] .switch-thumb { transform: translateX(14px); background: var(--on-accent); }
-.btn-quiet { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 12px; min-height: 34px; cursor: pointer; font-size: 13.5px; }
+.grp { font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 12px 10px 4px; }
+.convs { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.conv {
+  width: 100%; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; align-items: start; text-align: left;
+  border: 0; background: none; border-radius: 10px; padding: 8px 10px; cursor: pointer; color: var(--text);
+}
+.conv:hover { background: var(--surface-2); }
+.conv[aria-current="true"] { background: var(--user-bg); }
+.cav {
+  width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+}
+.conv[aria-current="true"] .cav { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.ctext { min-width: 0; display: grid; gap: 1px; }
+.ctext b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctext span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); z-index: 6; }
+.btn-quiet { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 5px 12px; min-height: 32px; cursor: pointer; font-size: 13px; }
 .btn-quiet:hover { background: var(--surface-2); }
 
-/* --- chat column --- */
-.chat { padding: 20px 16px 0; outline: none; }
-.col { width: min(var(--vw), 100%); margin: 0 auto; }
-.intro {
-  border: 1px dashed var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 18px;
-  font-size: 13.5px; color: var(--muted); background: transparent;
+/* the line above the chat */
+.scn-line { border-bottom: 1px solid var(--border); background: var(--bg); padding: 10px 16px; }
+.scn-row { width: min(var(--vw), 100%); margin: 0 auto; display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; }
+.scn-who { margin: 0; flex: 1 1 260px; min-width: 0; font-size: 14px; display: flex; gap: 4px 10px; flex-wrap: wrap; align-items: baseline; }
+.scn-hint { color: var(--muted); font-size: 13.5px; }
+.scn-acts { display: flex; gap: 12px; align-items: center; }
+.scn-more { width: min(var(--vw), 100%); margin: 8px auto 0; font-size: 13.5px; color: var(--muted); }
+.scn-more p { margin: 2px 0; }
+.scn-more b { color: var(--text); font-weight: 600; }
+
+/* above each view: what to show, and the view size */
+.vbar { display: flex; align-items: center; gap: 8px; width: 100%; margin-bottom: 6px; flex-wrap: wrap; }
+.vtabs { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--surface); }
+.vtabs button { border: 0; background: none; padding: 5px 12px; font-size: 13px; cursor: pointer; color: var(--muted); min-height: 32px; }
+.vtabs button + button { border-left: 1px solid var(--border); }
+.vtabs button[aria-selected="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.sizes { margin-left: auto; display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--surface); }
+.sizes button { border: 0; background: none; width: 36px; height: 32px; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
+.sizes button + button { border-left: 1px solid var(--border); }
+.sizes button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); }
+
+/* under the chat: where this scenario sits, and the next one */
+.nextbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 18px 0 4px; font-size: 13px; color: var(--muted); }
+.nextbar .next { font-size: 14px; font-weight: 600; text-decoration: none; }
+.nextbar .next:hover { text-decoration: underline; }
+
+@media (max-width: 860px) {
+  .menu { display: inline-grid; }
+  .app-body { grid-template-columns: minmax(0, 1fr); }
+  .side {
+    position: fixed; top: 0; left: 0; bottom: 0; height: auto; width: min(300px, 84vw); z-index: 7;
+    transform: translateX(-102%); transition: transform .18s; box-shadow: 4px 0 24px rgba(0, 0, 0, .2); padding-top: 14px;
+  }
+  .drawer-open .side { transform: none; }
+  .fine { display: none; }
 }
-.intro h2 { font-size: 14px; margin: 0 0 2px; color: var(--text); font-weight: 650; }
-.intro p { margin: 4px 0 0; }
-.intro b { color: var(--text); font-weight: 600; }
-.intro code { font-size: 12.5px; color: var(--text); }
+
+/* --- chat column --- */
+.chat { padding: 0 0 0; outline: none; min-width: 0; }
+.col { padding: 18px 16px 0; }
+.col { width: min(var(--vw), 100%); margin: 0 auto; }
 .transcript { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
 .transcript > li { min-width: 0; }
 
@@ -149,6 +190,7 @@ select {
 .chip:hover { background: var(--surface-2); }
 .chip .srv { color: var(--muted); }
 .chip code { font-size: 12.5px; overflow-wrap: anywhere; }
+.chip svg { width: 14px; height: 14px; }
 .chip .chev { transition: transform .15s; color: var(--muted); flex: none; }
 .chip[aria-expanded="true"] .chev { transform: rotate(90deg); }
 .tick { color: var(--ok); flex: none; }
@@ -177,8 +219,7 @@ pre.json {
 .mode-tag { color: var(--accent); font-weight: 600; }
 
 /* what the model reads */
-.model { display: none; margin-top: 8px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 10px 10px 0; padding: 8px 12px; width: 100%; }
-.model-on .model { display: block; }
+.model { margin-top: 8px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 10px 10px 0; padding: 8px 12px; width: 100%; }
 .model-head { margin: 0 0 4px; display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; }
 .model .lab { color: var(--accent); margin: 0; }
 .model-src { font-size: 12px; color: var(--muted); }
@@ -242,10 +283,6 @@ pre.json {
   .args dt { margin-top: 6px; }
   .event { padding-left: 0; }
   .msg-user { max-width: 92%; }
-  .controls { gap: 10px 14px; }
-  .ctl-scenario { flex-basis: 100%; max-width: none; }
-  .seg button { padding: 6px 9px; }
-  .seg button small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }

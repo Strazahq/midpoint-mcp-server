@@ -13,42 +13,28 @@
 </head>
 <body>
 <a class="skip" href="#chat">Skip to the chat</a>
-<header class="top">
-  <div class="top-inner">
-    <div class="title-row">
+<div class="app">
+  <header class="top">
+    <button type="button" class="ibtn menu" id="menu" aria-controls="side" aria-expanded="false" aria-label="Scenarios"></button>
+    <div class="brand">
       <h1>midPoint MCP server <span class="title-sub">views demo</span></h1>
-      <p class="fine">A simulated MCP Apps host, the way a chat app such as Claude renders MCP Apps views. Not a real chat client: every answer comes from the repository's recorded test data.</p>
+      <p class="fine">A simulated MCP Apps host, the way a chat app such as Claude renders MCP Apps views. Every answer comes from the repository's recorded test data.</p>
     </div>
-    <div class="controls">
-      <label class="ctl ctl-scenario">
-        <span class="ctl-label">Scenario</span>
-        <select id="scenario"></select>
-      </label>
-      <div class="ctl" role="radiogroup" aria-labelledby="width-label">
-        <span class="ctl-label" id="width-label">View width</span>
-        <div class="seg" id="width"></div>
+    <button type="button" class="ibtn" id="theme"></button>
+  </header>
+  <div class="app-body">
+    <nav class="side" id="side" aria-label="Scenarios"><div id="scenario-list"></div></nav>
+    <div class="scrim" id="scrim" hidden></div>
+    <main id="chat" class="chat" tabindex="-1">
+      <div class="scn-line" id="scn-line"></div>
+      <div class="col" id="col">
+        <ol class="transcript" id="transcript" aria-label="Conversation"></ol>
+        <div class="nextbar" id="nextbar"></div>
+        <div class="dock" id="perm-slot"></div>
       </div>
-      <div class="ctl" role="radiogroup" aria-labelledby="theme-label">
-        <span class="ctl-label" id="theme-label">Theme</span>
-        <div class="seg" id="theme"></div>
-      </div>
-      <div class="ctl ctl-switches">
-        <button type="button" class="switch" id="model-reads" role="switch" aria-checked="false">
-          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
-          <span>What the model reads</span>
-        </button>
-        <button type="button" class="btn-quiet" id="restart">Restart</button>
-      </div>
-    </div>
+    </main>
   </div>
-</header>
-<main id="chat" class="chat" tabindex="-1">
-  <div class="col" id="col">
-    <section class="intro" id="intro" aria-label="About this scenario"></section>
-    <ol class="transcript" id="transcript" aria-label="Conversation"></ol>
-    <div class="dock" id="perm-slot"></div>
-  </div>
-</main>
+</div>
 <div class="sr-only" aria-live="polite" id="announce"></div>
 <script type="application/json" id="demo-data">/*@DATA@*/</script>
 <script>

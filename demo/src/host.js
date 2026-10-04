@@ -15,16 +15,17 @@
   const CAPS = { serverTools: {}, openLinks: {}, message: {}, updateModelContext: {} };
   const WRITE = new Set(DATA.writeTools);
   const WIDTHS = [
-    { id: 'phone', label: 'Phone', px: 420 },
-    { id: 'chat', label: 'Chat', px: 640 },
-    { id: 'expanded', label: 'Expanded', px: 860 },
+    { id: 'phone', label: 'Phone', px: 420, icon: '<rect x="4.5" y="1.8" width="7" height="12.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 12h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+    { id: 'chat', label: 'Chat window', px: 640, icon: '<path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
+    { id: 'expanded', label: 'Wide', px: 860, icon: '<path d="M1.8 4h12.4v8H1.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5 8h6M9.5 6.5 11 8l-1.5 1.5M6.5 6.5 5 8l1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>' },
   ];
   const FULL_PX = 860; // the width a view gets in fullscreen
   const THEMES = [
-    { id: 'auto', label: 'Auto' },
-    { id: 'light', label: 'Light' },
-    { id: 'dark', label: 'Dark' },
+    { id: 'auto', label: 'Theme: automatic', icon: '<circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/>' },
+    { id: 'light', label: 'Theme: light', icon: '<circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
+    { id: 'dark', label: 'Theme: dark', icon: '<path d="M13 9.6A5.5 5.5 0 0 1 6.4 3a5.5 5.5 0 1 0 6.6 6.6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
   ];
+  const ICON_MENU = '<path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>';
   const HOST_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
   // Small pauses, so the views' own loading and working states show.
   const RESULT_DELAY = 300;
@@ -59,8 +60,8 @@
   const svg = (paths, cls) => {
     const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     s.setAttribute('viewBox', '0 0 16 16');
-    s.setAttribute('width', '14');
-    s.setAttribute('height', '14');
+    s.setAttribute('width', '16');
+    s.setAttribute('height', '16');
     s.setAttribute('aria-hidden', 'true');
     if (cls) s.setAttribute('class', cls);
     s.innerHTML = paths;
@@ -76,12 +77,11 @@
   }
 
   // --- preferences (per viewer; the page works without storage) ---
-  const prefs = { width: 'chat', theme: 'auto', model: false };
+  const prefs = { width: 'chat', theme: 'auto' };
   try {
     const saved = JSON.parse(localStorage.getItem('midpoint-views-demo') || '{}');
     if (WIDTHS.some((w) => w.id === saved.width)) prefs.width = saved.width;
     if (THEMES.some((t) => t.id === saved.theme)) prefs.theme = saved.theme;
-    if (typeof saved.model === 'boolean') prefs.model = saved.model;
   } catch (e) {
     // storage blocked: defaults
   }
@@ -144,7 +144,9 @@
       const { scn, view, entry } = this;
       $('transcript').textContent = '';
       $('perm-slot').textContent = '';
-      renderIntro(scn);
+      renderScenarioLine(scn);
+      renderNext(scn);
+      markCurrent(scn);
 
       this.add(h('li', { class: 'msg-user' }, h('span', { class: 'who' }, 'You'), h('div', { class: 'bubble' }, scn.user)));
 
@@ -188,13 +190,29 @@
       this.frame = frame;
       this.modeTag = h('span', { class: 'mode-tag' }, 'inline');
       this.block = h('div', { class: 'viewblock' }, frame);
+      // What the assistant reads: a tab next to the view, not a page-wide switch.
+      const model = modelPanel(['from the ', code(entry.call.name), ' result'], textOf(entry.result));
+      model.hidden = true;
+      const tabView = h('button', { type: 'button', role: 'tab', 'aria-selected': 'true' }, 'View');
+      const tabText = h('button', { type: 'button', role: 'tab', 'aria-selected': 'false' }, 'Text the assistant reads');
+      const pickTab = (text) => {
+        tabView.setAttribute('aria-selected', String(!text));
+        tabText.setAttribute('aria-selected', String(text));
+        this.block.hidden = text;
+        model.hidden = !text;
+      };
+      tabView.addEventListener('click', () => pickTab(false));
+      tabText.addEventListener('click', () => pickTab(true));
+      this.sizeBox = h('div', { class: 'sizes', role: 'radiogroup', 'aria-label': 'View size' });
+      renderSizes(this.sizeBox);
       this.add(
         h(
           'li',
           { class: 'view-li' },
+          h('div', { class: 'vbar' }, h('div', { class: 'vtabs', role: 'tablist', 'aria-label': 'What to show' }, tabView, tabText), this.sizeBox),
           this.block,
+          model,
           h('p', { class: 'viewcap' }, h('span', null, 'MCP Apps view'), code(view.uri), h('span', { 'aria-hidden': 'true' }, '·'), this.modeTag),
-          modelPanel(['from the ', code(entry.call.name), ' result'], textOf(entry.result)),
         ),
       );
       this.layout();
@@ -548,63 +566,127 @@
   }
 
   // --- page controls ---
-  function renderIntro(scn) {
-    const i = DATA.scenarios.indexOf(scn) + 1;
-    const intro = $('intro');
-    intro.textContent = '';
-    intro.append(
-      h('h2', null, `Scenario ${i} of ${DATA.scenarios.length}: ${scn.title}`),
-      h('p', null, h('b', null, 'You are '), scn.persona, '. ', h('b', null, 'Try: '), ticks(scn.try)),
+  const initials = (persona) => String(persona).split(',')[0].split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+  // The scenario list: like a chat app's conversations, titled by what the
+  // person asks, grouped by role.
+  function renderList() {
+    const box = $('scenario-list');
+    box.textContent = '';
+    let group = null;
+    let ul = null;
+    for (const s of DATA.scenarios) {
+      if (s.group !== group) {
+        group = s.group;
+        const gid = nextId('grp');
+        box.append(h('h2', { class: 'grp', id: gid }, group));
+        ul = h('ul', { class: 'convs', 'aria-labelledby': gid });
+        box.append(ul);
+      }
+      ul.append(
+        h(
+          'li',
+          null,
+          h(
+            'button',
+            { type: 'button', class: 'conv', 'data-id': s.id, onclick: () => go(s.id, true) },
+            h('span', { class: 'cav', 'aria-hidden': 'true' }, initials(s.persona)),
+            h('span', { class: 'ctext' }, h('b', null, s.user), h('span', null, s.short)),
+          ),
+        ),
+      );
+    }
+  }
+  function markCurrent(scn) {
+    document.querySelectorAll('.conv').forEach((b) => {
+      if (b.dataset.id === scn.id) b.setAttribute('aria-current', 'true');
+      else b.removeAttribute('aria-current');
+    });
+  }
+
+  // One line above the chat: who you are and what to try; the longer
+  // directions open on demand.
+  function renderScenarioLine(scn) {
+    const line = $('scn-line');
+    line.textContent = '';
+    const more = h(
+      'div',
+      { class: 'scn-more', id: 'scn-more', hidden: true },
+      h('p', null, h('b', null, 'Try: '), ticks(scn.try)),
       h('p', null, h('b', null, 'Recorded writes: '), ticks(scn.recorded), '. Read-only calls are answered without asking.'),
+    );
+    const how = h('button', { type: 'button', class: 'btn-link', 'aria-expanded': 'false', 'aria-controls': 'scn-more' }, 'How to try');
+    how.addEventListener('click', () => {
+      const open = how.getAttribute('aria-expanded') === 'true';
+      how.setAttribute('aria-expanded', String(!open));
+      more.hidden = open;
+    });
+    line.append(
+      h(
+        'div',
+        { class: 'scn-row' },
+        h('p', { class: 'scn-who' }, h('b', null, 'You are ', scn.persona.split(',')[0]), h('span', { class: 'scn-hint' }, scn.hint)),
+        h('div', { class: 'scn-acts' }, how, h('button', { type: 'button', class: 'btn-quiet', onclick: () => go(scn.id, false) }, 'Start over')),
+      ),
+      more,
     );
   }
 
-  function radioGroup(container, items, current, onPick) {
-    container.textContent = '';
-    const buttons = items.map((it) => {
-      const b = h('button', { type: 'button', role: 'radio', 'aria-checked': String(it.id === current()), tabindex: it.id === current() ? '0' : '-1' }, it.label, it.px ? h('small', null, `${it.px}`) : null);
-      b.addEventListener('click', () => pick(it.id, false));
-      b.addEventListener('keydown', (e) => {
-        const idx = items.indexOf(it);
-        let to = -1;
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') to = (idx + 1) % items.length;
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') to = (idx - 1 + items.length) % items.length;
-        if (to < 0) return;
-        e.preventDefault();
-        pick(items[to].id, true);
+  // Next: the following scenario, under the chat.
+  function renderNext(scn) {
+    const bar = $('nextbar');
+    bar.textContent = '';
+    const i = DATA.scenarios.indexOf(scn);
+    const next = DATA.scenarios[i + 1];
+    bar.append(h('span', { class: 'next-count' }, `Scenario ${i + 1} of ${DATA.scenarios.length}`));
+    if (next) bar.append(h('button', { type: 'button', class: 'btn-link next', onclick: () => go(next.id, true) }, `Next: ${next.title} →`));
+  }
+
+  // View size: three icons on the view's edge.
+  function renderSizes(box) {
+    box.textContent = '';
+    for (const w of WIDTHS) {
+      const on = w.id === prefs.width;
+      const b = h('button', { type: 'button', role: 'radio', 'aria-checked': String(on), 'aria-label': `${w.label} (${w.px} px)`, title: `${w.label} (${w.px} px)` }, svg(w.icon));
+      b.addEventListener('click', () => {
+        prefs.width = w.id;
+        savePrefs();
+        applyWidth();
       });
-      return b;
-    });
-    function pick(id, focus) {
-      onPick(id);
-      buttons.forEach((b, i) => {
-        const on = items[i].id === id;
-        b.setAttribute('aria-checked', String(on));
-        b.tabIndex = on ? 0 : -1;
-        if (on && focus) b.focus();
-      });
+      box.append(b);
     }
-    container.append(...buttons);
   }
 
   function applyWidth() {
     document.documentElement.style.setProperty('--vw', `${widthPx()}px`);
-    if (session) session.layout();
+    if (session) {
+      if (session.sizeBox) renderSizes(session.sizeBox);
+      session.layout();
+    }
   }
   function applyTheme() {
     if (prefs.theme === 'auto') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', prefs.theme);
+    const t = THEMES.find((x) => x.id === prefs.theme);
+    const btn = $('theme');
+    btn.textContent = '';
+    btn.append(svg(t.icon));
+    btn.setAttribute('aria-label', `${t.label}. Change theme`);
+    btn.title = t.label;
     if (session) session.themeChanged();
   }
-  function applyModel() {
-    document.body.classList.toggle('model-on', prefs.model);
-    $('model-reads').setAttribute('aria-checked', String(prefs.model));
+
+  // On a narrow screen the list is a drawer.
+  function setDrawer(open) {
+    document.body.classList.toggle('drawer-open', open);
+    $('menu').setAttribute('aria-expanded', String(open));
+    $('scrim').hidden = !open;
   }
 
   function go(id, focusChat) {
     const scn = scenarioById(id) || DATA.scenarios[0];
     if (session) session.dispose();
-    $('scenario').value = scn.id;
+    setDrawer(false);
     try {
       history.replaceState(null, '', `#${scn.id}`);
     } catch (e) {
@@ -627,28 +709,21 @@
     else if (mq.addListener) mq.addListener(onScheme);
   }
 
-  const select = $('scenario');
-  DATA.scenarios.forEach((s, i) => select.append(h('option', { value: s.id }, `${i + 1}. ${s.title}`)));
-  select.addEventListener('change', () => go(select.value, false));
-  radioGroup($('width'), WIDTHS, () => prefs.width, (id) => {
-    prefs.width = id;
-    savePrefs();
-    applyWidth();
+  renderList();
+  $('menu').append(svg(ICON_MENU));
+  $('menu').addEventListener('click', () => setDrawer(!document.body.classList.contains('drawer-open')));
+  $('scrim').addEventListener('click', () => setDrawer(false));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) setDrawer(false);
   });
-  radioGroup($('theme'), THEMES, () => prefs.theme, (id) => {
-    prefs.theme = id;
+  $('theme').addEventListener('click', () => {
+    const i = THEMES.findIndex((t) => t.id === prefs.theme);
+    prefs.theme = THEMES[(i + 1) % THEMES.length].id;
     savePrefs();
     applyTheme();
   });
-  $('model-reads').addEventListener('click', () => {
-    prefs.model = !prefs.model;
-    savePrefs();
-    applyModel();
-  });
-  $('restart').addEventListener('click', () => session && go(session.scn.id, false));
 
   applyWidth();
   applyTheme();
-  applyModel();
   go((location.hash || '').slice(1), false);
 })();

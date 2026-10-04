@@ -35,6 +35,7 @@ const VIEWS = {
   'access-review': { file: 'views/access-review.html', uri: 'ui://midpoint/access-review', title: "My team's access" },
 };
 
+// group, short and hint feed the scenario list and the line above the chat.
 // A scenario is a short chat: the user's message, the assistant's line, the
 // tool call that opened the view (entry), and the answers the host gives to
 // the calls the view makes. `try` and `recorded` are the stage directions
@@ -49,6 +50,9 @@ const VIEWS = {
 const SCENARIOS = [
   {
     id: 'approve',
+    group: 'Approver',
+    short: 'Dana Lee · approves Database admin',
+    hint: 'Approve, or Reject with a reason.',
     title: 'Approve or reject a request',
     persona: 'Dana Lee, an approver of the Database admin role',
     view: 'approval-inbox',
@@ -69,6 +73,9 @@ const SCENARIOS = [
   },
   {
     id: 'manager',
+    group: 'Approver',
+    short: 'Jane Doe · manager and delegate',
+    hint: 'Open Details, then approve Finance reports.',
     title: "A manager's inbox",
     persona: 'Jane Doe, manager of dev-ops and a delegate of another approver',
     view: 'approval-inbox',
@@ -89,6 +96,9 @@ const SCENARIOS = [
   },
   {
     id: 'group',
+    group: 'Approver',
+    short: 'Dana Lee · in Access approvers',
+    hint: 'Claim the request, then release it.',
     title: 'Claim a request offered to a group',
     persona: 'Dana Lee, a member of the Access approvers group',
     view: 'approval-inbox',
@@ -110,6 +120,9 @@ const SCENARIOS = [
   },
   {
     id: 'request',
+    group: 'Requester',
+    short: 'Bob Stone · asks for a role',
+    hint: 'Request Database administrator.',
     title: 'Ask for a role',
     persona: 'Bob Stone, a member of dev-ops',
     view: 'request-access',
@@ -130,6 +143,9 @@ const SCENARIOS = [
   },
   {
     id: 'withdraw',
+    group: 'Requester',
+    short: 'Bob Stone · checks on a request',
+    hint: 'Open Details, then Withdraw.',
     title: 'Check on and withdraw a request',
     persona: 'Bob Stone, who asked for Database admin',
     view: 'my-requests',
@@ -150,6 +166,9 @@ const SCENARIOS = [
   },
   {
     id: 'review',
+    group: 'Manager',
+    short: 'Jane Doe · reviews her team',
+    hint: 'Remove Database admin from Bob.',
     title: "Review a team member's access",
     persona: 'Jane Doe, manager of Bob Stone and Mia Kovac',
     view: 'access-review',
