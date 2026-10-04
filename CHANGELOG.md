@@ -18,9 +18,42 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   - The error's text gains one untrusted line with what midPoint said.
   - HTTP 409 now has its own code, `refused` ("midPoint refused this.").
   - The answers are recorded from midPoint 4.10.3 with neutral names.
+- Approvers see what a request carried (D43, S30), in the inbox, in My
+  requests and in the assistant's text:
+  - every field the request carries, labelled as midPoint's schema labels it;
+  - the comment the requester typed in midPoint's own Request access page.
+    midPoint keeps it on the case's creation event, which midPoint's stock
+    Approver role can't read (fired on 4.10.3), so midPoint's own work item
+    page doesn't show it either. `docs/authorization.md` says how to grant it.
+
+  `get_user_assignments` also gives an assignment's `requestComment`.
 
 ### Changed
 
+- Request fields come from midPoint's schema, not from the server's settings
+  (D43, S30). At startup the server reads every assignment extension item, as
+  midPoint's own Request access page offers them:
+  - choice lists from an enumeration or a lookup table, fields with several
+    values, and whole and decimal numbers;
+  - required marks from the schema;
+  - items hidden from people (display hint `hidden`, operational, read-only)
+    left out;
+  - a reference or structured field named as one only midPoint's own page can
+    fill.
+
+  midPoint decides on Send who must fill what (D42). A checkbox is no longer
+  marked required, because it always sends yes or no. A schema the server
+  can't read leaves no fields and only a warning; before, startup failed.
+  `examples/role-mcp-rs-service.xml` gains the reads (verified on 4.10.3).
+- **Breaking:** `requests.formItems` and `requests.justificationItem` are
+  ignored, with a startup warning. The changes behind it:
+  - `server.requestReason` and the "No reason given" line are removed;
+  - `justification` on work items and cases becomes `requestDetails` and
+    `requesterComment`;
+  - `FormItem` loses `multiline` and `justification`, and gains `multiple`
+    and `options`.
+- The text marks a request field as `field "<label>"` instead of
+  `justification`.
 - `docs/authorization.md` suggests granting the Withdraw rule through a role
   induced by archetypes, and says to import the role first; importing the
   archetypes first gives a harmless HTTP 240 dangling-reference warning.
@@ -38,6 +71,13 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   seventh scenario shows a manager requesting access for a team member.
 - The demo opens at computer width (860 px). On a phone the column still fits the
   screen. A size chosen on an earlier visit no longer overrides the default.
+
+### Fixed
+
+- `list_requestable_roles` with `query` failed with HTTP 500 on midPoint
+  4.10.3: the repository can't search role descriptions ("Missing item mapping
+  for 'description'"). The search now covers name and display name. This came
+  to light through the refusal reasons above.
 
 ## [0.5.0] - 2026-10-04
 

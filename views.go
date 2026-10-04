@@ -254,18 +254,15 @@ func withoutViews(r *mcp.ListResourcesResult) *mcp.ListResourcesResult {
 type serverInfo struct {
 	WritesEnabled      bool   `json:"writesEnabled" jsonschema:"false when writes return a dry-run preview"`
 	RequireRequestable bool   `json:"requireRequestable" jsonschema:"request_role refuses roles not flagged requestable"`
-	RequestReason      bool   `json:"requestReason" jsonschema:"requests can carry a reason (requests.justificationItem is set)"`
 	UIContract         string `json:"uiContract" jsonschema:"version of the views contract this server implements"`
 	Version            string `json:"version" jsonschema:"server version"`
 }
 
 // newServerInfo describes this deployment to views.
 func newServerInfo(cfg midpoint.Config) serverInfo {
-	_, reason := cfg.File.Requests.Justification()
 	return serverInfo{
 		WritesEnabled:      cfg.AllowWrites,
 		RequireRequestable: cfg.File.Requests.RequestableRequired(),
-		RequestReason:      reason,
 		UIContract:         uiContractVersion,
 		Version:            version,
 	}

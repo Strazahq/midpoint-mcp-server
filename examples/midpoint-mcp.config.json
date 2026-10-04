@@ -26,12 +26,8 @@
   },
 
   "requests": {
-    "//formItems": "Ordered qualified names of assignment extension items offered on requests, e.g. {http://example.com/xml/ns/access-request}justification. Single-valued string, boolean, int, date and dateTime only. The server reads definitions as its own account at startup; restart after schema changes. Include justificationItem here to let requesters fill it. Empty means no form.",
-    "formItems": [],
+    "//fields": "There are no field settings: request fields are the assignment extension items of midPoint's schema, read at startup (restart after a schema change). formItems and justificationItem of 0.5 are ignored.",
     "//requireRequestable": "Refuse request_role for roles midPoint's catalog does not flag requestable. On by default: request_role submits a plain assignment-add, which midPoint turns into an approval case only where policy says so and otherwise executes immediately — so without this, 'request' is an unrestricted grant path. Use assign_role for a deliberate grant.",
-    "requireRequestable": true,
-
-    "//justificationItem": "Qualified name, {namespace}localName, of the assignment extension item that holds a requester's reason, e.g. {http://example.com/xml/ns/my-extension}justification. list_work_items and get_case read it from the assignment a request parks for approval and show it as text written by the requester. Empty (the default) means requests carry no reason.",
-    "justificationItem": ""
+    "requireRequestable": true
   }
 }

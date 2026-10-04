@@ -17,18 +17,34 @@ const requestNS = "{http://example.com/xml/ns/access-request}"
 
 func formTestClient(t *testing.T) *Client {
 	t.Helper()
+	c, warnings := formTestClientWith(t, Config{})
+	if len(warnings) != 0 {
+		t.Fatalf("warnings %v", warnings)
+	}
+	return c
+}
+
+// formTestClientWith loads the request form from recorded-style schema
+// answers: a database schema, a schema file and a lookup table.
+func formTestClientWith(t *testing.T, cfg Config) (*Client, []string) {
+	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get(SwitchToPrincipalHeader) != "" {
 			t.Error("schema discovery impersonated a user")
 		}
-		if r.Header.Get("Accept") != "application/xml" {
-			t.Error("schema discovery must request XML")
-		}
-		files := map[string]string{"/ws/rest/schemas": "request_schema_db.xml", "/ws/schema": "request_schema_files.xml", "/ws/schema/request-extension.xsd": "request_schema_file.xsd"}
+		files := map[string]string{"/ws/rest/schemas": "request_schema_db.xml", "/ws/schema": "request_schema_files.xml", "/ws/schema/request-extension.xsd": "request_schema_file.xsd",
+			"/ws/rest/lookupTables/70000000-0000-0000-0000-000000000001": "lookup_table_regions.json"}
 		f, ok := files[r.URL.Path]
 		if !ok {
 			http.NotFound(w, r)
 			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/ws/rest/lookupTables/") {
+			if r.URL.Query().Get("include") != "row" {
+				t.Error("lookup table read without its rows")
+			}
+		} else if r.Header.Get("Accept") != "application/xml" {
+			t.Error("schema discovery must request XML")
 		}
 		b, err := os.ReadFile("testdata/" + f)
 		if err != nil {
@@ -38,42 +54,88 @@ func formTestClient(t *testing.T) *Client {
 		_, _ = w.Write(b)
 	}))
 	t.Cleanup(srv.Close)
-	cfg := Config{BaseURL: srv.URL}
-	cfg.File.Requests.JustificationItem = requestNS + "justification"
-	for _, n := range []string{"projectCode", "justification", "ticket", "acknowledged", "neededOn", "handover", "multiple", "decimal", "absent", "userOnly"} {
-		cfg.File.Requests.FormItems = append(cfg.File.Requests.FormItems, requestNS+n)
-	}
-	cfg.File.Requests.FormItems = append(cfg.File.Requests.FormItems, "{http://example.com/xml/ns/request-file}costCenter")
+	cfg.BaseURL = srv.URL
 	c := NewClient(cfg)
 	var warnings []string
-	if err := c.LoadRequestForm(WithPrincipal(context.Background(), "end-user"), func(s string) { warnings = append(warnings, s) }); err != nil {
+	if err := c.LoadRequestForm(context.Background(), func(s string) { warnings = append(warnings, s) }); err != nil {
 		t.Fatal(err)
 	}
-	if len(warnings) != 4 {
-		t.Fatalf("warnings %v", warnings)
-	}
-	return c
+	return c, warnings
 }
 
+// Every assignment item of midPoint's schema is a field (D43), in display
+// order; hidden, operational and read-only items are not, and an item the
+// form can't fill is named apart.
 func TestRequestFormSchemaSources(t *testing.T) {
-	c := formTestClient(t)
-	f := c.RequestForm()
-	if len(f.Items) != 7 {
-		t.Fatalf("items %+v", f)
+	f := formTestClient(t).RequestForm()
+	var names []string
+	for _, i := range f.Items {
+		names = append(names, i.Name)
 	}
-	if f.Items[0].Name != "projectCode" || !f.Items[0].Required || f.Items[0].DisplayName != "Project code" || f.Items[0].Help == "" {
-		t.Fatalf("first %+v", f.Items[0])
+	want := []string{"justification", "projectCode", "ticket", "acknowledged", "neededOn", "handover", "accessLevel", "region", "environments", "costShare", "costCenter"}
+	if !reflect.DeepEqual(names, want) {
+		t.Fatalf("items %v, want %v", names, want)
 	}
-	if !f.Items[1].Justification || !f.Items[1].Multiline || f.Items[1].Required {
-		t.Fatalf("justification %+v", f.Items[1])
+	by := map[string]FormItem{}
+	for _, i := range f.Items {
+		by[i.Name] = i
 	}
-	if f.Items[6].Name != "costCenter" {
-		t.Fatalf("file item %+v", f.Items[6])
+	if i := by["projectCode"]; !i.Required || i.DisplayName != "Project code" || i.Help != "The project this access supports." || i.Type != "string" {
+		t.Errorf("projectCode %+v", i)
+	}
+	if i := by["justification"]; i.Required || i.Help != "Explain why this access is needed." {
+		t.Errorf("justification %+v", i)
+	}
+	if i := by["accessLevel"]; i.Type != "choice" || !reflect.DeepEqual(i.Options, []FormOption{{"read", "Read only"}, {"write", "Read and write"}}) {
+		t.Errorf("enumeration %+v", i)
+	}
+	if i := by["region"]; i.Type != "choice" || !reflect.DeepEqual(i.Options, []FormOption{{"eu", "Europe"}, {"us", "United States"}, {"apac", ""}}) {
+		t.Errorf("lookup table %+v", i)
+	}
+	if i := by["environments"]; i.Type != "string" || !i.Multiple || i.Required {
+		t.Errorf("multi-valued %+v", i)
+	}
+	if by["costShare"].Type != "decimal" || by["ticket"].Type != "int" || by["acknowledged"].Type != "boolean" {
+		t.Errorf("types %+v", f.Items)
+	}
+	if !reflect.DeepEqual(f.Other, []FormOther{{Name: "sponsor", QName: requestNS + "sponsor", DisplayName: "Sponsor"}}) {
+		t.Errorf("other %+v", f.Other)
+	}
+}
+
+// The settings of 0.5 still load, and are named as unused.
+func TestRequestFormOldSettings(t *testing.T) {
+	cfg := Config{}
+	cfg.File.Requests.FormItems = []string{requestNS + "projectCode"}
+	c, warnings := formTestClientWith(t, cfg)
+	if len(warnings) != 1 || !strings.Contains(warnings[0], "no longer used") || len(c.RequestForm().Items) != 11 {
+		t.Errorf("warnings %v, items %d", warnings, len(c.RequestForm().Items))
+	}
+}
+
+// A schema that can't be read leaves no form, and the server starts.
+func TestRequestFormUnreadable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusForbidden) }))
+	t.Cleanup(srv.Close)
+	c := NewClient(Config{BaseURL: srv.URL})
+	var warnings []string
+	if err := c.LoadRequestForm(context.Background(), func(s string) { warnings = append(warnings, s) }); err != nil || c.RequestForm() != nil {
+		t.Fatalf("err %v form %+v", err, c.RequestForm())
+	}
+	if len(warnings) != 1 || !strings.Contains(warnings[0], "could not be read") {
+		t.Errorf("warnings %v", warnings)
 	}
 }
 
 func TestRequestFieldsValidation(t *testing.T) {
 	c := formTestClient(t)
+	base := func(extra map[string]any) map[string]any {
+		m := map[string]any{"projectCode": "P", "acknowledged": false}
+		for k, v := range extra {
+			m[k] = v
+		}
+		return m
+	}
 	for _, tc := range []struct {
 		name   string
 		fields map[string]any
@@ -82,12 +144,18 @@ func TestRequestFieldsValidation(t *testing.T) {
 		{"required", map[string]any{}, "projectCode"},
 		{"blank", map[string]any{"projectCode": "  "}, "projectCode"},
 		{"unknown", map[string]any{"secret": "x"}, "secret"},
+		{"hidden item", base(map[string]any{"syncMarker": "x"}), "syncMarker"},
 		{"boolean missing", map[string]any{"projectCode": "P"}, "acknowledged"},
-		{"boolean wrong", map[string]any{"projectCode": "P", "acknowledged": "true"}, "acknowledged"},
-		{"int fraction", map[string]any{"projectCode": "P", "ticket": 1.5, "acknowledged": false}, "ticket"},
-		{"int range", map[string]any{"projectCode": "P", "ticket": float64(1 << 32), "acknowledged": false}, "ticket"},
-		{"date invalid", map[string]any{"projectCode": "P", "neededOn": "2028-02-30", "acknowledged": true}, "neededOn"},
-		{"datetime no offset", map[string]any{"projectCode": "P", "handover": "2028-10-01T12:00:00", "acknowledged": true}, "handover"},
+		{"boolean wrong", base(map[string]any{"acknowledged": "true"}), "acknowledged"},
+		{"int fraction", base(map[string]any{"ticket": 1.5}), "ticket"},
+		{"int range", base(map[string]any{"ticket": float64(1 << 32)}), "ticket"},
+		{"decimal text", base(map[string]any{"costShare": "half"}), "costShare"},
+		{"date invalid", base(map[string]any{"neededOn": "2028-02-30"}), "neededOn"},
+		{"datetime no offset", base(map[string]any{"handover": "2028-10-01T12:00:00"}), "handover"},
+		{"choice not offered", base(map[string]any{"accessLevel": "admin"}), "accessLevel"},
+		{"lookup not offered", base(map[string]any{"region": "Europe"}), "region"},
+		{"list for one value", base(map[string]any{"projectCode": []any{"P", "Q"}}), "projectCode"},
+		{"list value wrong", base(map[string]any{"environments": []any{"dev", 7.0}}), "environments"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, _, err := c.ValidateRequestFields(tc.fields)
@@ -97,7 +165,8 @@ func TestRequestFieldsValidation(t *testing.T) {
 			}
 		})
 	}
-	good := map[string]any{"projectCode": "P-7", "acknowledged": false, "justification": "  ", "ticket": float64(7), "neededOn": "2028-02-29", "handover": "2028-10-01T12:30:00+02:00", "costCenter": "Research"}
+	good := base(map[string]any{"justification": "  ", "ticket": float64(7), "neededOn": "2028-02-29", "handover": "2028-10-01T12:30:00+02:00",
+		"costCenter": "Research", "accessLevel": "write", "region": "eu", "environments": []any{"dev", " ", "test"}, "costShare": 0.25})
 	clean, ext, err := c.ValidateRequestFields(good)
 	if err != nil {
 		t.Fatal(err)
@@ -105,8 +174,14 @@ func TestRequestFieldsValidation(t *testing.T) {
 	if _, ok := clean["justification"]; ok {
 		t.Error("empty optional value not omitted")
 	}
-	if clean["acknowledged"] != false || len(ext) != 6 {
+	if clean["acknowledged"] != false || len(ext) != 10 {
 		t.Errorf("values %v %v", clean, ext)
+	}
+	if got := ext["http://example.com/xml/ns/access-request#environments"]; !reflect.DeepEqual(got, []any{"dev", "test"}) {
+		t.Errorf("several values %v", got)
+	}
+	if got := ext["http://example.com/xml/ns/access-request#region"]; got != "eu" {
+		t.Errorf("one value %v", got)
 	}
 	if _, _, err := NewClient(Config{}).ValidateRequestFields(map[string]any{"projectCode": "P"}); err == nil {
 		t.Error("field accepted without form")
@@ -178,11 +253,13 @@ func TestRequestPlanOneAssignment(t *testing.T) {
 	}
 }
 
+// The settings of 0.5 load whatever they hold, and a schema that fails to
+// read or parse leaves no form without failing startup.
 func TestSchemaFailuresAndConfig(t *testing.T) {
 	for _, names := range [][]string{{"invalid"}, {requestNS + "same", "{urn:other}same"}, {requestNS + "same", requestNS + "same"}} {
-		fc := FileConfig{Requests: RequestsConfig{FormItems: names}}
-		if err := fc.validate(); err == nil {
-			t.Errorf("accepted %v", names)
+		fc := FileConfig{Requests: RequestsConfig{FormItems: names, JustificationItem: "not a qname"}}
+		if err := fc.validate(); err != nil {
+			t.Errorf("old settings %v refused: %v", names, err)
 		}
 	}
 	for _, response := range []struct {
@@ -193,13 +270,55 @@ func TestSchemaFailuresAndConfig(t *testing.T) {
 			w.WriteHeader(response.status)
 			_, _ = io.WriteString(w, response.body)
 		}))
-		c := NewClient(Config{BaseURL: srv.URL, File: FileConfig{Requests: RequestsConfig{FormItems: []string{requestNS + "projectCode"}}}})
-		if err := c.LoadRequestForm(context.Background(), nil); err == nil {
-			t.Error("schema failure did not fail startup")
+		c := NewClient(Config{BaseURL: srv.URL})
+		if err := c.LoadRequestForm(context.Background(), nil); err != nil || c.RequestForm() != nil {
+			t.Errorf("%d %q: err %v form %+v", response.status, response.body, err, c.RequestForm())
 		}
 		srv.Close()
 	}
-	if err := NewClient(Config{}).LoadRequestForm(context.Background(), nil); err != nil {
-		t.Error("unconfigured form contacted server")
+}
+
+// An approver sees every field the request carries (D43), labelled from the
+// schema and in its order, a choice by its label and a field the form doesn't
+// know by its name, last.
+func TestRequestDetailsLabelled(t *testing.T) {
+	c := formTestClient(t)
+	value := map[string]json.RawMessage{"extension": json.RawMessage(`{
+		"@ns": "http://example.com/xml/ns/access-request",
+		"zzLegacy": "kept",
+		"environments": ["dev", "test"],
+		"region": "eu",
+		"http://example.com/xml/ns/access-request#projectCode": {"@type": "xsd:string", "@value": "OPS-7"},
+		"acknowledged": false,
+		"justification": {"orig": "Quarter end", "norm": "quarter end"},
+		"empty": ""}`)}
+	got := c.requestDetails(value)
+	want := []RequestDetail{
+		{Name: "justification", Label: "Justification", Type: "string", Values: []string{"Quarter end"}},
+		{Name: "projectCode", Label: "Project code", Type: "string", Values: []string{"OPS-7"}},
+		{Name: "acknowledged", Label: "Policy acknowledged", Type: "boolean", Values: []string{"false"}},
+		{Name: "region", Label: "Region", Type: "choice", Values: []string{"eu"}, Labels: []string{"Europe"}},
+		{Name: "environments", Label: "Environments", Type: "string", Values: []string{"dev", "test"}},
+		{Name: "zzLegacy", Values: []string{"kept"}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("details\n got %+v\nwant %+v", got, want)
+	}
+}
+
+// The comment typed in midPoint's own Request access page is on the case's
+// creation event (live on 4.10.3); a case read without its events has none.
+func TestRequesterComment(t *testing.T) {
+	var cj caseJSON
+	if err := json.Unmarshal([]byte(`{"oid":"c","event":{"@type":"c:CaseCreationEventType","@id":4,"timestamp":"2026-10-04T06:40:30.663Z",
+		"initiatorRef":{"oid":"00000000-0000-0000-0000-000000000002","type":"c:UserType"},
+		"businessContext":{"comment":" Needed for the quarter-end close. "}}}`), &cj); err != nil {
+		t.Fatal(err)
+	}
+	if got := cj.requesterComment(); got != "Needed for the quarter-end close." {
+		t.Errorf("comment %q", got)
+	}
+	if got := (caseJSON{}).requesterComment(); got != "" {
+		t.Errorf("comment without events %q", got)
 	}
 }

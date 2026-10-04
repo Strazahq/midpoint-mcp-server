@@ -50,16 +50,15 @@ func requestAccessSessionWith(t *testing.T, o requestAccessOpts) (*mcp.ClientSes
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/ws/rest/schemas":
+		case "/ws/rest/schemas", "/ws/schema":
 			if r.Header.Get(midpoint.SwitchToPrincipalHeader) != "" {
 				t.Error("schema read impersonated")
 			}
 			w.Header().Set("Content-Type", "application/xml")
-			_, _ = io.WriteString(w, testdataFile(t, "request_schema_db.xml"))
+			_, _ = io.WriteString(w, schemaAnswer(r.URL.Path, !form))
 			return
-		case "/ws/schema":
-			w.Header().Set("Content-Type", "application/xml")
-			_, _ = io.WriteString(w, `<schemaFiles xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"/>`)
+		case "/ws/rest/lookupTables/70000000-0000-0000-0000-000000000001":
+			_, _ = io.WriteString(w, recording("lookup_table_regions.json"))
 			return
 		case "/ws/rest/roles/search":
 			_, _ = io.WriteString(w, `{"object":{"object":[{"oid":"`+fxDbAdmin+`","name":"db-admin","displayName":"Database administrator","description":"Manage production databases and maintain backups.","riskLevel":"high","requestable":true},{"oid":"`+fxFinance+`","name":"finance-reports","displayName":"Finance reports","description":"Read financial reports.","requestable":true}]}}`)
@@ -93,12 +92,6 @@ func requestAccessSessionWith(t *testing.T, o requestAccessOpts) (*mcp.ClientSes
 	}))
 	t.Cleanup(srv.Close)
 	cfg := midpoint.Config{BaseURL: srv.URL, AllowWrites: writes}
-	if form {
-		cfg.File.Requests.JustificationItem = fixtureJustificationItem
-		for _, n := range []string{"justification", "projectCode", "ticket", "acknowledged", "neededOn", "handover"} {
-			cfg.File.Requests.FormItems = append(cfg.File.Requests.FormItems, "{http://example.com/xml/ns/access-request}"+n)
-		}
-	}
 	client := midpoint.NewClient(cfg)
 	if err := client.LoadRequestForm(context.Background(), nil); err != nil {
 		t.Fatal(err)

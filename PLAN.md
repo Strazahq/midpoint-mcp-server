@@ -286,16 +286,18 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
   carry the request comment.
   1. **Refusal reasons** (S29, done): midPoint's `userFriendlyMessage`
      reaches the view and the assistant. 409 is coded `refused`.
-  2. **Approvers see what was asked**: the requester's comment from requests
-     made in midPoint's GUI (the case's creation event) and every filled
-     assignment field, labelled.
-  3. **No field settings**: drop `requests.formItems` and
-     `requests.justificationItem`. The dialog offers the assignment fields of
-     midPoint's schema. The "required" mark comes from the schema and the
-     requester's archetype template, as midPoint's own page does. midPoint
-     decides on Send.
-  4. **Docs**: README and authorization docs list the REST limits (per-person
-     field visibility, relation choice, conflict preview, request comment).
+  2. **Approvers see what was asked** (S30, done): every filled assignment
+     field, labelled, and the comment typed in midPoint's own page (the case's
+     creation event, which the stock Approver role can't read, live).
+  3. **No field settings** (D43, S30, done): `requests.formItems` and
+     `requests.justificationItem` are ignored with a warning. The dialog
+     offers every assignment field of midPoint's schema (choices, lookup
+     tables, lists, numbers), required as the schema says. Not done: the
+     requester's archetype template as a source of "required" marks. It is
+     only a GUI marker, and so far it has been read only in source.
+  4. **Docs** (done): README "Request fields" and docs/authorization.md list
+     the REST limits and the startup reads, and the sample role carries them
+     (live).
 
   AC: each step fired on eval where midPoint behaviour is involved;
   `go test ./...` and the four view suites pass; CHANGELOG per step.

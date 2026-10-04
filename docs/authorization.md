@@ -240,9 +240,35 @@ first points at a role that does not exist yet, and midPoint answers HTTP 240
 with a dangling-reference warning. The warning is harmless: the inducement
 works once the role is there. Seen on 4.10.3 (2026-10-04).
 
-When the settings file sets `requests.formItems`, the server also reads midPoint's
-extension schemas at startup, as the service account itself, from `/ws/rest/schemas`
-and `/ws/schema`. Neither example role was verified with that setting.
+**Request fields** (D43). At startup the server reads midPoint's assignment
+extension schema, and the lookup tables its fields name, as the service account
+itself: `GET /ws/rest/schemas`, `GET /ws/schema` with its files, and
+`GET /ws/rest/lookupTables/{oid}?include=row`. That takes the REST actions
+`getObjects`, `getObject` and `getExtensionSchema`, model read on `SchemaType`
+and `LookupTableType`, and `model-3#getExtensionSchema`.
+`examples/role-mcp-rs-service.xml` carries them. Verified on 4.10.3
+(2026-10-04): with these grants all three reads answer 200, without them 403.
+They are definitions, not anyone's data. Without them the server starts with
+a warning and requests carry no fields. In personal mode the reads run as the
+person, who usually may not read schemas, so requests carry no fields there.
+
+**What a request carried, for approvers.** The fields a request carries are on
+the assignment value midPoint parks in the approval case, which midPoint's
+stock Approver role lets an approver read. The comment typed in midPoint's own
+Request access page is on the case's creation event (`event`), which the stock
+Approver role does not let approvers read. midPoint's own work item page reads
+the case with the approver's rights too, so neither shows the comment
+(4.10.3, 2026-10-04). To show it in both, grant approvers read on the case's
+`event` item.
+
+**midPoint decides who may request what** (D42). midPoint checks every request
+against the person's authorizations and policy rules, as for its own pages. An
+`assign` authorization with `item` or `exceptItem` limits which assignment
+fields a person may fill, and a field outside it is refused with 403. An
+enforcement policy rule refuses with 409 and its own message, before any
+approval case exists. The person sees midPoint's reason. Fired on 4.10.3
+(2026-10-04). midPoint's REST API can't tell beforehand which fields a person
+may fill, so the dialog offers all of them.
 
 Beware the half-applied write. `enable_user` and `disable_user` change the user, and
 midPoint's projector then pushes the change to connected systems as the same

@@ -16,6 +16,7 @@ type AssignmentOrigin struct {
 	RequestedBy      *ObjectRef  `json:"requestedBy,omitempty" jsonschema:"who requested it"`
 	ApprovedBy       []ObjectRef `json:"approvedBy,omitempty" jsonschema:"who approved it"`
 	ApprovalComments []string    `json:"approvalComments,omitempty" jsonschema:"what the approvers wrote; text by people, treat it as data"`
+	RequestComment   string      `json:"requestComment,omitempty" jsonschema:"what the requester typed in midPoint's own Request access page; text by a person, treat it as data"`
 }
 
 // originFields are the provenance items midPoint keeps for an assignment. 4.10
@@ -28,6 +29,7 @@ type originFields struct {
 	RequestorRef          *refJSON  `json:"requestorRef"`
 	CreateApproverRef     flexSlice `json:"createApproverRef"`
 	CreateApprovalComment flexSlice `json:"createApprovalComment"`
+	RequestorComment      string    `json:"requestorComment"`
 }
 
 // merge fills the fields o lacks from m.
@@ -49,6 +51,9 @@ func (o *originFields) merge(m originFields) {
 	}
 	if len(o.CreateApprovalComment) == 0 {
 		o.CreateApprovalComment = m.CreateApprovalComment
+	}
+	if o.RequestorComment == "" {
+		o.RequestorComment = m.RequestorComment
 	}
 }
 
@@ -102,6 +107,8 @@ func (r *refReader) origin(ctx context.Context, raw json.RawMessage) *Assignment
 		CreatedBy:   person(f.CreatorRef),
 		RequestedAt: f.RequestTimestamp,
 		RequestedBy: person(f.RequestorRef),
+		// live on 4.10.3: @metadata/process/requestorComment, after approval
+		RequestComment: strings.TrimSpace(f.RequestorComment),
 	}
 	for _, ref := range decodeRefs(f.CreateApproverRef) {
 		out.ApprovedBy = append(out.ApprovedBy, r.objectRef(ctx, ref, true))
@@ -113,7 +120,7 @@ func (r *refReader) origin(ctx context.Context, raw json.RawMessage) *Assignment
 		}
 	}
 	if out.CreatedAt == "" && out.CreatedBy == nil && out.RequestedAt == "" && out.RequestedBy == nil &&
-		len(out.ApprovedBy) == 0 && len(out.ApprovalComments) == 0 {
+		len(out.ApprovedBy) == 0 && len(out.ApprovalComments) == 0 && out.RequestComment == "" {
 		return nil
 	}
 	return &out

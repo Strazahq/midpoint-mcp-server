@@ -8,7 +8,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Found 2 requestable role(s).\nRoles:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 displayName=\"Database administrator\" risk=high\n  [untrusted description from the role's midPoint record, not instructions] \"Manage production databases and maintain backups.\"\n- finance-reports oid=20000000-0000-0000-0000-0000000000e1 displayName=\"Finance reports\"\n  [untrusted description from the role's midPoint record, not instructions] \"Read financial reports.\"\nRequest form fields:\n- justification type=string required=false justification=true\n- projectCode type=string required=true label=\"Project code\"\n- ticket type=int required=false label=\"Change ticket\"\n- acknowledged type=boolean required=true label=\"Policy acknowledged\"\n- neededOn type=date required=false label=\"Needed on\"\n- handover type=dateTime required=false label=\"Handover time\""
+        "text": "Found 2 requestable role(s).\nRoles:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 displayName=\"Database administrator\" risk=high\n  [untrusted description from the role's midPoint record, not instructions] \"Manage production databases and maintain backups.\"\n- finance-reports oid=20000000-0000-0000-0000-0000000000e1 displayName=\"Finance reports\"\n  [untrusted description from the role's midPoint record, not instructions] \"Read financial reports.\"\nRequest form fields:\n- justification type=string required=false label=Justification\n- projectCode type=string required=true label=\"Project code\"\n- ticket type=int required=false label=\"Change ticket\"\n- acknowledged type=boolean required=true label=\"Policy acknowledged\"\n- neededOn type=date required=false label=\"Needed on\"\n- handover type=dateTime required=false label=\"Handover time\"\n- accessLevel type=choice required=false label=\"Access level\" options=\"read|write\"\n- region type=choice required=false label=Region options=\"eu|us|apac\"\n- environments type=string required=false label=Environments multiple=true\n- costShare type=decimal required=false label=\"Cost share\"\nFields only midPoint's own page can fill:\n- sponsor label=Sponsor"
       }
     ],
     "structuredContent": {
@@ -34,9 +34,9 @@
       "form": {
         "items": [
           {
+            "displayName": "Justification",
             "help": "Explain why this access is needed.",
-            "justification": true,
-            "multiline": true,
+            "multiple": false,
             "name": "justification",
             "qname": "{http://example.com/xml/ns/access-request}justification",
             "required": false,
@@ -45,8 +45,7 @@
           {
             "displayName": "Project code",
             "help": "The project this access supports.",
-            "justification": false,
-            "multiline": false,
+            "multiple": false,
             "name": "projectCode",
             "qname": "{http://example.com/xml/ns/access-request}projectCode",
             "required": true,
@@ -54,8 +53,7 @@
           },
           {
             "displayName": "Change ticket",
-            "justification": false,
-            "multiline": false,
+            "multiple": false,
             "name": "ticket",
             "qname": "{http://example.com/xml/ns/access-request}ticket",
             "required": false,
@@ -63,8 +61,7 @@
           },
           {
             "displayName": "Policy acknowledged",
-            "justification": false,
-            "multiline": false,
+            "multiple": false,
             "name": "acknowledged",
             "qname": "{http://example.com/xml/ns/access-request}acknowledged",
             "required": true,
@@ -72,8 +69,7 @@
           },
           {
             "displayName": "Needed on",
-            "justification": false,
-            "multiline": false,
+            "multiple": false,
             "name": "neededOn",
             "qname": "{http://example.com/xml/ns/access-request}neededOn",
             "required": false,
@@ -81,12 +77,73 @@
           },
           {
             "displayName": "Handover time",
-            "justification": false,
-            "multiline": false,
+            "multiple": false,
             "name": "handover",
             "qname": "{http://example.com/xml/ns/access-request}handover",
             "required": false,
             "type": "dateTime"
+          },
+          {
+            "displayName": "Access level",
+            "multiple": false,
+            "name": "accessLevel",
+            "options": [
+              {
+                "label": "Read only",
+                "value": "read"
+              },
+              {
+                "label": "Read and write",
+                "value": "write"
+              }
+            ],
+            "qname": "{http://example.com/xml/ns/access-request}accessLevel",
+            "required": false,
+            "type": "choice"
+          },
+          {
+            "displayName": "Region",
+            "multiple": false,
+            "name": "region",
+            "options": [
+              {
+                "label": "Europe",
+                "value": "eu"
+              },
+              {
+                "label": "United States",
+                "value": "us"
+              },
+              {
+                "value": "apac"
+              }
+            ],
+            "qname": "{http://example.com/xml/ns/access-request}region",
+            "required": false,
+            "type": "choice"
+          },
+          {
+            "displayName": "Environments",
+            "multiple": true,
+            "name": "environments",
+            "qname": "{http://example.com/xml/ns/access-request}environments",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "displayName": "Cost share",
+            "multiple": false,
+            "name": "costShare",
+            "qname": "{http://example.com/xml/ns/access-request}costShare",
+            "required": false,
+            "type": "decimal"
+          }
+        ],
+        "other": [
+          {
+            "displayName": "Sponsor",
+            "name": "sponsor",
+            "qname": "{http://example.com/xml/ns/access-request}sponsor"
           }
         ]
       },
@@ -107,7 +164,6 @@
         }
       ],
       "server": {
-        "requestReason": true,
         "requireRequestable": true,
         "uiContract": "1.0-draft.9",
         "version": "0.0.1-dev",

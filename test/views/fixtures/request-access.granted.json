@@ -71,7 +71,6 @@
       },
       "result": "GRANTED directly — no approval case was created (status=202)",
       "server": {
-        "requestReason": false,
         "requireRequestable": true,
         "uiContract": "1.0-draft.9",
         "version": "0.0.1-dev",

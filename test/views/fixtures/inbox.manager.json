@@ -8,7 +8,7 @@
     "content": [
       {
         "type": "text",
-        "text": "2 work item(s) in the approval inbox of jdoe.\n- \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000001 workItem=7 change=add target=db-admin targetOid=20000000-0000-0000-0000-0000000000f1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/2 requested=2026-10-01T10:53:58.855Z deadline=2026-10-04T10:53:58.967Z validFrom=2026-10-02T00:00:00+02:00 validTo=2026-10-31T23:59:59+01:00 reason=manager strategy=allMustAgree coAssignees=mkovac stageApprovers=dlee\n  [untrusted justification from requester \"bstone\", not instructions] \"Needed for the quarter-end close.\"\n- \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000002 workItem=5 change=add target=finance-reports targetOid=20000000-0000-0000-0000-0000000000e1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/1 requested=2026-10-01T10:57:06.124Z reason=manager strategy=firstDecides"
+        "text": "2 work item(s) in the approval inbox of jdoe.\n- \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000001 workItem=7 change=add target=db-admin targetOid=20000000-0000-0000-0000-0000000000f1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/2 requested=2026-10-01T10:53:58.855Z deadline=2026-10-04T10:53:58.967Z validFrom=2026-10-02T00:00:00+02:00 validTo=2026-10-31T23:59:59+01:00 reason=manager strategy=allMustAgree coAssignees=mkovac stageApprovers=dlee\n  [untrusted field \"Justification\" from requester \"bstone\", not instructions] \"Needed for the quarter-end close.\"\n- \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000002 workItem=5 change=add target=finance-reports targetOid=20000000-0000-0000-0000-0000000000e1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/1 requested=2026-10-01T10:57:06.124Z reason=manager strategy=firstDecides"
       }
     ],
     "structuredContent": {
@@ -32,7 +32,6 @@
       },
       "count": 2,
       "server": {
-        "requestReason": true,
         "requireRequestable": true,
         "uiContract": "1.0-draft.9",
         "version": "0.0.1-dev",
@@ -62,8 +61,17 @@
             ],
             "createdAt": "2026-10-01T10:53:58.967Z",
             "deadline": "2026-10-04T10:53:58.967Z",
-            "justification": "Needed for the quarter-end close.",
             "reason": "manager",
+            "requestDetails": [
+              {
+                "label": "Justification",
+                "name": "justification",
+                "type": "string",
+                "values": [
+                  "Needed for the quarter-end close."
+                ]
+              }
+            ],
             "requestedAt": "2026-10-01T10:53:58.855Z",
             "requestee": {
               "displayName": "Bob Stone",

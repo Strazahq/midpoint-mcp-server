@@ -391,13 +391,13 @@ check('ac03.title.unreadable', '7.1 AC3 (D16, D33)', 'an unreadable requestee st
   t.ok(card && e.title.startsWith(S.personHiddenStart), `no card titled "${e.title}"`);
 });
 
-check('ac03.unreadable-named-once', '7.1 AC3 (D30)', 'an unreadable person is named once on the surface', async (t) => {
-  const { v, card } = await inbox(t, 'inbox.approver-unreadable');
+check('ac03.unreadable-named-once', '7.1 AC3 (D30)', 'an unreadable person is named once on the surface, the comment included', async (t) => {
+  const { v, card } = await inbox(t, derive('inbox.approver-unreadable', 'requester-comment', M.requesterComment));
   if (!card) return;
   const text = (await v.text(card)).toLowerCase();
   const n = text.split(S.personHidden.toLowerCase()).length - 1;
   t.ok(n === 1, `"${S.personHidden}" appears ${n} times on the card surface, want 1 (the title)`);
-  t.ok(await v.visible(card.getByText(S.inbox.justificationHidden, { exact: true })), `the reason is not titled "${S.inbox.justificationHidden}"`);
+  t.ok(await v.visible(card.getByText(S.inbox.commentHidden, { exact: true })), `the comment is not titled "${S.inbox.commentHidden}"`);
 });
 
 // AC3: risk
@@ -522,9 +522,14 @@ check('ac03.description-clamp', '7.1 AC3, 6.12 (D33)', 'a long description is cl
   await clampCheck(t, fx, items(fx.result)[0].context.target.description, 2);
 });
 
-check('ac03.reason-clamp', '7.1 AC3, 6.12 (D33)', 'a long reason is clamped to 3 lines with Show more / Show less', async (t) => {
-  const fx = derive('inbox.approver', 'long-justification', M.longJustification);
-  await clampCheck(t, fx, items(fx.result)[0].context.justification, 3);
+check('ac03.details-clamp', '7.1 AC3, 7.1 item 4, 6.12 (D33, D43)', 'a long request detail is clamped to 3 lines with Show more / Show less', async (t) => {
+  const fx = derive('inbox.approver', 'long-detail', M.longDetail);
+  await clampCheck(t, fx, items(fx.result)[0].context.requestDetails[0].values[0], 3);
+});
+
+check('ac03.comment-clamp', '7.1 AC3, 7.1 item 4, 6.12 (D33, D43)', "a long requester's comment is clamped to 3 lines with Show more / Show less", async (t) => {
+  const fx = derive('inbox.approver', 'long-comment', M.longComment);
+  await clampCheck(t, fx, items(fx.result)[0].context.requesterComment, 3);
 });
 
 // AC3: who asked
@@ -557,47 +562,114 @@ check('ac03.how-long', '7.1 AC3, 4.5 (D19)', 'how long is always said: the reque
   if (c3) t.ok(lines(await v3.text(c3)).some((l) => S.validity.days(30).test(l)), 'no "Access for 30 days (ends …)" for an end 30 days ahead');
 });
 
-check('draft9.removal-card', 'draft.9 owner decision 5', 'a removal (change delete): no how-long line and no "No reason given"', async (t) => {
+// The card's facts (D39) and quoted blocks.
+// factsOf returns a card's label and value facts in order: each term's text
+// as written (the labels are styled in capitals) and its value's visible text.
+const factsOf = (card) => card.evaluate((c) => [...c.querySelectorAll('dt')].map((dt) => {
+  const dd = dt.nextElementSibling;
+  return { label: dt.textContent.trim(), value: dd?.tagName === 'DD' ? dd.innerText.replace(/\s+/g, ' ').trim() : null };
+}));
+// hasQuote reports whether a card shows a quoted block.
+const hasQuote = (card) => card.evaluate((c) => [...c.querySelectorAll('blockquote, figure, q')].some((n) => n.getClientRects().length > 0));
+const dataFacts = (facts) => facts.filter((f) => !Object.values(S.inbox.facts).includes(f.label));
+
+check('draft9.removal-card', 'draft.9 owner decision 5, 7.1 item 4 (D43)', 'a removal (change delete): no how-long line and no request details', async (t) => {
   const { v, card } = await inbox(t, 'inbox.removal');
   if (!card) return;
   const ls = lines(await v.text(card));
   t.ok(!ls.some((l) => S.validity.anyRequest.test(l)), `a how-long line on a removal: ${JSON.stringify(ls.filter((l) => S.validity.anyRequest.test(l)))}`);
-  t.ok(!ls.includes(S.inbox.noReason), `"${S.inbox.noReason}" on a removal`);
+  const labels = (await factsOf(card)).map((f) => f.label);
+  t.ok(JSON.stringify(labels) === JSON.stringify([S.inbox.facts.askedBy, S.inbox.facts.why]), `facts on a removal: ${JSON.stringify(labels)}, want only "${S.inbox.facts.askedBy}" and "${S.inbox.facts.why}"`);
+  t.ok(!(await hasQuote(card)), 'a quoted block on a removal');
 });
 
-// AC3: the reason
-check('ac03.reason', '7.1 AC3', 'the reason, titled "Reason given by Bob Stone", as text', async (t) => {
-  const { v, fx, card } = await inbox(t, 'inbox.approver');
+// AC3, 7.1 item 4 (D43): what was asked
+check('ac03.details', '7.1 AC3, 7.1 item 4 (D43)', 'a request detail is a label and value fact ("Justification": the text), before "Why you"', async (t) => {
+  const { fx, card } = await inbox(t, 'inbox.approver');
   if (!card) return;
-  t.ok(await v.hasText(S.inbox.justification('Bob Stone'), { within: card }), `no "${S.inbox.justification('Bob Stone')}"`);
-  t.ok(await v.hasText(items(fx.result)[0].context.justification, { within: card, loose: true }), 'the reason text is not shown');
+  const d = items(fx.result)[0].context.requestDetails[0];
+  const facts = await factsOf(card);
+  const i = facts.findIndex((f) => f.label === d.label);
+  t.ok(i >= 0 && facts[i].value === d.values[0], `no fact "${d.label}": "${d.values[0]}" in ${JSON.stringify(facts)}`);
+  const at = (l) => facts.findIndex((f) => f.label === l);
+  t.ok(at(S.inbox.facts.howLong) < i && i < at(S.inbox.facts.why), `the detail is not between "${S.inbox.facts.howLong}" and "${S.inbox.facts.why}": ${JSON.stringify(facts.map((f) => f.label))}`);
 });
 
-check('ac03.no-reason.field', '7.1 AC3 (D30)', 'reason field configured but empty: "No reason given"', async (t) => {
-  const { v, card } = await inbox(t, 'inbox.manager', {}, 1);
-  if (card) t.ok(await v.hasText(S.inbox.noReason, { within: card }), `no "${S.inbox.noReason}" on the item without a reason`);
-  const { v: v2, card: c2 } = await inbox(t, 'inbox.manager', {}, 0);
-  if (c2) t.ok(!(await v2.hasText(S.inbox.noReason, { within: c2 })), `"${S.inbox.noReason}" on an item with a reason`);
-});
-
-check('ac03.no-reason.no-field', '7.1 AC3 (D5, D30)', 'no reason field: nothing about a reason', async (t) => {
-  const { v, card } = await inbox(t, 'inbox.approver-no-reason-field');
+check('ac03.details.by-name', '7.1 AC3, 7.1 item 4 (D43)', 'a detail without a label from the schema is labelled by its name', async (t) => {
+  const { fx, card } = await inbox(t, 'inbox.approver-no-schema');
   if (!card) return;
-  const text = await v.text();
-  t.ok(!text.includes(S.inbox.noReason), `"${S.inbox.noReason}" without a reason field`);
-  t.ok(!text.includes('Reason given by'), 'a reason block without a reason field');
+  const d = items(fx.result)[0].context.requestDetails[0];
+  const facts = dataFacts(await factsOf(card));
+  t.ok(facts.length === 1 && facts[0].label === d.name && facts[0].value === d.values[0], `facts ${JSON.stringify(facts)}, want "${d.name}": "${d.values[0]}"`);
 });
 
-check('security.untrusted-text', '4.1 rule 7, 9', 'untrusted free text is shown as text, never as HTML', async (t) => {
-  const fx = derive('inbox.approver', 'markup-justification', M.markupJustification);
+check('ac03.details.types', '7.1 AC3, 7.1 item 4, 6.11 (D43)', 'a choice by its label, several values joined, Yes / No, dates as 6.11 says; malformed fields left out', async (t) => {
+  // UTC-10: a date-only value read as midnight UTC would show the day before.
+  const zone = { timeZone: 'Etc/GMT+10', offsetHours: -10 };
+  const { card } = await inbox(t, derive('inbox.approver', 'typed-details', M.typedDetails), { zone });
+  if (!card) return;
+  const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(Date.UTC(2025, 2, 14));
+  const at = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: zone.timeZone })
+    .format(new Date('2025-03-14T09:30:00Z'));
+  const want = [
+    ['Cost center', 'Finance operations'],
+    ['Environments', 'Test, Production'],
+    ['Systems', 'payroll, ledger'],
+    ['Emergency access', S.yes],
+    ['Training done', S.no],
+    ['Needed on', day],
+    ['Handover time', at],
+    ['Access level', 'raw-level'],
+    ['Region', 'eu'],
+  ];
+  const got = dataFacts(await factsOf(card)).map((f) => [f.label, f.value]);
+  t.ok(JSON.stringify(got) === JSON.stringify(want), `facts ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
+  const times = await card.locator('time[datetime]').evaluateAll((els) => els.map((el) => el.getAttribute('datetime')));
+  t.ok(times.includes('2025-03-14') && times.includes('2025-03-14T09:30:00Z'), `the dates are not <time datetime> elements (6.11): ${JSON.stringify(times)}`);
+});
+
+check('ac03.comment', '7.1 AC3, 7.1 item 4 (D43)', 'the requester\'s comment, quoted and titled "Comment from Bob Stone"', async (t) => {
+  const fx = derive('inbox.approver', 'requester-comment', M.requesterComment);
   const { v, card } = await inbox(t, fx);
   if (!card) return;
-  t.ok(await v.hasText('<b>urgent</b>', { within: card, loose: true }), 'the markup is not shown literally');
+  const quote = card.getByRole('blockquote');
+  t.ok(await v.visible(quote), 'the comment is not a quoted block');
+  t.ok(await v.hasText(S.inbox.comment('Bob Stone'), { within: card }), `no "${S.inbox.comment('Bob Stone')}"`);
+  t.ok(await v.hasText(items(fx.result)[0].context.requesterComment, { within: card, loose: true }), 'the comment text is not shown');
+  t.ok(!(await v.hasText(S.inbox.commentHidden, { within: card })), `"${S.inbox.commentHidden}" for a requester the approver can see`);
+});
+
+check('ac03.comment.hidden', '7.1 AC3, 7.1 item 4 (D30, D43)', `a requester the approver can't see: the comment is titled "${S.inbox.commentHidden}"`, async (t) => {
+  const fx = derive('inbox.approver-unreadable', 'requester-comment', M.requesterComment);
+  const { v, card } = await inbox(t, fx);
+  if (!card) return;
+  t.ok(await v.visible(card.getByText(S.inbox.commentHidden, { exact: true })), `no "${S.inbox.commentHidden}"`);
+  t.ok(await v.hasText(items(fx.result)[0].context.requesterComment, { within: card, loose: true }), 'the comment text is not shown');
+  t.ok(!/Comment from /.test(await v.text(card)), 'the comment names a requester the approver can\'t see');
+});
+
+check('ac03.details.none', '7.1 AC3, 7.1 item 4 (D43)', 'no details and no comment: no detail facts, no quoted block', async (t) => {
+  const { v, card } = await inbox(t, 'inbox.manager', {}, 1);
+  if (!card) return;
+  const facts = await factsOf(card);
+  t.ok(dataFacts(facts).length === 0, `facts without request details: ${JSON.stringify(facts.map((f) => f.label))}`);
+  t.ok(!(await hasQuote(card)), 'a quoted block without a comment');
+  const text = await v.text(card);
+  t.ok(!text.includes(S.inbox.commentHidden) && !/Comment from /.test(text), 'a comment title without a comment');
+});
+
+check('security.untrusted-text', '4.1 rule 7, 9', 'untrusted free text (a request detail, the comment) is shown as text, never as HTML', async (t) => {
+  const fx = derive('inbox.approver', 'markup-text', M.markupText);
+  const { v, card } = await inbox(t, fx);
+  if (!card) return;
+  t.ok(await v.hasText('<b>urgent</b>', { within: card, loose: true }), 'the markup in a request detail is not shown literally');
+  t.ok(await v.hasText('<i>also</i>', { within: card, loose: true }), 'the markup in the comment is not shown literally');
   const injected = await card.evaluate((c) => ({
     bold: [...c.querySelectorAll('b, strong')].some((b) => b.textContent.includes('urgent')),
-    img: [...c.querySelectorAll('img')].some((i) => i.getAttribute('src') === 'x'),
+    italic: [...c.querySelectorAll('i, em')].some((b) => b.textContent.includes('also')),
+    img: [...c.querySelectorAll('img')].some((i) => ['x', 'y'].includes(i.getAttribute('src'))),
   }));
-  t.ok(!injected.bold && !injected.img, `the reason was parsed as HTML: ${JSON.stringify(injected)}`);
+  t.ok(!injected.bold && !injected.italic && !injected.img, `untrusted text was parsed as HTML: ${JSON.stringify(injected)}`);
   t.ok((await v.frame.title()) !== 'owned', 'an injected handler ran');
 });
 
@@ -745,7 +817,7 @@ check('ac05.details.only-new', '7.1 AC5 (D28)', 'Details repeat nothing the card
   if (!t.ok(d?.region, 'Details have no region named by aria-controls')) return;
   await settle(400);
   const text = await v.text(d.region);
-  for (const s of ['Requested by', 'Decide by', 'Risk:', S.d37.step(1, 2), 'Reason given by', "You're asked", S.validity.permanent, 'Access for', 'Access from']) {
+  for (const s of ['Requested by', 'Decide by', 'Risk:', S.d37.step(1, 2), items(fx.result)[0].context.requestDetails[0].values[0], "You're asked", S.validity.permanent, 'Access for', 'Access from']) {
     t.ok(!text.includes(s), `Details repeat "${s}"`);
   }
   t.ok(!KIND_LABELS.test(stripData(text, fx.result, fixture('case.approver').result)), `kind label "${stripData(text, fx.result).match(KIND_LABELS)?.[0]}" in Details`);

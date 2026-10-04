@@ -24,6 +24,7 @@ export const mutations={
  slot:(decision)=>r=>{r._meta={'intermediary/decision':{v:1,decision,audited:true,source:'Policy service',reason:'Review is required.'}}},
  error:(code,field)=>r=>{delete r.structuredContent;r.isError=true;r._meta={'midpoint-mcp-server/error':{v:1,code,...(field?{field}:{})}}},
  formNames:(r)=>{r.structuredContent.form.items.forEach(i=>{if(i.name==='justification')delete i.displayName})},
+ lists:(r)=>{for(const i of r.structuredContent.form.items){if(i.name==='accessLevel'){i.multiple=true;i.required=true;}if(i.name==='ticket')i.multiple=true;}},
 };
 export const roleName=r=>r.displayName||r.name;
 export const role=(fx=fixture('catalog'))=>fx.result.structuredContent.roles[0];

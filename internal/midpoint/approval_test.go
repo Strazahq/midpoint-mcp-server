@@ -63,6 +63,12 @@ var twoSteps = []StageInfo{
 	{Number: 2, Count: 2, Name: "Role approvers", Strategy: StrategyFirstDecides},
 }
 
+// details are a request's fields as a server without a request form lists
+// them: by name, in midPoint's order.
+func details(a approval) []RequestDetail { return (&Client{}).requestDetailsOf(a) }
+
+var wantJustification = []RequestDetail{{Name: "justification", Values: []string{"Needed for the quarter-end close."}}}
+
 func stageInfos(a approval) []StageInfo {
 	out := []StageInfo{}
 	for _, s := range a.stages {
@@ -79,11 +85,8 @@ func TestApprovalFromSearch(t *testing.T) {
 	if a.change != ChangeAdd {
 		t.Errorf("change = %q, want add", a.change)
 	}
-	if got := a.justification(justificationItem, true); got != "Needed for the quarter-end close." {
-		t.Errorf("justification = %q", got)
-	}
-	if got := a.justification(justificationItem, false); got != "" {
-		t.Errorf("justification without the setting = %q, want none", got)
+	if got := details(a); !reflect.DeepEqual(got, wantJustification) {
+		t.Errorf("request details = %+v, want %+v", got, wantJustification)
 	}
 	want := &Validity{ValidFrom: "2026-10-02T00:00:00+02:00", ValidTo: "2026-10-31T23:59:59+01:00"}
 	if got := a.validity(); !reflect.DeepEqual(got, want) {
@@ -109,8 +112,8 @@ func TestApprovalFromSearch(t *testing.T) {
 func TestApprovalFromGet(t *testing.T) {
 	cj := fixtureCase(t, "case_get_closed.json")
 	a := cj.approval()
-	if a.change != ChangeAdd || a.justification(justificationItem, true) != "Needed for the quarter-end close." {
-		t.Errorf("change = %q, justification = %q", a.change, a.justification(justificationItem, true))
+	if a.change != ChangeAdd || !reflect.DeepEqual(details(a), wantJustification) {
+		t.Errorf("change = %q, request details = %+v", a.change, details(a))
 	}
 	if got := stageInfos(a); !reflect.DeepEqual(got, twoSteps) {
 		t.Errorf("stages = %+v", got)
@@ -135,22 +138,22 @@ func TestApprovalSingleStage(t *testing.T) {
 	if s, _ := a.stage(1); len(s.approvers) != 0 {
 		t.Errorf("approvers = %+v, want none", s.approvers)
 	}
-	if a.change != ChangeAdd || a.validity() != nil || a.justification(justificationItem, true) != "" {
-		t.Errorf("change=%q validity=%+v justification=%q, want add without either",
-			a.change, a.validity(), a.justification(justificationItem, true))
+	if a.change != ChangeAdd || a.validity() != nil || details(a) != nil {
+		t.Errorf("change=%q validity=%+v details=%+v, want add without either",
+			a.change, a.validity(), details(a))
 	}
 }
 
 // A removal parks the whole assignment value, with prefixed keys. It is a
-// delete, and the value's validity and justification belong to the grant
+// delete, and the value's validity and fields belong to the grant
 // being removed, not to the request.
 func TestApprovalRemoval(t *testing.T) {
 	a := fixtureCases(t, "cases_search_removal.json")[0].approval()
 	if a.change != ChangeDelete {
 		t.Errorf("change = %q, want delete", a.change)
 	}
-	if a.validity() != nil || a.justification(justificationItem, true) != "" {
-		t.Errorf("a removal shows validity %+v and justification %q", a.validity(), a.justification(justificationItem, true))
+	if a.validity() != nil || details(a) != nil {
+		t.Errorf("a removal shows validity %+v and details %+v", a.validity(), details(a))
 	}
 	if got := stageInfos(a); len(got) != 1 || got[0].Name != "Removal check" {
 		t.Errorf("stages = %+v", got)

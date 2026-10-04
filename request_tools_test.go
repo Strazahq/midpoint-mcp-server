@@ -545,19 +545,16 @@ func TestInboxDataThroughMCP(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	cfg := midpoint.Config{BaseURL: srv.URL, Username: "u", Password: "p"}
-	cfg.File.Requests.JustificationItem = "{http://example.com/xml/ns/access-request}justification"
 	cs := connectViewRequests(t, cfg)
 
 	out, text := callToolText(t, cs, "list_work_items", map[string]any{})
-	if server, _ := out["server"].(map[string]any); server["requestReason"] != true {
-		t.Errorf("server = %v, want requestReason true", out["server"])
-	}
 	items, _ := out["workItems"].([]any)
 	if len(items) != 1 {
 		t.Fatalf("workItems = %v", out["workItems"])
 	}
 	wc, _ := items[0].(map[string]any)["context"].(map[string]any)
-	if wc["justification"] != "Needed for the quarter-end close." || wc["reason"] != "roleApprover" {
+	details, _ := wc["requestDetails"].([]any)
+	if len(details) != 1 || details[0].(map[string]any)["name"] != "justification" || wc["reason"] != "roleApprover" {
 		t.Errorf("context = %v", wc)
 	}
 	access, _ := wc["requesteeAccess"].(map[string]any)
@@ -568,8 +565,8 @@ func TestInboxDataThroughMCP(t *testing.T) {
 	if via, _ := roles[3].(map[string]any)["via"].(map[string]any); via["name"] != "build-runner" {
 		t.Errorf("included role = %v, want via build-runner", roles[3])
 	}
-	if !strings.Contains(text, "[untrusted justification") {
-		t.Errorf("text has no justification line:\n%s", text)
+	if !strings.Contains(text, `[untrusted field "justification" from requester`) {
+		t.Errorf("text has no request field line:\n%s", text)
 	}
 
 	out = callTool(t, cs, "get_case", map[string]any{"oid": "40000000-0000-0000-0000-000000000001"})

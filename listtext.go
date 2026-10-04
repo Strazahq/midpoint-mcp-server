@@ -72,6 +72,24 @@ func (t *listText) untrusted(f untrustedField, from textSource, text string) {
 		f.name, from, quoted(truncate(text, f.limit))))
 }
 
+// request adds a request's fields and its requester's comment (D43), each on
+// an untrusted line under the line before it. A field is named by its label
+// in midPoint's schema; a choice shows its labels.
+func (t *listText) request(requester string, details []midpoint.RequestDetail, comment string) {
+	for _, d := range details {
+		// The label is midPoint's schema text; brackets would end the marker.
+		name := truncate(strings.TrimSpace(markerSafe.Replace(plainText(cmp.Or(d.Label, d.Name)))), 60)
+		values := d.Values
+		if len(d.Labels) == len(d.Values) && len(d.Labels) > 0 {
+			values = d.Labels
+		}
+		t.untrusted(untrustedField{"field " + quoted(name), 200}, fromRequester(requester), strings.Join(values, ", "))
+	}
+	t.untrusted(fieldComment, fromRequester(requester), comment)
+}
+
+var markerSafe = strings.NewReplacer("[", "(", "]", ")")
+
 // String returns the lines joined by line feeds, with no trailing one.
 func (t *listText) String() string {
 	return strings.Join(t.lines, "\n")
@@ -85,10 +103,9 @@ type untrustedField struct {
 
 // The untrusted fields of rule 4.
 var (
-	fieldDescription   = untrustedField{"description", 120}
-	fieldJustification = untrustedField{"justification", 200}
-	fieldComment       = untrustedField{"comment", 200}
-	fieldMessage       = untrustedField{"message", 160}
+	fieldDescription = untrustedField{"description", 120}
+	fieldComment     = untrustedField{"comment", 200}
+	fieldMessage     = untrustedField{"message", 160}
 	// fieldAnswer is what midPoint said about a refusal (D42), already cut
 	// to 600 characters by the client.
 	fieldAnswer = untrustedField{"message", 600}
@@ -258,7 +275,7 @@ func workItemsText(line1 string, items []midpoint.InboxWorkItem) string {
 			textField{"claimed", boolText(wi.Claimed)},
 			textField{"offeredTo", offeredToText(wi.OfferedTo)},
 		)
-		t.untrusted(fieldJustification, fromRequester(requester), c.Justification)
+		t.request(requester, c.RequestDetails, c.RequesterComment)
 	}
 	return t.String()
 }
@@ -271,7 +288,7 @@ func caseText(line1 string, c midpoint.CaseDetail) string {
 	if c.RequestorRef != nil {
 		requester = cmp.Or(c.RequestorRef.Name, requester)
 	}
-	t.untrusted(fieldJustification, fromRequester(requester), c.Justification)
+	t.request(requester, c.RequestDetails, c.RequesterComment)
 	t.group("Work items:")
 	for _, wi := range c.WorkItems {
 		// midPoint also closes items nobody decided (a cancelled case, a

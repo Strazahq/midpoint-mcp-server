@@ -28,6 +28,8 @@ export const S = {
   showLess: 'Show less',
   whatsThis: "What's this?",
   you: 'you',
+  yes: 'Yes',
+  no: 'No',
   personHidden: "a person you can't see in midPoint",
   personHiddenStart: "A person you can't see in midPoint",
   itemHidden: "an item you can't see in midPoint",
@@ -167,9 +169,9 @@ export const S = {
     requestedAt: /^Requested .+\(.+\)$/,
     deadline: (time) => `Decide by ${time}`,
     overduePrefix: 'Decision overdue since ',
-    justification: (requester) => `Reason given by ${requester}`,
-    justificationHidden: 'Reason given',
-    noReason: 'No reason given',
+    // D43 (draft.13): the requester's comment from midPoint's Request access page
+    comment: (requester) => `Comment from ${requester}`,
+    commentHidden: "Requester's comment",
     cantApprove:
       "You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you.",
     risk: (level) => `Risk: ${level}`,

@@ -28,7 +28,7 @@ func registerRequestTools(server *mcp.Server, client *midpoint.Client, allowWrit
 // --- list_requestable_roles ---
 
 type listRequestableRolesInput struct {
-	Query   string `json:"query,omitempty" jsonschema:"case-insensitive substring of role name, display name or description; at most 100 characters"`
+	Query   string `json:"query,omitempty" jsonschema:"case-insensitive substring of role name or display name; at most 100 characters"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"maximum results, default 20, max 100"`
 	ForUser string `json:"forUser,omitempty" jsonschema:"OID of a user to list requestable roles FOR — e.g. a direct report from list_my_team; returns roles they do not already hold, so you can request one for them. Omit to list your own."`
 }
@@ -73,7 +73,7 @@ func registerListRequestableRoles(server *mcp.Server, client *midpoint.Client, i
 type requestRoleInput struct {
 	ValidFrom string         `json:"validFrom,omitempty" jsonschema:"inclusive start in RFC 3339 with offset; no earlier than today"`
 	ValidTo   string         `json:"validTo,omitempty" jsonschema:"end in RFC 3339 with offset; after the start and in the future"`
-	Fields    map[string]any `json:"fields,omitempty" jsonschema:"values keyed by local names from list_requestable_roles form.items"`
+	Fields    map[string]any `json:"fields,omitempty" jsonschema:"the request's fields: values keyed by the names in list_requestable_roles form.items (its Request form fields); a list for a multiple field, an option value for a choice. midPoint decides on submit who must fill what"`
 	RoleOID   string         `json:"roleOid" jsonschema:"OID of the role to request"`
 	RoleName  string         `json:"roleName" jsonschema:"the role's midPoint name (its unique name attribute, not the display name); must match roleOid"`
 	UserOID   string         `json:"userOid,omitempty" jsonschema:"OID of the user the role is for; defaults to the authenticated user (self-service)"`
@@ -448,11 +448,18 @@ func requestCatalogText(first string, roles []midpoint.RoleSummary, form *midpoi
 	if form != nil {
 		t.group("Request form fields:")
 		for _, i := range form.Items {
-			j := ""
-			if i.Justification {
-				j = "true"
+			var opts []string
+			for _, o := range i.Options {
+				opts = append(opts, o.Value)
 			}
-			t.item(i.Name, textField{"type", i.Type}, textField{"required", strconv.FormatBool(i.Required)}, textField{"label", i.DisplayName}, textField{"justification", j})
+			t.item(i.Name, textField{"type", i.Type}, textField{"required", strconv.FormatBool(i.Required)}, textField{"label", i.DisplayName},
+				textField{"multiple", boolText(i.Multiple)}, textField{"options", strings.Join(opts, "|")})
+		}
+		if len(form.Other) > 0 {
+			t.group("Fields only midPoint's own page can fill:")
+			for _, o := range form.Other {
+				t.item(o.Name, textField{"label", o.DisplayName})
+			}
 		}
 	}
 	return t.String()

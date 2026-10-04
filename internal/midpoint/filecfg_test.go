@@ -62,9 +62,8 @@ func TestLoadFileConfigParses(t *testing.T) {
 	if fc.Requests.RequestableRequired() {
 		t.Error("requests.requireRequestable=false not read")
 	}
-	want := QName{Namespace: "http://example.com/xml/ns/access-request", Local: "justification"}
-	if q, ok := fc.Requests.Justification(); !ok || q != want {
-		t.Errorf("requests.justificationItem = %+v, %v; want %+v", q, ok, want)
+	if fc.Requests.JustificationItem == "" {
+		t.Error("requests.justificationItem of 0.5 no longer loads")
 	}
 }
 
@@ -80,12 +79,6 @@ func TestLoadFileConfigRejectsBadInput(t *testing.T) {
 		{"prefixed relation", `{"team":{"managerRelation":"org:manager"}}`, "managerRelation"},
 		{"injected relation", `{"team":{"memberRelation":"default\" or name = \"admin"}}`, "memberRelation"},
 		{"unknown field", `{"team":{"orgSourc":"parentOrgRef"}}`, "MIDPOINT_MCP_CONFIG"},
-		{"justification without namespace", `{"requests":{"justificationItem":"justification"}}`, "requests.justificationItem"},
-		{"justification with empty namespace", `{"requests":{"justificationItem":"{}justification"}}`, "requests.justificationItem"},
-		{"justification without local name", `{"requests":{"justificationItem":"{urn:x}"}}`, "requests.justificationItem"},
-		{"justification unclosed", `{"requests":{"justificationItem":"{urn:x justification"}}`, "requests.justificationItem"},
-		{"justification prefixed", `{"requests":{"justificationItem":"{urn:x}ext:justification"}}`, "requests.justificationItem"},
-		{"justification with spaces", `{"requests":{"justificationItem":" {urn:x}justification"}}`, "requests.justificationItem"},
 		{"justification not a string", `{"requests":{"justificationItem":["{urn:x}a"]}}`, "MIDPOINT_MCP_CONFIG"},
 		{"malformed json", `{"team":`, "MIDPOINT_MCP_CONFIG"},
 	}
@@ -189,9 +182,5 @@ func TestParseQName(t *testing.T) {
 		if _, err := parseQName(in); err == nil {
 			t.Errorf("parseQName(%q) accepted", in)
 		}
-	}
-	// Unset is no justification, not an error.
-	if _, ok := (RequestsConfig{}).Justification(); ok {
-		t.Error("an unset justificationItem reports one")
 	}
 }

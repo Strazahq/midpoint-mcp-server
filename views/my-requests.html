@@ -329,6 +329,11 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-timeline > li.mp-tl--waiting::before{border-color:var(--mp-warning-text);background:var(--mp-warning-soft)}
 .mp-timeline > li.mp-tl--rejected::before{border-color:var(--mp-danger-text);background:var(--mp-danger-text)}
 .mp-timeline > li.mp-tl--closed::before{border-color:var(--mp-neutral-text);background:var(--mp-neutral-text)}
+/* what was asked (6.15, D43): the request's fields as facts; a long label wraps, and labels stack under 470 px */
+.mp-asked{grid-template-columns:fit-content(40%) minmax(0,1fr)}
+.mp-asked dt{white-space:normal;overflow-wrap:anywhere}
+.mp-asked-text{white-space:pre-wrap}
+@container (max-width:469px){.mp-asked{grid-template-columns:minmax(0,1fr)}}
 .mp-btn--danger{color:var(--mp-on-danger)}
 /* ledger (B, full screen): Request | Asked | State | action, a band per group; labels inline under 560 px */
 .mp-ltable{display:grid;border:1px solid var(--mp-border);border-radius:12px;background:var(--mp-card);overflow:hidden;min-width:0}
@@ -402,6 +407,8 @@ const CAT = {
   "common.andMore": "{count, plural, one {# more} other {# more}}",
   "common.whatsThis": "What's this?",
   "common.you": "you",
+  "common.yes": "Yes",
+  "common.no": "No",
   "common.personHidden": "a person you can't see in midPoint",
   "common.personHiddenStart": "A person you can't see in midPoint",
   "common.itemHidden": "an item you can't see in midPoint",
@@ -481,7 +488,8 @@ const CAT = {
   "time.tomorrowAt": "tomorrow, {time}",
   "time.today": "today",
   "time.tomorrow": "tomorrow",
-  "timeline.justification": "Your justification",
+  "timeline.details": "Your request details",
+  "timeline.yourComment": "Your comment",
   "timeline.stage": "Step {number}: {who}",
   "timeline.stageNamed": "Step {number}, {name}: {who}",
   "timeline.whoAll": "{count, plural, =2 {{names}, both needed} other {{names}, all needed}}",
@@ -657,7 +665,7 @@ function normActing(a){
 }
 function normServer(s){
   if (!isObj(s)) return null;
-  return {writesEnabled:s.writesEnabled !== false, requestReason:s.requestReason === true, uiContract:str(s.uiContract), gui:isObj(s.gui) ? s.gui : null};
+  return {writesEnabled:s.writesEnabled !== false, uiContract:str(s.uiContract), gui:isObj(s.gui) ? s.gui : null};
 }
 function normValidity(v){
   if (!isObj(v)) return null;
@@ -665,6 +673,12 @@ function normValidity(v){
   return from || to ? {validFrom:from, validTo:to} : null;
 }
 const isOpen = c => c.state === 'open' || c.state === 'created';
+/* D43: the request's fields; an entry needs a name and at least one value, and a choice's labels pair one to one with its values */
+const strs = v => Array.isArray(v) && v.every(x => typeof x === 'string') ? v.slice() : null;
+const normDetails = v => arr(v).filter(d => isObj(d) && str(d.name) && strs(d.values) && d.values.length).map(d => {
+  const labels = strs(d.labels);
+  return {name:d.name, label:str(d.label), type:str(d.type), values:d.values.slice(), labels:labels && labels.length === d.values.length ? labels : null};
+});
 function normCase(sc){
  if (!isObj(sc) || !str(sc.oid)) return null;
  const workItems = arr(sc.workItems).filter(isObj).map(w => ({id:str(w.id), stage:int(w.stage),
@@ -674,7 +688,7 @@ function normCase(sc){
   objectRef:ref(sc.objectRef),requestorRef:isObj(sc.requestorRef) ? ref(sc.requestorRef) : null,
   requestedAt:str(sc.requestedAt),closedAt:str(sc.closedAt),validity:normValidity(sc.validity),
   waitingFor:Array.isArray(sc.waitingFor) ? sc.waitingFor.filter(isObj).map(ref) : workItems.filter(w => !w.closedAt && !w.outcome).flatMap(w => w.assignees),
-  justification:str(sc.justification),workItems,stage:isObj(sc.stage) ? {number:int(sc.stage.number),count:int(sc.stage.count)} : null,
+  requestDetails:normDetails(sc.requestDetails),requesterComment:str(sc.requesterComment).trim(),workItems,stage:isObj(sc.stage) ? {number:int(sc.stage.number),count:int(sc.stage.count)} : null,
   stages:arr(sc.stages).filter(isObj).map(s => ({number:int(s.number),name:str(s.name),strategy:str(s.strategy)})).filter(s => s.number > 0)};
 }
 function normList(sc){
@@ -798,6 +812,7 @@ function fmt(){
   const build = (l, z) => ({key,
     dt:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
     date:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', timeZone:z}),
+    day:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'}),
     hm:new Intl.DateTimeFormat(l, {hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
     zp:new Intl.DateTimeFormat('en-US', {timeZone:z, hourCycle:'h23', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'})});
   try { FMT = build(loc, tz); } catch (e) { FMT = build('en-GB', undefined); }
@@ -838,6 +853,16 @@ function timeEl(iso, o){
   return el;
 }
 const dateEl = iso => { const ok = !isNaN(Date.parse(iso)); return h('time', {datetime:ok ? iso : null, title:ok ? fmt().date.format(Date.parse(iso)) : null}, smartDate(iso)); };
+/* a request field's date (D43): a dateTime is an instant (RFC 3339); a date is a calendar day, never shifted by a zone */
+const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/i;
+const isInstant = v => RFC3339.test(v) && !isNaN(Date.parse(v));
+function dayOf(v){
+  const m = /^(\d{4})-(\d{2})-(\d{2})(T.*)?$/.exec(v); if (!m || (m[4] && !isInstant(v))) return '';
+  const d = new Date(Date.UTC(+m[1], m[2] - 1, +m[3]));
+  return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === m[2] - 1 && d.getUTCDate() === +m[3] ? m[1] + '-' + m[2] + '-' + m[3] : '';
+}
+function dayText(ymd){ const today = ymdOf(Date.now()), p = ymd.split('-').map(Number); return ymd === today ? ts('time.today') : ymd === addDays(today, 1) ? ts('time.tomorrow') : fmt().day.format(Date.UTC(p[0], p[1] - 1, p[2])); }
+const dayEl = ymd => h('time', {datetime:ymd}, dayText(ymd));
 
 /* requested access (4.5): always says something; N counts calendar days in the host zone */
 function requestValidity(v){
@@ -1096,11 +1121,32 @@ function caseChip(c, withdrawn){
  if (c.outcome === 'reject') return chip('danger','x',t('status.case.rejected'));
  return chip('secondary','lock',t('status.case.closed'));
 }
+/* What was asked (6.15, D43): the request's fields as facts, then the comment typed in midPoint's own page.
+   The requester's text (4.1 rule 7): plain text, each value clamped like a quote; dates as 6.11 says */
+function valueText(d, x, i){
+ if (d.type === 'choice' && d.labels) return d.labels[i] || x;
+ if (d.type === 'boolean' && (x === 'true' || x === 'false')) return ts(x === 'true' ? 'common.yes' : 'common.no');
+ if (d.type === 'date' && dayOf(x)) return dayText(dayOf(x));
+ if (d.type === 'dateTime' && isInstant(x)) return smartTime(x);
+ return x;
+}
+function valueEl(d, k){
+ const when=d.type === 'date' ? x => dayOf(x) && dayEl(dayOf(x)) : d.type === 'dateTime' ? x => isInstant(x) && timeEl(x,{smart:true}) : null;
+ const els=when ? d.values.map(when) : [];
+ /* every value a date: <time> elements; otherwise one clamped line of text, values joined with ", " */
+ return when && els.every(Boolean) ? els.map((e,i) => [i ? ', ' : null,e]) : clampText(k,d.values.map((x,i) => valueText(d,x,i)).join(', '),3,'mp-asked-text');
+}
+function askedEl(c){
+ const id='asked-'+idOf(c.oid);
+ return [c.requestDetails.length ? h('div',{class:'mp-sub',role:'group','aria-labelledby':id},h('p',{class:'mp-sub-title',id},t('timeline.details')),
+   h('dl',{class:'mp-facts mp-asked'},c.requestDetails.map((d,i) => [h('dt',null,d.label || d.name),h('dd',null,valueEl(d,'ask:'+c.oid+':'+i))]))) : null,
+  c.requesterComment ? quote(t('timeline.yourComment'),c.requesterComment,'rq:'+c.oid,3) : null];
+}
 /* one dot per step in its status colour (D39): done, waiting, rejected, closed without an outcome, or not started */
 function timelineEl(c){
  const steps=new Map(c.stages.map(s => [s.number,s]));
  c.workItems.forEach(w => {if(w.stage>0 && !steps.has(w.stage)) steps.set(w.stage,{number:w.stage});});
- return [c.justification ? quote(t('timeline.justification'),c.justification,'reason:'+c.oid,3) : null,
+ return [askedEl(c),
   h('ol',{class:'mp-timeline'},[...steps.values()].sort((a,b)=>a.number-b.number).map(s=>{
    const items=c.workItems.filter(w=>w.stage===s.number),who=names(items.flatMap(w=>w.assignees),s.strategy,S.acting && S.acting.oid);
    const open=items.some(w=>!w.closedAt && !w.outcome),decided=items.filter(w=>w.closedAt && w.outcome && w.performer);

@@ -186,7 +186,6 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-line > svg{flex:none;margin-top:4px;color:var(--mp-text-muted)}
 .mp-lines{display:grid;gap:4px}
 .mp-about-text{color:var(--mp-text)}
-.mp-noreason{margin:0;color:var(--mp-text-muted);font-style:italic}
 .mp-quote{display:grid;gap:4px;margin:0;padding:8px 12px;border-left:3px solid var(--mp-border);background:var(--mp-canvas-subtle);border-radius:0 4px 4px 0}
 .mp-quote-lab{font-size:12px;color:var(--mp-text)}
 .mp-quote blockquote{margin:0;display:grid;gap:2px}
@@ -264,8 +263,11 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-card-more{padding:12px 14px;background:var(--mp-canvas-subtle)}
 .mp-card-foot{padding:10px 14px;background:none}
 .mp-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:7px 16px;margin:0}
-.mp-facts dt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-text-muted);padding-top:3px;white-space:nowrap}
+.mp-facts dt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mp-text-muted);padding-top:3px;max-width:180px;overflow-wrap:anywhere}
 .mp-facts dd{margin:0;color:var(--mp-text-strong);min-width:0;overflow-wrap:anywhere}
+/* D43: a requested field's value is the requester's text, kept as typed */
+.mp-facts dd.mp-fact-long{display:grid;gap:2px}
+.mp-fact-text{white-space:pre-wrap}
 .mp-quote{border-left:0;border-radius:8px;padding:10px 12px;background:var(--mp-canvas-subtle)}
 .mp-quote-lab{font-weight:600;color:var(--mp-text)}
 .mp-quote-text{font-size:15px}
@@ -291,6 +293,7 @@ button,input,textarea{font:inherit;color:inherit}
 @container (max-width:469px){
   .mp-card-body{padding-left:14px}
   .mp-facts{grid-template-columns:minmax(0,1fr);gap:0}
+  .mp-facts dt{max-width:none}
   .mp-facts dd{margin-bottom:8px}
   .mp-btn{min-height:40px}
   .mp-btn--link{min-height:32px}
@@ -328,6 +331,8 @@ const CAT = {
 'common.showMore':`Show more`,
 'common.showLess':`Show less`,
 'common.whatsThis':`What's this?`,
+'common.yes':`Yes`,
+'common.no':`No`,
 'common.personHidden':`a person you can't see in midPoint`,
 'common.personHiddenStart':`A person you can't see in midPoint`,
 'common.itemHidden':`an item you can't see in midPoint`,
@@ -423,9 +428,8 @@ const CAT = {
 'inbox.item.requestedAt':`Requested {time}`,
 'inbox.item.deadline':`Decide by {time}`,
 'inbox.item.overdue':`Decision overdue since {time}`,
-'inbox.item.justification':`Reason given by {requester}`,
-'inbox.item.justificationHidden':`Reason given`,
-'inbox.item.noReason':`No reason given`,
+'inbox.item.comment':`Comment from {requester}`,
+'inbox.item.commentHidden':`Requester's comment`,
 'inbox.item.cantApprove':`You can't see who this is for, so you can't approve it here. You can still reject it, or ask your midPoint administrator why this person is hidden from you.`,
 'inbox.item.risk':`Risk: {level}`,
 'inbox.item.why.manager':`You manage {requestee}`,
@@ -629,12 +633,20 @@ function normActing(a){
 }
 function normServer(s){
   if (!isObj(s)) return null;
-  return {writesEnabled:s.writesEnabled !== false, requestReason:s.requestReason === true, uiContract:str(s.uiContract), gui:isObj(s.gui) ? s.gui : null};
+  return {writesEnabled:s.writesEnabled !== false, uiContract:str(s.uiContract), gui:isObj(s.gui) ? s.gui : null};
 }
 function normValidity(v){
   if (!isObj(v)) return null;
   const from = str(v.validFrom), to = str(v.validTo);
   return from || to ? {validFrom:from, validTo:to} : null;
+}
+/* a field the request carried (D43); its values are the requester's free text; an unknown type is plain text */
+const DETAIL_TYPES = ['string', 'boolean', 'int', 'long', 'decimal', 'date', 'dateTime', 'choice'];
+const strs = v => Array.isArray(v) && v.every(x => typeof x === 'string');
+function normDetail(d){
+  if (!isObj(d) || !str(d.name).trim() || !strs(d.values) || !d.values.length) return null;
+  return {name:d.name, label:str(d.label).trim(), type:pick(d.type, DETAIL_TYPES, ''), values:d.values.slice(),
+    labels:strs(d.labels) && d.labels.length === d.values.length ? d.labels.slice() : null};
 }
 function normMembership(v){
   if (!isObj(v) || !str(v.oid)) return null;
@@ -650,7 +662,7 @@ function normItem(w){
     offeredTo:isObj(w.offeredTo) ? ref(w.offeredTo) : null, context:{
     change:pick(c.change, ['add', 'delete', 'modify'], 'unknown'),
     requester:ref(c.requester), requestee:ref(c.requestee), target:ref(c.target),
-    justification:str(c.justification).trim(), validity:normValidity(c.validity),
+    requestDetails:arr(c.requestDetails).map(normDetail).filter(Boolean), requesterComment:str(c.requesterComment).trim(), validity:normValidity(c.validity),
     requestedAt:str(c.requestedAt), createdAt:str(c.createdAt), deadline:str(c.deadline),
     stage:{number:int(st.number) || int(w.stage), count:int(st.count), name:str(st.name)},
     reason:pick(c.reason, ['manager', 'roleApprover', 'roleOwner', 'group', 'assigned'], 'assigned'),
@@ -786,6 +798,7 @@ function fmt(){
   const build = (l, z) => ({key,
     dt:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
     date:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', timeZone:z}),
+    day:new Intl.DateTimeFormat(l, {day:'numeric', month:'short', year:'numeric', timeZone:'UTC'}),
     hm:new Intl.DateTimeFormat(l, {hour:'2-digit', minute:'2-digit', hourCycle:'h23', timeZone:z}),
     zp:new Intl.DateTimeFormat('en-US', {timeZone:z, hourCycle:'h23', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'})});
   try { FMT = build(loc, tz); } catch (e) { FMT = build('en-GB', undefined); }
@@ -826,6 +839,12 @@ function timeEl(iso, o){
   return el;
 }
 const dateEl = iso => { const ok = !isNaN(Date.parse(iso)); return h('time', {datetime:ok ? iso : null, title:ok ? fmt().date.format(Date.parse(iso)) : null}, smartDate(iso)); };
+/* a date-only value (YYYY-MM-DD) is a calendar day, never shifted by the host zone; today and tomorrow in words (D33) */
+const isDay = v => /^\d{4}-\d{2}-\d{2}$/.test(v) && addDays(v, 0) === v;
+function dayEl(ymd){
+  const p = ymd.split('-').map(Number), abs = fmt().day.format(Date.UTC(p[0], p[1] - 1, p[2])), today = ymdOf(Date.now());
+  return h('time', {datetime:ymd, title:abs}, ymd === today ? ts('time.today') : ymd === addDays(today, 1) ? ts('time.tomorrow') : abs);
+}
 
 /* requested access (4.5): always says something; N counts calendar days in the host zone */
 function requestValidity(v){
@@ -1131,6 +1150,17 @@ function whyText(x, it){
   if (x.reason === 'roleOwner') return t('inbox.item.why.roleOwner', p);
   return x.stage.name ? t('inbox.item.why.step', p) : t('inbox.item.why.assigned');
 }
+/* 7.1 item 4 (D43): a field the request carried, labelled from midPoint's schema or by its name. The values are the
+   requester's: plain text clamped to 3 lines; a choice by its labels, a boolean in words, valid dates as <time> (6.11) */
+function detailFact(d, k){
+  const lab = d.label || d.name;
+  const dates = d.type === 'date' ? d.values.every(isDay) && d.values.map(dayEl)
+    : d.type === 'dateTime' ? d.values.every(v => !isNaN(Date.parse(v))) && d.values.map(v => timeEl(v, {smart:true})) : null;
+  if (dates) return [lab, dates.map((el, i) => i ? [', ', el] : el)];
+  const text = d.values.map((v, i) => d.labels && d.labels[i].trim() ? d.labels[i] : d.type === 'boolean' && (v === 'true' || v === 'false') ? ts(v === 'true' ? 'common.yes' : 'common.no') : v)
+    .map(v => v.trim()).filter(Boolean).join(', ');
+  return text ? [lab, clampText(k, text, 3, 'mp-fact-text'), 'mp-fact-long'] : null;
+}
 /* D37: you decide your own step; the card says which step of how many, nothing about other approvers */
 const stepLine = st => st.count > 0 && st.number > 0 ? t('inbox.item.step', {number:st.number, count:st.count}) : null;
 function approveBodyKey(st){
@@ -1144,14 +1174,14 @@ function cardEl(it, flat){
   const tid = 't-' + id, detId = 'det-' + id, open = !!S.det[k];
   const body = [], facts = [], asked = whoAsked(x);
   if (flat && x.target.description) body.push(h('div', null, clampText('rd:' + k, x.target.description, 2, 'mp-about-text')));
-  /* D39: the facts as label and value; draft.9: how long belongs to a request for access only */
-  if (asked) facts.push(['inbox.fact.askedBy', asked]);
-  if (x.change === 'add') facts.push(['inbox.fact.howLong', requestValidity(x.validity)]);
-  facts.push(['inbox.fact.why', whyText(x, it)]);
-  body.push(h('dl', {class:'mp-facts'}, facts.map(([lk, v]) => [h('dt', null, t(lk)), h('dd', null, v)])));
+  /* D39: the facts as label and value; draft.9: how long belongs to a request for access only; D43: then what was asked */
+  if (asked) facts.push([t('inbox.fact.askedBy'), asked]);
+  if (x.change === 'add') facts.push([t('inbox.fact.howLong'), requestValidity(x.validity)]);
+  for (const d of x.requestDetails) facts.push(detailFact(d, 'rq:' + k + '\u0001' + d.name));
+  facts.push([t('inbox.fact.why'), whyText(x, it)]);
+  body.push(h('dl', {class:'mp-facts'}, facts.filter(Boolean).map(([l, v, cls]) => [h('dt', null, l), h('dd', cls ? {class:cls} : null, v)])));
   /* D30: a person you can't see is named once, in the title, so the quote label leaves them out */
-  if (x.justification) body.push(quote(hiddenRef(x.requester) ? t('inbox.item.justificationHidden') : t('inbox.item.justification', {requester:dispName(x.requester)}), x.justification, 'j:' + k, 3));
-  else if (x.change === 'add' && S.server && S.server.requestReason) body.push(h('p', {class:'mp-noreason'}, t('inbox.item.noReason')));
+  if (x.requesterComment) body.push(quote(hiddenRef(x.requester) ? t('inbox.item.commentHidden') : t('inbox.item.comment', {requester:dispName(x.requester)}), x.requesterComment, 'rc:' + k, 3));
   if (it.offered && !decided) body.push(h('p', {class:'mp-note'}, t('inbox.item.offeredHelp', {group:groupOf(it)})));
   /* D36: no approving blind; Reject stays */
   if (hiddenRef(x.requestee) && canCall() && !decided && !it.offered) body.push(h('p', {class:'mp-banner mp-banner--info', role:'note'}, icon('lock'), h('span', null, t('inbox.item.cantApprove'))));

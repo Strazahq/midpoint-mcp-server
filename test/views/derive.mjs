@@ -136,6 +136,8 @@ export function loginNames(result) {
 
 // --- named mutations ---
 
+const longText = 'I am on call for the database migration next week and need to run the cut-over scripts, check replication, and roll back if needed. '.repeat(5).trim();
+
 const mia = { oid: '10000000-0000-0000-0000-0000000000a2', type: 'User', name: 'mkovac', displayName: 'Mia Kovac' };
 
 // onItem applies change to the first work item's context.
@@ -154,8 +156,6 @@ export const mutations = {
   moreStepsAlone: onItem((c) => { c.stage = { number: 1, count: 3, name: 'Team leads', strategy: 'firstDecides' }; c.stageApprovers = []; c.coAssignees = []; }),
   // Someone else asked for the access.
   otherRequester: onItem((c) => { c.requester = { ...mia }; }),
-  // The requester left the reason empty while the deployment has a field.
-  noReason: onItem((c) => { delete c.justification; }),
   riskMedium: onItem((c) => { c.target.riskLevel = 'medium'; }),
   noRisk: onItem((c) => { delete c.target.riskLevel; }),
   reasonOwner: onItem((c) => { c.reason = 'roleOwner'; }),
@@ -168,12 +168,34 @@ export const mutations = {
   longDescription: onItem((c) => {
     c.target.description = 'Full access to the production databases, including schema changes, user management, backups and restores, '.repeat(6).trim();
   }),
-  longJustification: onItem((c) => {
-    c.justification = 'I am on call for the database migration next week and need to run the cut-over scripts, check replication, and roll back if needed. '.repeat(5).trim();
+  longDetail: onItem((c) => { c.requestDetails[0].values = [longText]; }),
+  longComment: onItem((c) => { c.requesterComment = longText; }),
+  // Untrusted text that looks like markup (contract 4.1 rule 7, section 9), in a
+  // request detail and in the requester's comment.
+  markupText: onItem((c) => {
+    c.requestDetails[0].values = ['<b>urgent</b> <img src=x onerror="document.title=\'owned\'"> please'];
+    c.requesterComment = '<i>also</i> <img src=y onerror="document.title=\'owned\'"> thanks';
   }),
-  // Untrusted text that looks like markup (contract 4.1 rule 7, section 9).
-  markupJustification: onItem((c) => {
-    c.justification = '<b>urgent</b> <img src=x onerror="document.title=\'owned\'"> please';
+  // D43: the comment typed in midPoint's own Request access page.
+  requesterComment: onItem((c) => { c.requesterComment = 'Please decide before Friday: the auditors arrive on Monday.'; }),
+  // D43: fields of every kind the request form has (7.2): a choice with its
+  // label, several values, booleans, a date and a date-time, plus fields
+  // the view must leave out or treat as text.
+  typedDetails: onItem((c) => {
+    c.requestDetails = [
+      { name: 'costCenter', label: 'Cost center', type: 'choice', values: ['cc-100'], labels: ['Finance operations'] },
+      { name: 'environments', label: 'Environments', type: 'choice', values: ['test', 'prod'], labels: ['Test', 'Production'] },
+      { name: 'systems', label: 'Systems', type: 'string', values: ['payroll', 'ledger'] },
+      { name: 'emergency', label: 'Emergency access', type: 'boolean', values: ['true'] },
+      { name: 'trained', label: 'Training done', type: 'boolean', values: ['false'] },
+      { name: 'neededOn', label: 'Needed on', type: 'date', values: ['2025-03-14'] },
+      { name: 'handover', label: 'Handover time', type: 'dateTime', values: ['2025-03-14T09:30:00Z'] },
+      { name: 'level', label: 'Access level', type: 'futureType', values: ['raw-level'] },
+      { name: 'badLabels', label: 'Region', type: 'choice', values: ['eu'], labels: ['Europe', 'extra'] },
+      { name: '', label: 'No name', type: 'string', values: ['dropped: no name'] },
+      { name: 'noValues', label: 'No values', type: 'string', values: [] },
+      { name: 'notText', label: 'Not text', type: 'int', values: [42] },
+    ];
   }),
   // Q4: an offered item whose group the server could not name.
   offeredUnnamed: onItem((c, wi) => { delete wi.offeredTo; }),

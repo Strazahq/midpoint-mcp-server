@@ -361,16 +361,14 @@ func assignmentPaths(raw json.RawMessage) [][]refJSON {
 
 // enricher builds the context of the work items in one answer.
 type enricher struct {
-	reader  *refReader
-	self    userJSON
-	team    TeamConfig
-	item    QName
-	hasItem bool
+	c      *Client
+	reader *refReader
+	self   userJSON
+	team   TeamConfig
 }
 
 func (c *Client) newEnricher(self userJSON) *enricher {
-	item, ok := c.cfg.File.Requests.Justification()
-	return &enricher{reader: newRefReader(c), self: self, team: c.teamConfig(), item: item, hasItem: ok}
+	return &enricher{c: c, reader: newRefReader(c), self: self, team: c.teamConfig()}
 }
 
 // workItemContext is what an approver needs to decide wi (contract 7.1).
@@ -385,7 +383,8 @@ func (e *enricher) workItemContext(ctx context.Context, cj caseJSON, a approval,
 	requestee, u, st := e.reader.requestee(ctx, cj.ObjectRef)
 	wc.Requestee = requestee
 	wc.Target = e.reader.target(ctx, cj.TargetRef)
-	wc.Justification = a.justification(e.item, e.hasItem)
+	wc.RequestDetails = e.c.requestDetailsOf(a)
+	wc.RequesterComment = cj.requesterComment()
 	wc.Validity = a.validity()
 	wc.RequestedAt = cj.createdAt()
 	wc.CreatedAt = wi.CreateTimestamp
@@ -547,20 +546,20 @@ func (c *Client) caseDetail(ctx context.Context, cj caseJSON) CaseDetail {
 func (c *Client) caseDetailWithReader(ctx context.Context, cj caseJSON, r *refReader) CaseDetail {
 	a := cj.approval()
 	items := cj.items()
-	item, hasItem := c.cfg.File.Requests.Justification()
 
 	d := CaseDetail{
-		CaseSummary:   cj.summary(),
-		ObjectRef:     r.person(ctx, cj.ObjectRef),
-		RequestorRef:  r.person(ctx, cj.RequestorRef),
-		Change:        a.change,
-		RequestedAt:   cj.createdAt(),
-		ClosedAt:      cj.CloseTimestamp,
-		Justification: a.justification(item, hasItem),
-		Validity:      a.validity(),
-		Stages:        []StageInfo{},
-		WorkItems:     []CaseWorkItem{},
-		NextApprovers: []ObjectRef{},
+		CaseSummary:      cj.summary(),
+		ObjectRef:        r.person(ctx, cj.ObjectRef),
+		RequestorRef:     r.person(ctx, cj.RequestorRef),
+		Change:           a.change,
+		RequestedAt:      cj.createdAt(),
+		ClosedAt:         cj.CloseTimestamp,
+		RequestDetails:   c.requestDetailsOf(a),
+		RequesterComment: cj.requesterComment(),
+		Validity:         a.validity(),
+		Stages:           []StageInfo{},
+		WorkItems:        []CaseWorkItem{},
+		NextApprovers:    []ObjectRef{},
 	}
 	if cj.TargetRef != nil && cj.TargetRef.OID != "" {
 		t := r.objectRef(ctx, *cj.TargetRef, false)

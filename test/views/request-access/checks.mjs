@@ -80,12 +80,36 @@ for(const [id,from,to,error] of [['past-from',-1,2,S.errorFrom],['past-end',0,-1
 check('ac08.empty-start','7.2 AC8','empty start means today and omits validFrom',async t=>{
  const v=await catalog(t),d=await open(t,v);await d.getByRole('radio',{name:S.custom}).check();await d.getByLabel(S.from,{exact:true}).fill('');await submit(v);const a=(await v.calls('request_role'))[0]?.args;t.ok(a?.validTo&&!a.validFrom,'empty start not today');
 });
-check('ac06.form','7.2 AC6','all five field types render and only configured, nonempty values are sent',async t=>{
+check('ac06.form','7.2 AC6, D43','every field type renders, a checkbox has no required mark, other fields are named, and only filled values are sent',async t=>{
  const v=await catalog(t,'form'),d=await open(t,v);
- t.ok(await d.getByLabel(S.justification,{exact:true}).evaluate(el=>el.tagName==='TEXTAREA'),'justification not multiline');
+ t.ok(await d.getByLabel(S.justification,{exact:true}).evaluate(el=>el.tagName==='INPUT'&&el.type==='text'),'string is not a text input');
  t.ok(await d.getByLabel(S.needed,{exact:true}).getAttribute('type')==='date','date type');t.ok(await d.getByLabel(S.handover,{exact:true}).getAttribute('type')==='datetime-local','datetime type');
+ t.ok(await d.getByLabel(S.ack,{exact:true}).getAttribute('type')==='checkbox','checkbox missing, or marked required');
+ const level=d.getByLabel(S.level,{exact:true}),region=d.getByLabel(S.region,{exact:true}),envs=d.getByLabel(S.environments,{exact:true});
+ t.ok(await level.evaluate(el=>el.tagName==='SELECT'&&[...el.options].map(o=>o.textContent).join('|')==='Choose…|Read only|Read and write'),'enumeration is not a select of its labels');
+ t.ok(await region.evaluate(el=>[...el.options].map(o=>o.value+'='+o.textContent).join('|')==='=Choose…|eu=Europe|us=United States|apac=apac'),'lookup table is not a select of its rows');
+ t.ok(await envs.evaluate(el=>el.tagName==='TEXTAREA'),'multiple field is not a list');t.ok(await v.hasText(S.onePerLine,{within:d}),'one-per-line note absent');
+ t.ok(await v.hasText(S.otherFields('Sponsor'),{within:d}),'fields only midPoint can fill are not named');
  await form(v);await d.getByLabel(S.ticket,{exact:true}).fill('42');await d.getByLabel(S.needed,{exact:true}).fill('2099-10-02');await d.getByLabel(S.handover,{exact:true}).fill('2099-10-02T14:30');
- await submit(v);const f=(await v.calls('request_role'))[0]?.args.fields;t.ok(f?.projectCode==='OPS-7'&&f.ticket===42&&f.acknowledged===false&&f.neededOn==='2099-10-02'&&/T14:30:00[+-]/.test(f.handover),'typed form fields');t.ok(!('justification'in f)&&Object.keys(f).length===5,'empty/unlisted form item sent');
+ await level.selectOption('write');await region.selectOption('eu');await envs.fill('dev\n\n test \n');await d.getByLabel(S.cost,{exact:true}).fill('0.25');
+ await submit(v);const f=(await v.calls('request_role'))[0]?.args.fields;
+ t.ok(f?.projectCode==='OPS-7'&&f.ticket===42&&f.acknowledged===false&&f.neededOn==='2099-10-02'&&/T14:30:00[+-]/.test(f.handover),'typed form fields');
+ t.ok(f?.accessLevel==='write'&&f.region==='eu'&&JSON.stringify(f.environments)==='["dev","test"]'&&f.costShare===0.25,'choice, list and decimal values');
+ t.ok(f&&!('justification'in f)&&Object.keys(f).length===9,'an empty form item was sent');
+});
+check('ac06.lists','7.2 AC6, D43','a multiple choice is one checkbox per option sent as a list, a required one needs a tick, and each listed value is checked',async t=>{
+ const v=await catalog(t,derive('form','lists',M.lists)),d=await open(t,v);
+ const group=d.getByRole('group',{name:S.level+' (required)',exact:true});t.ok(await group.getByRole('checkbox').count()===2,'not one checkbox per option');
+ await form(v);await d.getByLabel(S.ticket,{exact:true}).fill('1\n2.5');await d.getByRole('button',{name:S.submit}).click();
+ t.ok(await v.hasText(S.required.replace('Project code','Access level'),{within:d}),'required multiple choice accepted empty');t.ok(await v.hasText(S.whole,{within:d}),'a fraction in a whole-number list accepted');
+ t.ok((await v.calls('request_role')).length===0,'sent with errors');
+ await group.getByRole('checkbox',{name:'Read only',exact:true}).check();await group.getByRole('checkbox',{name:'Read and write',exact:true}).check();await d.getByLabel(S.ticket,{exact:true}).fill('1\n2');
+ await submit(v);const f=(await v.calls('request_role'))[0]?.args.fields;
+ t.ok(JSON.stringify(f?.accessLevel)==='["read","write"]'&&JSON.stringify(f?.ticket)==='[1,2]','lists not sent');
+});
+check('ac06.decimal','7.2 AC6, D43','a decimal field refuses text',async t=>{
+ const v=await catalog(t,'form'),d=await open(t,v);await form(v);await d.getByLabel(S.cost,{exact:true}).fill('half');await d.getByRole('button',{name:S.submit}).click();
+ t.ok(await v.hasText(S.number,{within:d}),'number error absent');t.ok((await v.calls('request_role')).length===0,'sent');
 });
 check('ac06.required','7.2 AC6','required field blocks submission and receives focus',async t=>{
  const v=await catalog(t,'form'),d=await open(t,v);await d.getByRole('button',{name:S.submit}).click();t.ok(await v.hasText(S.required,{within:d}),'required error');t.ok(await v.isFocused(d.getByLabel(S.project,{exact:true})),'required focus');t.ok((await v.calls('request_role')).length===0,'required bypassed');

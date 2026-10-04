@@ -39,7 +39,7 @@ func TestRequestCatalogSearch(t *testing.T) {
 	if len(got.Roles) != 1 || got.Roles[0].RiskLevel != "high" || !got.LimitReached || got.ForUserRef.DisplayName != "Alex Morgan" {
 		t.Fatalf("catalog %+v", got)
 	}
-	want := `requestable = true and (name contains[origIgnoreCase] "he\"llo\\" or displayName contains[origIgnoreCase] "he\"llo\\" or description contains[stringIgnoreCase] "he\"llo\\")`
+	want := `requestable = true and (name contains[origIgnoreCase] "he\"llo\\" or displayName contains[origIgnoreCase] "he\"llo\\")`
 	if filter != want || max != 2 || got.Query != `he"llo\` {
 		t.Fatalf("query %q (%d), echo %q", filter, max, got.Query)
 	}

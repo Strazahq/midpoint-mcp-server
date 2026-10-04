@@ -523,11 +523,14 @@ const CAT = {
   "requestAccess.validity.errorDays": "Enter a whole number of days from 1 to {max}.",
   "requestAccess.validity.errorTo": "Choose an end date.",
   "requestAccess.form.title": "Request details",
-  "requestAccess.form.justificationLabel": "Justification",
   "requestAccess.form.required": "(required)",
   "requestAccess.form.errorRequired": "Fill in {label}.",
   "requestAccess.form.errorInt": "Enter a whole number.",
   "requestAccess.form.errorDate": "Enter a valid date.",
+  "requestAccess.form.errorNumber": "Enter a number.",
+  "requestAccess.form.choose": "Choose…",
+  "requestAccess.form.onePerLine": "One per line",
+  "requestAccess.form.other": "midPoint's own page also asks for: {names}.",
   "requestAccess.limitReached": "Showing the first {count} roles. Type to search all of them.",
   "requestAccess.search.resultsFor": "Roles in midPoint matching \"{text}\"",
   "requestAccess.search.searching": "Searching midPoint for \"{text}\"…",
@@ -697,7 +700,7 @@ const rpcErr = (tool, e) => ({tool, rpc:true, text:'JSON-RPC error' + (isObj(e) 
 const major = v => String(v || '').split('.')[0];
 
 const S={init:false,caps:{},ctx:{},entryTool:null,entryArgs:null,inputAt:0,phase:'wait',cancelReason:'',entryError:null,entrySlot:null,entryText:'',
- acting:null,server:null,items:null,form:[],target:'',targetRef:null,team:[],managers:[],teamAsked:false,managersAsked:false,whoamiAsked:false,
+ acting:null,server:null,items:null,form:[],formOther:[],target:'',targetRef:null,team:[],managers:[],teamAsked:false,managersAsked:false,whoamiAsked:false,
  filter:'',query:'',baseLimit:false,limitReached:false,listSig:'',asOf:0,shown:PAGE,open:{},more:{},rows:Object.create(null),drafts:Object.create(null),notice:null,
  busy:false,busyAt:0,searching:'',readKind:'',loadedTarget:'',readEpoch:0,inflight:0,ignored:new Set(),called:new Set(),refreshNote:null,listSlot:null,dialog:null,latestArgs:null,aux:{}};
 const $root=document.getElementById('mp-root'),$polite=document.getElementById('mp-polite'),$assertive=document.getElementById('mp-assertive');
@@ -1070,7 +1073,13 @@ function normList(sc){
  if(!isObj(sc)||sc.tool!=='list_requestable_roles'||!Array.isArray(sc.roles))return null;
  return {items:sc.roles.filter(r=>isObj(r)&&str(r.oid)).map(r=>ref({...r,type:'Role'})),acting:normActing(sc.acting),server:normServer(sc.server),
  target:str(sc.forUser),targetRef:isObj(sc.forUserRef)?ref(sc.forUserRef):null,query:str(sc.query),limitReached:sc.limitReached===true,
- form:isObj(sc.form)?arr(sc.form.items).filter(i=>isObj(i)&&str(i.name)&&['string','boolean','int','date','dateTime'].includes(i.type)).map(i=>({name:i.name,displayName:str(i.displayName),help:str(i.help),type:i.type,required:i.required===true,multiline:i.multiline===true,justification:i.justification===true})):[]};
+ form:isObj(sc.form)?normForm(sc.form.items):[],formOther:isObj(sc.form)?arr(sc.form.other).filter(o=>isObj(o)&&str(o.name)).map(o=>str(o.displayName)||o.name):[]};
+}
+/* D43: midPoint's assignment fields; a choice keeps only well-formed options, and a choice without any is not offered */
+const FORM_TYPES=['string','boolean','int','long','decimal','date','dateTime','choice'];
+function normForm(items){
+ return arr(items).filter(i=>isObj(i)&&str(i.name)&&FORM_TYPES.includes(i.type)&&!(i.type==='boolean'&&i.multiple===true)).map(i=>({name:i.name,displayName:str(i.displayName),help:str(i.help),type:i.type,required:i.required===true,multiple:i.multiple===true,
+  options:i.type==='choice'?arr(i.options).filter(o=>isObj(o)&&str(o.value)).map(o=>({value:o.value,label:str(o.label)||o.value})):[]})).filter(i=>i.type!=='choice'||i.options.length);
 }
 function normRequest(sc){
  const r=isObj(sc)?sc.request:null;
@@ -1238,7 +1247,7 @@ function onListAnswer(r,reset,args){
  applySnapshot(l,sig(res.structuredContent),reset);
 }
 function applySnapshot(l,signature,reset){
- S.phase='loaded';S.items=l.items;S.form=l.form;S.acting=l.acting||S.acting;S.server=l.server||S.server;
+ S.phase='loaded';S.items=l.items;S.form=l.form;S.formOther=l.formOther;S.acting=l.acting||S.acting;S.server=l.server||S.server;
  S.loadedTarget=l.target;S.target=l.target;S.targetRef=l.targetRef||S.targetRef;S.query=l.query;S.limitReached=l.limitReached;if(!l.query)S.baseLimit=l.limitReached;
  S.listSig=signature;S.asOf=Date.now();S.shown=PAGE;S.refreshNote=null;S.listSlot=null;S.more={};
  if(reset){S.rows=Object.create(null);S.notice=null;}
@@ -1313,19 +1322,31 @@ function validityOf(v){
  if(Date.parse(out.validTo)<=Date.now())return {error:'to',key:'requestAccess.validity.errorPast'};
  return out;
 }
-const formLabel=i=>i.displayName||(i.justification?ts('requestAccess.form.justificationLabel'):i.name);
+const formLabel=i=>i.displayName||i.name;
+/* one value of a field, checked as the server checks it; returns {value} or {error} */
+function formValue(it,x){
+ if(it.type==='int'||it.type==='long'){const n=/^-?\d+$/.test(x)?Number(x):NaN;return (it.type==='int'?n>=-2147483648&&n<=2147483647:Number.isSafeInteger(n))?{value:n}:{error:'requestAccess.form.errorInt'};}
+ if(it.type==='decimal'){const n=/^-?(\d+\.?\d*|\.\d+)([eE][-+]?\d+)?$/.test(x)?Number(x):NaN;return Number.isFinite(n)?{value:n}:{error:'requestAccess.form.errorNumber'};}
+ if(it.type==='date')return validDay(x)?{value:x}:{error:'requestAccess.form.errorDate'};
+ if(it.type==='dateTime'){
+  const time=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(x)&&validDay(x.slice(0,10))?zonedIso(x.slice(0,10),x.slice(11).length===5?x.slice(11)+':00':x.slice(11)):'';
+  return time?{value:time}:{error:'requestAccess.form.errorDate'};
+ }
+ if(it.type==='choice')return it.options.some(o=>o.value===x)?{value:x}:{error:'requestAccess.form.errorRequired'};
+ return {value:x};
+}
 function formValues(d){
  const fields=Object.create(null),errors=Object.create(null);
  for(const it of S.form){
-  const raw=d.state.f[it.name],x=raw==null?'':String(raw).trim(),k='f:'+it.name;
+  const raw=d.state.f[it.name],k='f:'+it.name;
   if(it.type==='boolean'){if(it.required||raw!==undefined)fields[it.name]=raw===true;continue;}
-  if(!x){if(it.required)errors[k]=ts('requestAccess.form.errorRequired',{label:formLabel(it)});continue;}
-  if(it.type==='int'&&(!/^-?\d+$/.test(x)||+x< -2147483648||+x>2147483647)){errors[k]=ts('requestAccess.form.errorInt');continue;}
-  if(it.type==='date'&&!validDay(x)){errors[k]=ts('requestAccess.form.errorDate');continue;}
-  if(it.type==='dateTime'){
-   const time=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(x)&&validDay(x.slice(0,10))?zonedIso(x.slice(0,10),x.slice(11).length===5?x.slice(11)+':00':x.slice(11)):'';
-   if(!time){errors[k]=ts('requestAccess.form.errorDate');continue;}fields[it.name]=time;
-  }else fields[it.name]=it.type==='int'?Number(x):x;
+  /* a multiple field: a list of checked options, or one value per line */
+  const given=it.multiple?(it.type==='choice'?arr(raw).map(String):String(raw??'').split('\n')).map(x=>x.trim()).filter(Boolean):[raw==null?'':String(raw).trim()].filter(Boolean);
+  if(!given.length){if(it.required)errors[k]=ts('requestAccess.form.errorRequired',{label:formLabel(it)});continue;}
+  const vals=[];let bad='';
+  for(const x of given){const r=formValue(it,x);if(r.error){bad=r.error;break;}vals.push(r.value);}
+  if(bad){errors[k]=ts(bad,bad==='requestAccess.form.errorRequired'?{label:formLabel(it)}:{});continue;}
+  fields[it.name]=it.multiple?vals:vals[0];
  }
  return {fields,errors};
 }
@@ -1359,14 +1380,29 @@ function dialogInputs(d){
  if(S.form.length){
   const fields=S.form.map(it=>{
    const k='f:'+it.name,id='field-'+idOf(k),eid='error-'+idOf(k),hid=id+'-help',bad=d.errors[k]||d.state.mark===it.name;
-   const attrs={id,disabled:dis,'data-k':k,'aria-invalid':bad?'true':null,'aria-required':it.required?'true':null,'aria-describedby':[d.errors[k]?eid:'',it.help?hid:''].filter(Boolean).join(' ')||null};
-   const input=it.type==='boolean'?h('input',{...attrs,type:'checkbox',checked:d.state.f[it.name]===true||null}):it.type==='string'&&it.multiline?h('textarea',{...attrs,class:'mp-textarea',rows:'3'}):h('input',{...attrs,class:'mp-input',type:it.type==='date'?'date':it.type==='dateTime'?'datetime-local':'text',inputmode:it.type==='int'?'numeric':null,autocomplete:'off'});
+   const lines=it.multiple&&it.type!=='choice',described=[d.errors[k]?eid:'',it.help||lines?hid:''].filter(Boolean).join(' ')||null;
+   const attrs={id,disabled:dis,'data-k':k,'aria-invalid':bad?'true':null,'aria-required':it.required&&it.type!=='boolean'?'true':null,'aria-describedby':described};
+   const label=[formLabel(it),it.required&&it.type!=='boolean'?[' ',t('requestAccess.form.required')]:null];
+   const note=it.help||lines?h('p',{class:'mp-note',id:hid},[lines?t('requestAccess.form.onePerLine'):null,lines&&it.help?' · ':null,it.help||null]):null;
+   const changed=(inp,value)=>{d.state.f[it.name]=value;clearError(k,inp);if(note)inp.setAttribute('aria-describedby',hid)};
+   if(it.type==='choice'&&it.multiple){
+    /* one checkbox per option; the group carries the label, the first box the focus key */
+    const picked=new Set(arr(d.state.f[it.name]));
+    const boxes=it.options.map((o,i)=>{const box=h('input',{type:'checkbox',id:i?id+'-'+i:id,disabled:dis,'data-k':i?k+':'+i:k,checked:picked.has(o.value)||null,'aria-invalid':i===0&&bad?'true':null,'aria-describedby':i===0?described:null});
+     box.addEventListener('change',()=>{box.checked?picked.add(o.value):picked.delete(o.value);changed(box,[...picked])});return h('label',{class:'mp-checkbox',for:box.id},box,o.label);});
+    return h('div',{class:'mp-field',role:'group','aria-labelledby':id+'-l'},h('span',{class:'mp-legend',id:id+'-l'},label),boxes,note,fieldErr(k,eid));
+   }
+   let input;
+   if(it.type==='boolean')input=h('input',{...attrs,type:'checkbox',checked:d.state.f[it.name]===true||null});
+   else if(it.type==='choice')input=h('select',{...attrs,class:'mp-select'},h('option',{value:''},t('requestAccess.form.choose')),it.options.map(o=>h('option',{value:o.value},o.label)));
+   else if(lines)input=h('textarea',{...attrs,class:'mp-textarea',rows:'3'});
+   else input=h('input',{...attrs,class:'mp-input',type:it.type==='date'?'date':it.type==='dateTime'?'datetime-local':'text',inputmode:it.type==='int'||it.type==='long'?'numeric':it.type==='decimal'?'decimal':null,autocomplete:'off'});
    if(it.type!=='boolean')input.value=d.state.f[it.name]??'';
-   input.addEventListener(it.type==='boolean'?'change':'input',()=>{d.state.f[it.name]=it.type==='boolean'?input.checked:input.value;clearError(k,input);if(it.help)input.setAttribute('aria-describedby',hid)});
-   const label=[formLabel(it),it.required?[' ',t('requestAccess.form.required')]:null];
-   return h('div',{class:'mp-field'},it.type==='boolean'?h('label',{class:'mp-checkbox',for:id},input,label):[h('label',{for:id},label),input],it.help?h('p',{class:'mp-note',id:hid},it.help):null,fieldErr(k,eid));
+   input.addEventListener(it.type==='boolean'||it.type==='choice'?'change':'input',()=>changed(input,it.type==='boolean'?input.checked:input.value));
+   return h('div',{class:'mp-field'},it.type==='boolean'?h('label',{class:'mp-checkbox',for:id},input,label):[h('label',{for:id},label),input],note,fieldErr(k,eid));
   });
-  out.push(h('section',{class:'mp-dialog-sec','aria-labelledby':'form-title'},h('h3',{id:'form-title',class:'mp-section-title'},t('requestAccess.form.title')),fields));
+  const other=S.formOther.length?h('p',{class:'mp-note'},t('requestAccess.form.other',{names:S.formOther.join(', ')})):null;
+  out.push(h('section',{class:'mp-dialog-sec','aria-labelledby':'form-title'},h('h3',{id:'form-title',class:'mp-section-title'},t('requestAccess.form.title')),fields,other));
  }
  return out;
 }

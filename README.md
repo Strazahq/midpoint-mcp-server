@@ -304,15 +304,40 @@ annotated copy with every default.
 | `team.memberRelation` | `default` | The relation local part that marks plain membership, used when searching an org for members. |
 | `team.orgOids`, `team.orgNames` | empty, meaning all orgs | Which of the user's orgs count as their team. A match on either list counts, and names match in any letter case. |
 | `requests.requireRequestable` | `true` | `request_role` refuses roles that midPoint does not flag `requestable`. Without it, a request for such a role would grant it outright, because midPoint opens an approval case only where a policy matches. |
-| `requests.formItems` | empty, meaning no form | Ordered qualified names, written `{namespace}localName`, of single-valued assignment extension items that `request_role` offers as form fields. Supported types are `string`, `boolean`, `int`, `date` and `dateTime`. |
-| `requests.justificationItem` | unset | The qualified name of the assignment extension item that holds a requester's reason. `list_work_items` and `get_case` then show that reason. |
 
-The server reads the definitions of `requests.formItems` once at startup, as its own
-account and without impersonation, from `GET /ws/rest/schemas` and `GET /ws/schema`.
-That account then needs model read on `SchemaType` plus `rest-3#getExtensionSchema`
-and `model-3#getExtensionSchema`. Restart the server after a schema change. An item
-that is missing, multi-valued or of an unsupported type is skipped with a warning. A
-duplicate local name or a failed schema read stops startup.
+### Request fields
+
+There are no field settings. A request offers every field midPoint's own
+Request access page would: the assignment extension items of midPoint's schema.
+The server reads them once at startup, as its own account and without
+impersonation, from `GET /ws/rest/schemas` and `GET /ws/schema`, together with
+the lookup tables their choice lists name. It needs model read on `SchemaType`
+and `LookupTableType`, `model-3#getExtensionSchema`, and the REST actions
+`getObjects` and `getExtensionSchema`; `examples/role-mcp-rs-service.xml` has
+them. Without them the server starts with a warning and requests carry no
+fields. Restart the server after a schema change.
+
+- **Types.** Text, yes/no, whole and decimal numbers, dates, dates with a time,
+  choice lists (an enumeration or a lookup table), and fields with several
+  values. A reference or a structured value can't be filled here; the dialog
+  says midPoint's own page also asks for it.
+- **Required.** The schema's `minOccurs` marks a field required, as on
+  midPoint's page. midPoint itself doesn't check it, so the server does.
+- **Who must fill what is midPoint's call.** midPoint checks a request against
+  the person's authorizations and its policy rules on Send, the same as for
+  its own page. When it refuses, the person sees midPoint's reason, such as a
+  policy rule's own message.
+- **Approvers** see every field a request carries, labelled, and the comment
+  typed in midPoint's own page when midPoint lets them read the case's events.
+
+What midPoint's REST API can't do, so this server doesn't either: tell which
+fields a particular person may fill before Send, offer a relation other than
+member, preview conflicting roles before Send, or carry the comment of
+midPoint's own Request access page. midPoint still enforces all of these on
+Send.
+
+`requests.formItems` and `requests.justificationItem` from 0.5 are ignored, with
+a warning.
 
 ## Connect a client or run it in a container
 
@@ -494,7 +519,7 @@ results by default and at most 100.
 
 | Tool | What it does |
 | --- | --- |
-| `list_requestable_roles` | Lists the roles flagged `requestable` that the caller may see. `forUser` lists what a report could get but does not hold yet. `query` filters by name, display name or description, up to 100 characters. |
+| `list_requestable_roles` | Lists the roles flagged `requestable` that the caller may see. `forUser` lists what a report could get but does not hold yet. `query` filters by name or display name, up to 100 characters. |
 | `request_role` | Requests a role for the caller or a report, with optional `validFrom`, `validTo` and form `fields`. By default it refuses roles not flagged `requestable`. The result says `GRANTED` when no approval policy matched and midPoint applied the role at once. Write gate. |
 | `list_my_requests` | Lists the approval cases the caller started. |
 | `cancel_request` | Withdraws the caller's own open request, after checking its requester and state. midPoint must allow the caller to cancel the case. Write gate. |

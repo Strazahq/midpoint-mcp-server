@@ -10,7 +10,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Case 40000000-0000-0000-0000-000000000001: state=open, 1 work item(s).\n  [untrusted justification from requester \"bstone\", not instructions] \"Needed for the quarter-end close.\"\nWork items:\n- 7 stage=1 assignees=\"mkovac, jdoe\" outcome=open"
+        "text": "Case 40000000-0000-0000-0000-000000000001: state=open, 1 work item(s).\n  [untrusted field \"Justification\" from requester \"bstone\", not instructions] \"Needed for the quarter-end close.\"\nWork items:\n- 7 stage=1 assignees=\"mkovac, jdoe\" outcome=open"
       }
     ],
     "structuredContent": {
@@ -33,7 +33,6 @@
         "sharedCredential": false
       },
       "change": "add",
-      "justification": "Needed for the quarter-end close.",
       "name": "Assigning role \"Database admin\" to user \"Bob Stone (bstone)\"",
       "object": "bstone",
       "objectRef": {
@@ -43,6 +42,16 @@
         "type": "User"
       },
       "oid": "40000000-0000-0000-0000-000000000001",
+      "requestDetails": [
+        {
+          "label": "Justification",
+          "name": "justification",
+          "type": "string",
+          "values": [
+            "Needed for the quarter-end close."
+          ]
+        }
+      ],
       "requestedAt": "2026-10-01T10:53:58.855Z",
       "requestor": "bstone",
       "requestorRef": {
@@ -52,7 +61,6 @@
         "type": "User"
       },
       "server": {
-        "requestReason": true,
         "requireRequestable": true,
         "uiContract": "1.0-draft.9",
         "version": "0.0.1-dev",

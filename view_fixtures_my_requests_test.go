@@ -57,7 +57,10 @@ func (f *requesterFixture) connect(t *testing.T) *mcp.ClientSession {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		defer mu.Unlock()
-		f.principals = append(f.principals, r.Header.Get("Switch-To-Principal"))
+		// The schema reads at startup are the server's own (D43).
+		if !strings.HasPrefix(r.URL.Path, "/ws/schema") && r.URL.Path != "/ws/rest/schemas" && !strings.HasPrefix(r.URL.Path, "/ws/rest/lookupTables/") {
+			f.principals = append(f.principals, r.Header.Get("Switch-To-Principal"))
+		}
 		w.Header().Set("Content-Type", "application/json")
 		path := r.URL.Path
 		switch {
@@ -94,9 +97,12 @@ func (f *requesterFixture) connect(t *testing.T) *mcp.ClientSession {
 	}))
 	t.Cleanup(srv.Close)
 	cfg := midpoint.Config{BaseURL: srv.URL, Username: "u", Password: "p", AllowWrites: f.writes}
-	cfg.File.Requests.JustificationItem = fixtureJustificationItem
 	cfg.File.Identity.CredentialIsShared = f.shared
-	server := newMCPServerWithViews(midpoint.NewClient(cfg), cfg, testViews())
+	client := midpoint.NewClient(cfg)
+	if err := client.LoadRequestForm(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
+	server := newMCPServerWithViews(client, cfg, testViews())
 	if !f.personal {
 		server.AddReceivingMiddleware(func(next mcp.MethodHandler) mcp.MethodHandler {
 			return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {

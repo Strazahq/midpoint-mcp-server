@@ -4,25 +4,39 @@
     <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
         xmlns:a="http://prism.evolveum.com/xml/ns/public/annotation-3"
         xmlns:c="http://midpoint.evolveum.com/xml/ns/public/common/common-3"
+        xmlns:t="http://prism.evolveum.com/xml/ns/public/types-3"
+        xmlns:tns="http://example.com/xml/ns/access-request"
         targetNamespace="http://example.com/xml/ns/access-request">
       <xsd:complexType name="AssignmentExtensionType">
         <xsd:annotation><xsd:appinfo><a:extension ref="c:AssignmentType"/></xsd:appinfo></xsd:annotation>
         <xsd:sequence>
           <xsd:element name="justification" type="xsd:string" minOccurs="0">
-            <xsd:annotation><xsd:appinfo><a:help>Explain why this access is needed.</a:help></xsd:appinfo></xsd:annotation>
+            <xsd:annotation><xsd:appinfo><a:displayName>Justification</a:displayName><a:displayOrder>10</a:displayOrder><a:help>Explain why this access is needed.</a:help></xsd:appinfo></xsd:annotation>
           </xsd:element>
           <xsd:element name="projectCode" type="xsd:string">
-            <xsd:annotation><xsd:appinfo><a:displayName>Project code</a:displayName></xsd:appinfo><xsd:documentation>The project this access supports.</xsd:documentation></xsd:annotation>
+            <xsd:annotation><xsd:appinfo><a:displayName>Project code</a:displayName><a:displayOrder>20</a:displayOrder></xsd:appinfo><xsd:documentation>The project this access supports.</xsd:documentation></xsd:annotation>
           </xsd:element>
           <xsd:element name="ticket" type="xsd:int" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Change ticket</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
           <xsd:element name="acknowledged" type="xsd:boolean"><xsd:annotation><xsd:appinfo><a:displayName>Policy acknowledged</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
           <xsd:element name="neededOn" type="xsd:date" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Needed on</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
           <xsd:element name="handover" type="xsd:dateTime" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Handover time</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
-          <xsd:element name="multiple" type="xsd:string" maxOccurs="unbounded"/>
-          <xsd:element name="decimal" type="xsd:decimal"/>
-          <xsd:element name="internalNote" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="accessLevel" type="tns:AccessLevelType" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Access level</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="region" type="xsd:string" minOccurs="0">
+            <xsd:annotation><xsd:appinfo><a:displayName>Region</a:displayName><a:valueEnumerationRef oid="70000000-0000-0000-0000-000000000001" type="c:LookupTableType"/></xsd:appinfo></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="environments" type="xsd:string" minOccurs="0" maxOccurs="unbounded"><xsd:annotation><xsd:appinfo><a:displayName>Environments</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="costShare" type="xsd:decimal" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Cost share</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="sponsor" type="c:ObjectReferenceType" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayName>Sponsor</a:displayName></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="syncMarker" type="xsd:string" minOccurs="0"><xsd:annotation><xsd:appinfo><a:displayHint>hidden</a:displayHint></xsd:appinfo></xsd:annotation></xsd:element>
+          <xsd:element name="importedFrom" type="xsd:string" minOccurs="0"><xsd:annotation><xsd:appinfo><a:access>read</a:access></xsd:appinfo></xsd:annotation></xsd:element>
         </xsd:sequence>
       </xsd:complexType>
+      <xsd:simpleType name="AccessLevelType">
+        <xsd:restriction base="xsd:string">
+          <xsd:enumeration value="read"><xsd:annotation><xsd:appinfo><a:label>Read only</a:label></xsd:appinfo></xsd:annotation></xsd:enumeration>
+          <xsd:enumeration value="write"><xsd:annotation><xsd:appinfo><a:label>Read and write</a:label></xsd:appinfo></xsd:annotation></xsd:enumeration>
+        </xsd:restriction>
+      </xsd:simpleType>
       <xsd:complexType name="UserExtensionType">
         <xsd:annotation><xsd:appinfo><a:extension ref="c:UserType"/></xsd:appinfo></xsd:annotation>
         <xsd:sequence><xsd:element name="userOnly" type="xsd:string"/></xsd:sequence>

@@ -26,8 +26,6 @@ const (
 	oidTwoStepCas = "40000000-0000-0000-0000-000000000001"
 )
 
-const justificationSetting = "{http://example.com/xml/ns/access-request}justification"
-
 // fakeMidpoint serves /self, one case search, case GETs and object GETs, and
 // counts every GET. Paths it does not know answer status (404 by default).
 type fakeMidpoint struct {
@@ -89,11 +87,9 @@ func (f *fakeMidpoint) readsOf(path string) int {
 	return f.gets[path]
 }
 
-func withJustification() Config {
-	var cfg Config
-	cfg.File.Requests.JustificationItem = justificationSetting
-	return cfg
-}
+// withJustification is a server whose request form was not read: request
+// fields are named, not labelled.
+func withJustification() Config { return Config{} }
 
 func userBody(oid, name, fullName string) string {
 	return fmt.Sprintf(`{"user":{"oid":%q,"name":%q,"fullName":%q}}`, oid, name, fullName)
@@ -137,12 +133,12 @@ func TestListWorkItemsContext(t *testing.T) {
 			Description: "Full access to the production databases.",
 			RiskLevel:   "high",
 		},
-		Justification: "Needed for the quarter-end close.",
-		Validity:      &Validity{ValidFrom: "2026-10-02T00:00:00+02:00", ValidTo: "2026-10-31T23:59:59+01:00"},
-		RequestedAt:   "2026-10-01T10:53:58.855Z",
-		CreatedAt:     "2026-10-01T10:53:58.967Z",
-		Deadline:      "2026-10-04T10:53:58.967Z",
-		Stage:         StageInfo{Number: 1, Count: 2, Name: "Team leads", Strategy: StrategyAllMustAgree},
+		RequestDetails: wantJustification,
+		Validity:       &Validity{ValidFrom: "2026-10-02T00:00:00+02:00", ValidTo: "2026-10-31T23:59:59+01:00"},
+		RequestedAt:    "2026-10-01T10:53:58.855Z",
+		CreatedAt:      "2026-10-01T10:53:58.967Z",
+		Deadline:       "2026-10-04T10:53:58.967Z",
+		Stage:          StageInfo{Number: 1, Count: 2, Name: "Team leads", Strategy: StrategyAllMustAgree},
 		// dlee manages no org; their own roleMembershipRef holds db-admin
 		// with relation org:approver.
 		Reason:      ReasonRoleApprover,
@@ -166,19 +162,6 @@ func TestListWorkItemsContext(t *testing.T) {
 	// The requester is the requestee: one read serves both.
 	if n := mp.readsOf("/users/" + oidBstone); n != 1 {
 		t.Errorf("requestee read %d times, want 1", n)
-	}
-}
-
-// Without requests.justificationItem the reason is not shown, even when the
-// request carries the item.
-func TestListWorkItemsWithoutJustificationSetting(t *testing.T) {
-	c := approverMidpoint(t).client(t, Config{})
-	res, err := c.ListWorkItems(context.Background(), 50)
-	if err != nil {
-		t.Fatalf("ListWorkItems: %v", err)
-	}
-	if j := res.WorkItems[0].Context.Justification; j != "" {
-		t.Errorf("justification = %q, want none without the setting", j)
 	}
 }
 
@@ -232,8 +215,8 @@ func TestListWorkItemsContextAsManager(t *testing.T) {
 	if len(managers.StageApprovers) != 0 || len(managers.CoAssignees) != 0 {
 		t.Errorf("stageApprovers = %+v, coAssignees = %+v, want none", managers.StageApprovers, managers.CoAssignees)
 	}
-	if managers.Deadline != "" || managers.Validity != nil || managers.Justification != "" {
-		t.Errorf("deadline=%q validity=%+v justification=%q, want none", managers.Deadline, managers.Validity, managers.Justification)
+	if managers.Deadline != "" || managers.Validity != nil || managers.RequestDetails != nil {
+		t.Errorf("deadline=%q validity=%+v details=%+v, want none", managers.Deadline, managers.Validity, managers.RequestDetails)
 	}
 	if managers.Target.DisplayName != "Finance reports" {
 		t.Errorf("target = %+v", managers.Target)
@@ -274,7 +257,7 @@ func TestListWorkItemsFailedReads(t *testing.T) {
 		t.Errorf("stageApprovers = %+v, want mkovac unreadable", wc.StageApprovers)
 	}
 	// What the case itself says needs no read.
-	if wc.Justification == "" || wc.Validity == nil || wc.RequestedAt == "" || wc.Stage.Count != 2 {
+	if len(wc.RequestDetails) == 0 || wc.Validity == nil || wc.RequestedAt == "" || wc.Stage.Count != 2 {
 		t.Errorf("case-derived fields missing: %+v", wc)
 	}
 }
@@ -562,9 +545,9 @@ func TestGetCaseEnriched(t *testing.T) {
 		t.Errorf("targetRef = %+v", d.TargetRef)
 	}
 	if d.Change != ChangeAdd || d.RequestedAt != "2026-10-01T10:53:58.855Z" || d.ClosedAt != "2026-10-01T10:58:03.417Z" ||
-		d.Justification != "Needed for the quarter-end close." || d.Validity == nil || d.Validity.ValidTo != "2026-10-31T23:59:59+01:00" {
-		t.Errorf("case fields = change %q requested %q closed %q justification %q validity %+v",
-			d.Change, d.RequestedAt, d.ClosedAt, d.Justification, d.Validity)
+		!reflect.DeepEqual(d.RequestDetails, wantJustification) || d.Validity == nil || d.Validity.ValidTo != "2026-10-31T23:59:59+01:00" {
+		t.Errorf("case fields = change %q requested %q closed %q details %+v validity %+v",
+			d.Change, d.RequestedAt, d.ClosedAt, d.RequestDetails, d.Validity)
 	}
 	if d.Stage != nil {
 		t.Errorf("stage = %+v, want none for a closed case", d.Stage)

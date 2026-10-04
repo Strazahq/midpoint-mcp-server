@@ -71,34 +71,22 @@ type TeamConfig struct {
 
 // RequestsConfig holds the self-service guardrails.
 type RequestsConfig struct {
-	// FormItems selects single-valued assignment extension items for requests.
+	// FormItems and JustificationItem are no longer used: request fields come
+	// from midPoint's assignment schema (D43). They are still accepted, so a
+	// settings file written for 0.5 loads, and LoadRequestForm warns.
 	FormItems []string `json:"formItems"`
 	// RequireRequestable (default true) refuses request_role for roles that are
 	// not flagged requestable in midPoint's catalog. Without it, request_role is
 	// an unrestricted grant path wearing a reassuring name: midPoint turns an
 	// assignment-add into an approval case only where policy says so, and
 	// executes it immediately everywhere else.
-	RequireRequestable *bool `json:"requireRequestable"`
-	// JustificationItem is the qualified name, written {namespace}localName,
-	// of the assignment extension item that holds a requester's reason
-	// (docs/ui-contract.md 8.1, D5). Unset means requests carry no reason: the
-	// inbox shows none and does not say one is missing.
-	JustificationItem string `json:"justificationItem"`
+	RequireRequestable *bool  `json:"requireRequestable"`
+	JustificationItem  string `json:"justificationItem"`
 }
 
 // RequestableRequired resolves the tri-state pointer against its default.
 func (r RequestsConfig) RequestableRequired() bool {
 	return r.RequireRequestable == nil || *r.RequireRequestable
-}
-
-// Justification returns the configured justification item, and false when
-// none is set. The name was validated when the file was loaded.
-func (r RequestsConfig) Justification() (QName, bool) {
-	if r.JustificationItem == "" {
-		return QName{}, false
-	}
-	q, err := parseQName(r.JustificationItem)
-	return q, err == nil
 }
 
 // QName is a qualified XML name, such as an extension item's.
@@ -271,22 +259,6 @@ func (f FileConfig) validate() error {
 		if rel != "" && !validRelationLocal(rel) {
 			return fmt.Errorf("%s %q is not a valid relation local part (letters, digits, '-' and '_')", field, rel)
 		}
-	}
-	if j := f.Requests.JustificationItem; j != "" {
-		if _, err := parseQName(j); err != nil {
-			return fmt.Errorf("requests.justificationItem %q is not a qualified name {namespace}localName: %w", j, err)
-		}
-	}
-	locals := map[string]bool{}
-	for _, item := range f.Requests.FormItems {
-		q, err := parseQName(item)
-		if err != nil {
-			return fmt.Errorf("requests.formItems: %w", err)
-		}
-		if locals[q.Local] {
-			return fmt.Errorf("requests.formItems: duplicate local name %q", q.Local)
-		}
-		locals[q.Local] = true
 	}
 	return nil
 }

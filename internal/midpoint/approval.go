@@ -345,19 +345,16 @@ func (a approval) stageInfo(n int) StageInfo {
 	return info
 }
 
-// justification is the requester's reason: the configured extension item on
-// the requested assignment value. Only a request for access has one: the
-// value a removal parks is the assignment being removed, whose reason was
-// given for granting it.
-func (a approval) justification(item QName, ok bool) string {
-	if !ok || a.change != ChangeAdd || a.value == nil {
-		return ""
+// requestDetailsOf lists the fields of a request for access (D43): the
+// extension items of the requested assignment value. A removal has none.
+func (c *Client) requestDetailsOf(a approval) []RequestDetail {
+	if a.change != ChangeAdd || a.value == nil {
+		return nil
 	}
-	return strings.TrimSpace(extensionValue(a.value, item))
+	return c.requestDetails(a.value)
 }
 
-// validity is the requested validity, for a request for access only (see
-// justification).
+// validity is the requested validity, for a request for access only.
 func (a approval) validity() *Validity {
 	if a.change != ChangeAdd || a.value == nil {
 		return nil

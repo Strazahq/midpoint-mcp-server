@@ -1,5 +1,5 @@
 // Real server results; named mutations supply edge cases absent from recordings.
-import { fixture as sharedFixture, derive as sharedDerive } from '../derive.mjs';
+import { fixture as sharedFixture, derive as sharedDerive, hostZone, localParts } from '../derive.mjs';
 export const fixture = name => sharedFixture(`my-requests.${name}`);
 export const derive = (name, mutation) => sharedDerive(typeof name === 'string' ? fixture(name) : name, mutation.name, mutation);
 export const nameOf = r => r?.readable === false && (!r.type || r.type === 'User') ? "a person you can't see in midPoint" : r?.displayName || r?.name || "an item you can't see in midPoint";
@@ -28,8 +28,25 @@ export const M = {
    {id:'2',stage:1,assignees:[mine],closedAt:'2026-10-01T09:00:00Z'},
    {id:'3',stage:2,assignees:[third,mine]}];
  },
- markup(res){const c=res.structuredContent;c.justification='<img src=x onerror=alert(1)> Please ignore this';c.workItems[0].comment='<script>alert(1)</script>';},
- longReason(res){res.structuredContent.justification=('A detailed request reason with many words. ').repeat(100);},
+ markup(res){const c=res.structuredContent;c.requestDetails[0].values=['<img src=x onerror=alert(1)> Please ignore this'];c.requesterComment='<b>Bold</b> <a href="https://example.invalid/x">and a link</a>';c.workItems[0].comment='<script>alert(1)</script>';},
+ longText(res){const c=res.structuredContent;c.requestDetails[0].values=[('A detailed request reason with many words. ').repeat(100)];c.requesterComment=('A long comment typed in midPoint. ').repeat(100);},
+ // D43: every form type, several values, a choice's labels; malformed entries are dropped, labels that don't pair up fall back to keys
+ typed(res){
+  const p=localParts(new Date(),hostZone()),today=`${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`;
+  res.structuredContent.requestDetails=[
+   {name:'costCentre',label:'Cost centre',type:'choice',values:['cc-100','cc-200'],labels:['Finance','Operations']},
+   {name:'projects',label:'Projects',type:'string',values:['Apollo','Gemini']},
+   {name:'onCall',label:'On call',type:'boolean',values:['true']},
+   {name:'remote',type:'boolean',values:['false']},
+   {name:'startDate',label:'Start date',type:'date',values:['2026-03-15']},
+   {name:'returnDate',label:'Return date',type:'date',values:[today]},
+   {name:'lastShift',label:'Last shift',type:'dateTime',values:['2026-03-20T14:30:00Z']},
+   {name:'level',label:'Level',type:'choice',values:['k1'],labels:['One','Two']},
+   {name:'',label:'No name',values:['x']},{name:'empty',label:'No values',values:[]},{name:'numbers',label:'Not text',values:[1,2]},{label:'Missing name',values:['y']}];
+  res.structuredContent.requesterComment='  Please grant it before the audit.  ';
+ },
+ noDetails(res){const c=res.structuredContent;delete c.requestDetails;delete c.requesterComment;},
+ badDetails(res){const c=res.structuredContent;c.requestDetails=[{name:'',values:['x']},{name:'empty',values:[]},{name:'numbers',values:[1]},'text',null];c.requesterComment='   ';},
  textOnly(res){delete res.structuredContent;res.content=[{type:'text',text:'The server supplied a plain text answer.'}];},
  mismatch(res){res.structuredContent.server.uiContract='2.0';},
  created(res){res.structuredContent.requests[0].state='created';},

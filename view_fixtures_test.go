@@ -35,8 +35,6 @@ import (
 const (
 	envWriteViewFixtures = "MIDPOINT_MCP_WRITE_VIEW_FIXTURES"
 	viewFixtureDir       = "test/views/fixtures"
-	// fixtureJustificationItem is the justification item the recordings carry.
-	fixtureJustificationItem = "{http://example.com/xml/ns/access-request}justification"
 )
 
 // OIDs of the recorded answers (neutral; see internal/midpoint/enrich_test.go).
@@ -75,6 +73,8 @@ type fixtureMidpoint struct {
 	readStatus int
 	// fail answers "METHOD /ws/rest/path" with a status before anything else.
 	fail map[string]int
+	// noSchema answers the schema reads with no assignment fields.
+	noSchema bool
 
 	mu        sync.Mutex
 	completed map[string]bool
@@ -95,6 +95,16 @@ func (f *fixtureMidpoint) serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if st, ok := f.fail[r.Method+" "+r.URL.Path]; ok {
 		w.WriteHeader(st)
+		return
+	}
+	// midPoint's assignment schema and its lookup table (D43), read at startup.
+	switch r.URL.Path {
+	case "/ws/rest/schemas", "/ws/schema":
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = io.WriteString(w, schemaAnswer(r.URL.Path, f.noSchema))
+		return
+	case "/ws/rest/lookupTables/70000000-0000-0000-0000-000000000001":
+		_, _ = io.WriteString(w, recording("lookup_table_regions.json"))
 		return
 	}
 	reply := func(body string, ok bool, otherwise int) {
@@ -326,10 +336,31 @@ func sharedPersona(t *testing.T) *fixtureMidpoint {
 type fixtureSession struct {
 	// principal runs every call as this user (resource-server mode, as the
 	// OIDC middleware does); empty is personal mode.
-	principal   string
-	writes      bool // MIDPOINT_MCP_ALLOW_WRITES
-	reasonField bool // requests.justificationItem set
-	shared      bool // identity.credentialIsShared
+	principal string
+	writes    bool // MIDPOINT_MCP_ALLOW_WRITES
+	noSchema  bool // midPoint's schema has no assignment fields
+	shared    bool // identity.credentialIsShared
+}
+
+// schemaAnswer is midPoint's answer to a schema read: the recorded-style
+// assignment schema, or none, and no schema files.
+func schemaAnswer(path string, none bool) string {
+	if path == "/ws/schema" {
+		return `<schemaFiles xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"/>`
+	}
+	if none {
+		return `<objects xmlns="http://midpoint.evolveum.com/xml/ns/public/common/common-3"/>`
+	}
+	return recording("request_schema_db.xml")
+}
+
+// recording is a file of internal/midpoint/testdata.
+func recording(name string) string {
+	b, err := os.ReadFile(filepath.Join("internal", "midpoint", "testdata", name))
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
 }
 
 // connect starts mp and connects a UI session (the client advertises the MCP
@@ -337,11 +368,12 @@ type fixtureSession struct {
 func (s fixtureSession) connect(t *testing.T, mp *fixtureMidpoint) *mcp.ClientSession {
 	t.Helper()
 	cfg := midpoint.Config{BaseURL: mp.start(t), Username: "u", Password: "p", AllowWrites: s.writes}
-	if s.reasonField {
-		cfg.File.Requests.JustificationItem = fixtureJustificationItem
-	}
 	cfg.File.Identity.CredentialIsShared = s.shared
+	mp.noSchema = s.noSchema
 	client := midpoint.NewClient(cfg)
+	if err := client.LoadRequestForm(context.Background(), nil); err != nil {
+		t.Fatal(err)
+	}
 	server := newMCPServerWithViews(client, cfg, testViews())
 	// The inbox calls claim_work_item and release_work_item (Q4). Registering
 	// them again once main does replaces them with the same tools.
@@ -370,7 +402,7 @@ type viewFixture struct {
 
 func viewFixtures() []viewFixture {
 	rs := func(oid string) fixtureSession {
-		return fixtureSession{principal: oid, writes: true, reasonField: true}
+		return fixtureSession{principal: oid, writes: true}
 	}
 	decide := func(caseOID, id, decision string, comment ...string) map[string]any {
 		names := map[string][2]string{fxCaseTwoStep: {"bstone", "db-admin"}, fxCaseManagers: {"bstone", "finance-reports"}, fxCaseOffered: {"bstone", "finance-reports"}}[caseOID]
@@ -416,10 +448,10 @@ func viewFixtures() []viewFixture {
 		m.users, m.roles, m.readStatus = nil, nil, http.StatusForbidden
 		return m
 	}
-	personal := fixtureSession{writes: true, reasonField: true}
-	dryRun := fixtureSession{principal: fxDlee, reasonField: true}
-	noReasonField := fixtureSession{principal: fxDlee, writes: true}
-	shared := fixtureSession{writes: true, reasonField: true, shared: true}
+	personal := fixtureSession{writes: true}
+	dryRun := fixtureSession{principal: fxDlee}
+	noSchema := fixtureSession{principal: fxDlee, writes: true, noSchema: true}
+	shared := fixtureSession{writes: true, shared: true}
 	completePath := "POST /ws/rest/cases/" + fxCaseTwoStep + "/workItems/6/complete"
 
 	return []viewFixture{
@@ -428,8 +460,8 @@ func viewFixtures() []viewFixture {
 			about: "dlee, a stock approver of db-admin, resource-server mode: one item, step 1 of 2 (all must agree, Mia Kovac also asked), risk high, deadline, future start, a reason; requester = requestee"},
 		{name: "inbox.approver-personal", tool: "list_work_items", args: map[string]any{}, mp: approverPersona, session: personal,
 			about: "the same inbox in personal mode: midPoint sees the server's own account"},
-		{name: "inbox.approver-no-reason-field", tool: "list_work_items", args: map[string]any{}, mp: approverPersona, session: noReasonField,
-			about: "the same inbox without requests.justificationItem: server.requestReason false, no justification"},
+		{name: "inbox.approver-no-schema", tool: "list_work_items", args: map[string]any{}, mp: approverPersona, session: noSchema,
+			about: "the same inbox with no assignment fields in midPoint's schema: the request's fields are named, not labelled"},
 		{name: "inbox.approver-dry-run", tool: "list_work_items", args: map[string]any{}, mp: approverPersona, session: dryRun,
 			about: "the same inbox with writes disabled: server.writesEnabled false"},
 		{name: "inbox.approver-unreadable", tool: "list_work_items", args: map[string]any{}, mp: unreadable, session: rs(fxDlee),

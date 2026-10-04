@@ -26,7 +26,9 @@ func (c *Client) RequestableCatalog(ctx context.Context, target, query string, l
 	filter := "requestable = true"
 	if query != "" {
 		v := quoteQueryString(query)
-		filter += fmt.Sprintf(" and (name contains[origIgnoreCase] %[1]s or displayName contains[origIgnoreCase] %[1]s or description contains[stringIgnoreCase] %[1]s)", v)
+		// Not description: midPoint 4.10's repository can't search it (live on
+		// 4.10.3: HTTP 500, "Missing item mapping for 'description'").
+		filter += fmt.Sprintf(" and (name contains[origIgnoreCase] %[1]s or displayName contains[origIgnoreCase] %[1]s)", v)
 	}
 	roles, err := c.listRoles(ctx, filter, limit)
 	if err != nil {

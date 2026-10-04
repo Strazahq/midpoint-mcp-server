@@ -17,7 +17,8 @@ func TestAssignmentOrigin(t *testing.T) {
 		{"@id":1,"targetRef":{"oid":"role-a","type":"c:RoleType"},
 		 "@metadata":{"storage":{"createTimestamp":"2026-10-03T15:28:48.604Z","creatorRef":{"oid":"` + oidRequester + `","type":"c:UserType"}},
 		  "process":{"requestTimestamp":"2026-10-03T15:28:31.856Z","requestorRef":{"oid":"` + oidRequester + `","type":"c:UserType"},
-		   "createApproverRef":{"oid":"` + oidApprover + `","type":"c:UserType"},"createApprovalComment":"quarter-end close"}}},
+		   "createApproverRef":{"oid":"` + oidApprover + `","type":"c:UserType"},"createApprovalComment":"quarter-end close",
+		   "requestorComment":" typed at checkout "}}},
 		{"@id":2,"targetRef":{"oid":"role-b","type":"c:RoleType"},
 		 "metadata":{"createTimestamp":"2024-02-02T10:00:00Z","creatorRef":{"oid":"` + oidApprover + `","type":"c:UserType"},
 		  "createApproverRef":[{"oid":"` + oidApprover + `","type":"c:UserType"},{"oid":"` + oidRequester + `","type":"c:UserType"}],
@@ -45,6 +46,9 @@ func TestAssignmentOrigin(t *testing.T) {
 	}
 	if len(o.ApprovedBy) != 1 || o.ApprovedBy[0].DisplayName != "Jane Doe" || len(o.ApprovalComments) != 1 || o.ApprovalComments[0] != "quarter-end close" {
 		t.Errorf("approval = %+v %q", o.ApprovedBy, o.ApprovalComments)
+	}
+	if o.RequestComment != "typed at checkout" {
+		t.Errorf("request comment = %q", o.RequestComment)
 	}
 
 	// midPoint before 4.10: one flat metadata container, multi-valued approvers.

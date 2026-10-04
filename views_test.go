@@ -426,7 +426,7 @@ func TestViewFieldsOnResults(t *testing.T) {
 			t.Errorf("%s: acting = %v, want %v", call.tool, acting, wantActing)
 		}
 		wantServer := map[string]any{
-			"writesEnabled": false, "requireRequestable": true, "requestReason": false,
+			"writesEnabled": false, "requireRequestable": true,
 			"uiContract": uiContractVersion, "version": version,
 		}
 		if !reflect.DeepEqual(out["server"], wantServer) {

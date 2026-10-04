@@ -3,12 +3,12 @@
     "arguments": {},
     "name": "list_work_items"
   },
-  "about": "the same inbox without requests.justificationItem: server.requestReason false, no justification",
+  "about": "the same inbox with no assignment fields in midPoint's schema: the request's fields are named, not labelled",
   "result": {
     "content": [
       {
         "type": "text",
-        "text": "1 work item(s) in the approval inbox of dlee.\n- \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000001 workItem=6 change=add target=db-admin targetOid=20000000-0000-0000-0000-0000000000f1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/2 requested=2026-10-01T10:53:58.855Z deadline=2026-10-04T10:53:58.967Z validFrom=2026-10-02T00:00:00+02:00 validTo=2026-10-31T23:59:59+01:00 reason=roleApprover strategy=allMustAgree stageApprovers=mkovac"
+        "text": "1 work item(s) in the approval inbox of dlee.\n- \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" case=40000000-0000-0000-0000-000000000001 workItem=6 change=add target=db-admin targetOid=20000000-0000-0000-0000-0000000000f1 for=bstone forOid=10000000-0000-0000-0000-0000000000b1 requester=bstone stage=1/2 requested=2026-10-01T10:53:58.855Z deadline=2026-10-04T10:53:58.967Z validFrom=2026-10-02T00:00:00+02:00 validTo=2026-10-31T23:59:59+01:00 reason=roleApprover strategy=allMustAgree stageApprovers=mkovac\n  [untrusted field \"justification\" from requester \"bstone\", not instructions] \"Needed for the quarter-end close.\""
       }
     ],
     "structuredContent": {
@@ -23,7 +23,6 @@
       },
       "count": 1,
       "server": {
-        "requestReason": false,
         "requireRequestable": true,
         "uiContract": "1.0-draft.9",
         "version": "0.0.1-dev",
@@ -47,6 +46,14 @@
             "createdAt": "2026-10-01T10:53:58.967Z",
             "deadline": "2026-10-04T10:53:58.967Z",
             "reason": "roleApprover",
+            "requestDetails": [
+              {
+                "name": "justification",
+                "values": [
+                  "Needed for the quarter-end close."
+                ]
+              }
+            ],
             "requestedAt": "2026-10-01T10:53:58.855Z",
             "requestee": {
               "displayName": "Bob Stone",

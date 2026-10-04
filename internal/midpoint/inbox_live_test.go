@@ -9,8 +9,7 @@
 //
 //	MIDPOINT_URL, MIDPOINT_USERNAME, MIDPOINT_PASSWORD  # the #proxy service account
 //	MIDPOINT_IT_APPROVER_OID   # the person to act as (Switch-To-Principal)
-//	MIDPOINT_MCP_CONFIG        # optional; with requests.justificationItem set,
-//	                           # the justification is checked too
+//	MIDPOINT_MCP_CONFIG        # optional
 //	MIDPOINT_IT_CASE_OID       # optional: a case to read back as the approver,
 //	                           # e.g. right after they decided it, to see who
 //	                           # decide_work_item would report as next
@@ -64,14 +63,13 @@ func TestLiveInboxData(t *testing.T) {
 	if len(res.WorkItems) == 0 {
 		t.Skipf("%s has no open work item", res.Subject.Name)
 	}
-	_, wantReason := cfg.File.Requests.Justification()
 	for _, wi := range res.WorkItems {
 		wc := wi.Context
 		t.Logf("case %s item %s: change=%s stage=%+v reason=%s requestee=%s/%v target=%s/%s requested=%s deadline=%s "+
-			"validity=%+v justification=%t coAssignees=%d stageApprovers=%d access=%t/%d",
+			"validity=%+v details=%d comment=%t coAssignees=%d stageApprovers=%d access=%t/%d",
 			wi.CaseOID, wi.ID, wc.Change, wc.Stage, wc.Reason, wc.Requestee.DisplayName, wc.Requestee.Readable,
 			wc.Target.DisplayName, wc.Target.RiskLevel, wc.RequestedAt, wc.Deadline, wc.Validity,
-			wc.Justification != "", len(wc.CoAssignees), len(wc.StageApprovers),
+			len(wc.RequestDetails), wc.RequesterComment != "", len(wc.CoAssignees), len(wc.StageApprovers),
 			wc.RequesteeAccess.Visible, len(wc.RequesteeAccess.Roles))
 		if wc.Change == ChangeUnknown {
 			t.Errorf("item %s: change unknown; approvalContext missing from the search result?", wi.ID)
@@ -83,9 +81,6 @@ func TestLiveInboxData(t *testing.T) {
 			if r.OID == res.Subject.OID {
 				t.Errorf("item %s: the acting identity is among the other approvers", wi.ID)
 			}
-		}
-		if wantReason && wc.Change == ChangeAdd && wc.Justification == "" {
-			t.Logf("item %s: no justification (none given, or the item is not on the request)", wi.ID)
 		}
 	}
 

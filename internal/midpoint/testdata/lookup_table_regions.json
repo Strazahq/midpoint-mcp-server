@@ -1,0 +1,11 @@
+{
+  "lookupTable": {
+    "oid": "70000000-0000-0000-0000-000000000001",
+    "name": "Regions",
+    "row": [
+      {"@id": 1, "key": "eu", "label": {"orig": "Europe", "norm": "europe"}},
+      {"@id": 2, "key": "us", "value": "United States"},
+      {"@id": 3, "key": "apac"}
+    ]
+  }
+}

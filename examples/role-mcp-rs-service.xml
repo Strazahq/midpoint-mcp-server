@@ -7,8 +7,8 @@
   end user via the Switch-To-Principal header.
 
   Design: the account holds NEAR-ZERO STANDING PRIVILEGE. It gets REST entry for
-  the six endpoints the tools call, plus the impersonation grant - and no model
-  authorization at all. On its own it can read nothing and change nothing; its
+  the endpoints the tools call, plus the impersonation grant, and of model
+  rights only the correlation read and the read of schema definitions. On its own it can read nothing and change nothing; its
   only power is to borrow the authorizations of a bounded set of end users, and
   midPoint attributes every change to the human who asked for it.
 
@@ -36,7 +36,10 @@
   - drop #claimWorkItem and #releaseWorkItem if no approval step names a group;
   - drop #cancelCase if requesters should not withdraw their own requests. Keep
     it, and the person also needs model #cancelCase on cases they requested;
-    midPoint's End user role does not have that (docs/authorization.md).
+    midPoint's End user role does not have that (docs/authorization.md);
+  - drop the "read-request-fields" authorization and #getObjects and
+    #getExtensionSchema if requests should carry no fields. Without them the
+    server starts with a warning and the request dialog has no fields.
 
   Verified on midPoint 4.10.3 (2026-10-04) with exactly this shape (REST
   entry, #proxy, correlation read, no other model rights): impersonated calls
@@ -54,7 +57,8 @@
     <name>MCP resource-server service</name>
     <description>
         Technical account role for midpoint-mcp-server in OIDC resource-server mode:
-        REST entry plus archetype-scoped impersonation, and no model rights of its own.
+        REST entry plus archetype-scoped impersonation; of its own, only the correlation read
+        and the read of schema definitions.
     </description>
 
     <!--
@@ -71,6 +75,8 @@
         claimWorkItem   POST /ws/rest/cases/{oid}/workItems/{id}/claim   (claim_work_item)
         releaseWorkItem POST /ws/rest/cases/{oid}/workItems/{id}/release (release_work_item)
         cancelCase      POST /ws/rest/cases/{oid}/cancel                (cancel_request, Withdraw)
+        getObjects      GET  /ws/rest/schemas                (request fields, at startup)
+        getExtensionSchema GET /ws/schema and its files      (request fields, at startup)
       Not included: runTask, suspendTask, resumeTask and testResource (the operator
       tools). Add them only where operators should act from the assistant.
     -->
@@ -86,6 +92,8 @@
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#claimWorkItem</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#releaseWorkItem</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#cancelCase</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getObjects</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#getExtensionSchema</action>
     </authorization>
 
     <!--
@@ -132,5 +140,30 @@
         <item>name</item>
         <item>archetypeRef</item>
         <!-- Add the correlation attribute if it is not name, for example extension/entraObjectId. -->
+    </authorization>
+
+    <!--
+      Request fields: at startup the server reads midPoint's assignment
+      extension schema and the lookup tables its fields name, as this account
+      itself, to offer every assignment field in the request dialog the way
+      midPoint's own Request access page does. Definitions only, no person's
+      data. Verified on 4.10.3 (2026-10-04): with these grants GET /ws/rest/schemas,
+      GET /ws/schema and GET /ws/rest/lookupTables/{oid} answer 200; without
+      them, 403.
+    -->
+    <authorization>
+        <name>read-request-fields</name>
+        <description>Lets midpoint-mcp-server read the assignment schema and its lookup tables.</description>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#read</action>
+        <object>
+            <type>SchemaType</type>
+        </object>
+        <object>
+            <type>LookupTableType</type>
+        </object>
+    </authorization>
+    <authorization>
+        <name>read-extension-schema-files</name>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#getExtensionSchema</action>
     </authorization>
 </role>

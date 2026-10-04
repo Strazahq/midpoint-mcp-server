@@ -24,6 +24,7 @@ func accessReviewText(line1 string, res midpoint.UserAssignments) string {
 		if len(o.ApprovedBy) == 1 {
 			approver = originName(&o.ApprovedBy[0])
 		}
+		t.untrusted(fieldComment, fromRequester(originName(o.RequestedBy)), o.RequestComment)
 		for _, c := range o.ApprovalComments {
 			t.untrusted(fieldComment, fromApprover(approver), c)
 		}
