@@ -169,15 +169,15 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 			out.Request.Approvers = detail.NextApprovers
 		}
 		out.Result = "pending approval; caseOid=" + caseOID
-		return text(fmt.Sprintf("Requested role %s for %s; it is waiting for approval.\nCase: %s\n%s", thingLabel(role), personLabel(user), caseOID, requestLine(plan))), out, nil
+		return text(fmt.Sprintf("Requested role %s%s for %s; it is waiting for approval.\nCase: %s\n%s", thingLabel(role), relationPhrase(in.Relation), personLabel(user), caseOID, requestLine(plan))), out, nil
 	}
 	// No case means midPoint applied the assignment then and there. Say so
 	// plainly: the caller asked to request access and instead received it,
 	// and a hedge like "likely executed directly" leaves that ambiguous.
 	out.Request.Outcome = "granted"
 	out.Result = fmt.Sprintf("GRANTED directly — no approval case was created (status=%d)", applied.StatusCode)
-	return text(fmt.Sprintf("Role %s was GRANTED to %s immediately: midPoint applied the assignment and no "+
-		"approval policy matched, so this was not a request.\n%s (status=%d)", thingLabel(role), personLabel(user), requestLine(plan), applied.StatusCode)), out, nil
+	return text(fmt.Sprintf("Role %s%s was GRANTED to %s immediately: midPoint applied the assignment and no "+
+		"approval policy matched, so this was not a request.\n%s (status=%d)", thingLabel(role), relationPhrase(in.Relation), personLabel(user), requestLine(plan), applied.StatusCode)), out, nil
 }
 
 // --- list_my_requests ---

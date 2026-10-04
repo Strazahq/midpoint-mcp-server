@@ -1,0 +1,69 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_request_targets"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: targets",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "You may request roles for 2 person(s), according to your midPoint request rules.\n- jdoe oid=10000000-0000-0000-0000-0000000000c1 fullName=\"Jane Doe\" because=\"End user › assign-requestable-roles; Team lead › assign-to-my-org; App approver › approve-app-roles\"\n- bstone oid=10000000-0000-0000-0000-0000000000b1 fullName=\"Bob Stone\" because=\"Team lead › assign-to-my-org\""
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Jane Doe",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "jdoe",
+        "oid": "10000000-0000-0000-0000-0000000000c1",
+        "orgs": [
+          {
+            "manager": true,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "manager",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "count": 2,
+      "limitReached": false,
+      "people": [
+        {
+          "because": [
+            "End user › assign-requestable-roles",
+            "Team lead › assign-to-my-org",
+            "App approver › approve-app-roles"
+          ],
+          "displayName": "Jane Doe",
+          "name": "jdoe",
+          "oid": "10000000-0000-0000-0000-0000000000c1",
+          "type": "User"
+        },
+        {
+          "because": [
+            "Team lead › assign-to-my-org"
+          ],
+          "displayName": "Bob Stone",
+          "name": "bstone",
+          "oid": "10000000-0000-0000-0000-0000000000b1",
+          "type": "User"
+        }
+      ],
+      "preview": {
+        "basis": "rules"
+      },
+      "server": {
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "tool": "list_request_targets"
+    }
+  }
+}

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -32,6 +33,73 @@ type requestAccessOpts struct {
 	manager, form, writes, granted bool
 	refuseStatus                   int
 	refuseFile                     string
+	// rules lets the server's account read midPoint's request rules (D44):
+	// Bob holds End user; Jane, his manager, also Team lead (people in orgs
+	// she manages, without dates) and App approver (app roles as approver).
+	rules bool
+}
+
+// Request rule roles of the fixtures, written as midPoint returns them.
+const (
+	fxEndUser     = "00000000-0000-0000-0000-000000000008"
+	fxTeamLead    = "20000000-0000-0000-0000-0000000000a1"
+	fxAppApprover = "20000000-0000-0000-0000-0000000000a2"
+	fxRelease     = "20000000-0000-0000-0000-0000000000d1"
+	fxAppArch     = "40000000-0000-0000-0000-0000000000a1"
+	fxAssignURI   = "http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#assign"
+)
+
+var fxRuleRoles = map[string]string{
+	fxEndUser: `{"oid":"` + fxEndUser + `","@type":"c:RoleType","name":"End user","authorization":{"name":"assign-requestable-roles","action":"` + fxAssignURI + `","phase":"request",
+		"object":{"special":"self"},"target":{"type":"#RoleType","filter":{"text":"requestable = true"}},"relation":"org:default"}}`,
+	fxTeamLead: `{"oid":"` + fxTeamLead + `","@type":"c:RoleType","name":"team-lead","displayName":"Team lead","authorization":{"name":"assign-to-my-org","action":"` + fxAssignURI + `","phase":"request",
+		"object":{"type":"#UserType","orgRelation":{"subjectRelation":"org:manager"}},"target":{"type":"#RoleType","filter":{"text":"requestable = true"}},"relation":"org:default",
+		"exceptItem":"assignment/activation"}}`,
+	fxAppApprover: `{"oid":"` + fxAppApprover + `","@type":"c:RoleType","name":"app-approver","displayName":"App approver","authorization":{"name":"approve-app-roles","action":"` + fxAssignURI + `","phase":"request",
+		"object":{"special":"self"},"target":{"type":"#RoleType","archetypeRef":{"oid":"` + fxAppArch + `"}},"relation":"org:approver"}}`,
+}
+
+// fxRuleSearch answers the searches behind the preview the way midPoint does.
+func fxRuleSearch(path, body string) (string, bool) {
+	has := func(s string) bool { return strings.Contains(body, s) }
+	only := func(oid string) bool { return !has("inOid") || has(oid) }
+	var objs []string
+	switch path {
+	case "/ws/rest/abstractRoles/search":
+		for _, oid := range regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`).FindAllString(body, -1) {
+			if r, ok := fxRuleRoles[oid]; ok {
+				objs = append(objs, r)
+			} else {
+				objs = append(objs, `{"oid":"`+oid+`","@type":"c:RoleType","name":"`+oid[len(oid)-4:]+`"}`)
+			}
+		}
+	case "/ws/rest/roles/search":
+		if has("requestable = true") {
+			if only(fxDbAdmin) {
+				objs = append(objs, `{"oid":"`+fxDbAdmin+`","name":"db-admin","displayName":"Database administrator","description":"Manage production databases and maintain backups.","riskLevel":"high","requestable":true}`)
+			}
+			if only(fxFinance) {
+				objs = append(objs, `{"oid":"`+fxFinance+`","name":"finance-reports","displayName":"Finance reports","description":"Read financial reports.","requestable":true}`)
+			}
+		}
+		if has(fxAppArch) && only(fxRelease) {
+			objs = append(objs, `{"oid":"`+fxRelease+`","name":"release-manager","displayName":"Release manager","description":"Approve and ship releases.","riskLevel":"medium"}`)
+		}
+	case "/ws/rest/users/search":
+		bob := `{"oid":"` + fxBstone + `","name":"bstone","fullName":"Bob Stone"}`
+		jane := `{"oid":"` + fxJdoe + `","name":"jdoe","fullName":"Jane Doe"}`
+		switch {
+		case has(". inOrg"):
+			objs = []string{bob, jane}
+		case has(fxBstone):
+			objs = []string{bob}
+		case has(fxJdoe):
+			objs = []string{jane}
+		}
+	default:
+		return "", false
+	}
+	return `{"object":{"object":[` + strings.Join(objs, ",") + `]}}`, true
 }
 
 func requestAccessSessionWith(t *testing.T, o requestAccessOpts) (*mcp.ClientSession, *[]recordedReq) {
@@ -45,10 +113,39 @@ func requestAccessSessionWith(t *testing.T, o requestAccessOpts) (*mcp.ClientSes
 	if manager {
 		self = fxJdoe
 		mp.self = managerPersona(t).self
+		if !o.rules {
+			// Like everyone, Jane holds End user; without the rules option the
+			// server's account can't read it, so the catalog falls back.
+			mp.self = `{"user":{"oid":"` + fxJdoe + `","name":"jdoe","fullName":"Jane Doe",
+				"parentOrgRef":{"oid":"` + fxDevOps + `","relation":"org:manager","type":"c:OrgType","targetName":"dev-ops"},
+				"roleMembershipRef":{"oid":"` + fxEndUser + `","relation":"org:default","type":"c:RoleType"}}}`
+			mp.users[fxJdoe] = mp.self
+		}
+		if o.rules {
+			mp.self = `{"user":{"oid":"` + fxJdoe + `","name":"jdoe","fullName":"Jane Doe",
+				"parentOrgRef":{"oid":"` + fxDevOps + `","relation":"org:manager","type":"c:OrgType","targetName":"dev-ops"},
+				"roleMembershipRef":[{"oid":"` + fxEndUser + `","relation":"org:default","type":"c:RoleType"},{"oid":"` + fxTeamLead + `","relation":"org:default","type":"c:RoleType"},
+				 {"oid":"` + fxAppApprover + `","relation":"org:default","type":"c:RoleType"},{"oid":"` + fxDevOps + `","relation":"org:manager","type":"c:OrgType"}]}}`
+			mp.users[fxJdoe] = mp.self
+		}
+	}
+	if o.rules {
+		mp.roles[fxRelease] = `{"role":{"oid":"` + fxRelease + `","name":"release-manager","displayName":"Release manager"}}`
 	}
 	var calls []recordedReq
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		if o.rules && r.Method == http.MethodPost {
+			b, _ := io.ReadAll(r.Body)
+			if answer, ok := fxRuleSearch(r.URL.Path, string(b)); ok {
+				if r.URL.Path == "/ws/rest/abstractRoles/search" && r.Header.Get(midpoint.SwitchToPrincipalHeader) != "" {
+					t.Error("request rules read as the person")
+				}
+				_, _ = io.WriteString(w, answer)
+				return
+			}
+			r.Body = io.NopCloser(strings.NewReader(string(b)))
+		}
 		switch r.URL.Path {
 		case "/ws/rest/schemas", "/ws/schema":
 			if r.Header.Get(midpoint.SwitchToPrincipalHeader) != "" {
@@ -180,6 +277,7 @@ func TestWriteRequestAccessViewFixtures(t *testing.T) {
 		manager, form, writes, granted, isError bool
 		refuseStatus                            int
 		refuseFile                              string
+		rules                                   bool
 	}{
 		{name: "catalog", tool: "list_requestable_roles", writes: true},
 		{name: "manager", tool: "list_requestable_roles", manager: true, writes: true},
@@ -199,11 +297,19 @@ func TestWriteRequestAccessViewFixtures(t *testing.T) {
 			refuseStatus: 409, refuseFile: "request_refused_policy.json"},
 		{name: "refused-not-authorized", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin"}, writes: true, isError: true,
 			refuseStatus: 403, refuseFile: "request_refused_authorization.json"},
+		// D44: the catalog and "who for" from midPoint's request rules.
+		{name: "rules", tool: "list_requestable_roles", writes: true, rules: true},
+		{name: "rules-manager", tool: "list_requestable_roles", manager: true, writes: true, rules: true},
+		{name: "rules-report", tool: "list_requestable_roles", args: map[string]any{"forUser": fxBstone, "limit": 100}, manager: true, writes: true, rules: true},
+		{name: "targets", tool: "list_request_targets", manager: true, writes: true, rules: true},
+		{name: "targets-self", tool: "list_request_targets", writes: true, rules: true},
+		{name: "pending-approver", tool: "request_role", args: map[string]any{"roleOid": fxRelease, "roleName": "release-manager", "relation": "approver"}, manager: true, writes: true, rules: true},
+		{name: "relation-refused", tool: "request_role", args: map[string]any{"roleOid": fxFinance, "roleName": "finance-reports", "relation": "approver"}, manager: true, writes: true, rules: true, isError: true},
 		{name: "invalid-validity", tool: "request_role", args: map[string]any{"roleOid": fxDbAdmin, "roleName": "db-admin", "validTo": "yesterday"}, writes: true, isError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cs, _ := requestAccessSessionWith(t, requestAccessOpts{manager: tc.manager, form: tc.form, writes: tc.writes, granted: tc.granted,
-				refuseStatus: tc.refuseStatus, refuseFile: tc.refuseFile})
+				refuseStatus: tc.refuseStatus, refuseFile: tc.refuseFile, rules: tc.rules})
 			if tc.args == nil {
 				tc.args = map[string]any{}
 			}

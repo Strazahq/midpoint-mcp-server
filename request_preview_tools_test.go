@@ -51,7 +51,9 @@ func previewSession(t *testing.T, writes bool) (*mcp.ClientSession, *[]string) {
 			_, _ = io.WriteString(w, `{"object":{"object":[`+strings.Join(objs, ",")+`]}}`)
 		case r.Method == http.MethodPost && r.URL.Path == "/ws/rest/roles/search":
 			var objs []string
-			only := func(oid string) bool { return !strings.Contains(string(b), "inOid") || strings.Contains(string(b), oid) }
+			only := func(oid string) bool {
+				return !strings.Contains(string(b), "inOid") || strings.Contains(string(b), oid)
+			}
 			if strings.Contains(string(b), "requestable = true") && only("role-finance") {
 				objs = append(objs, finance)
 			}

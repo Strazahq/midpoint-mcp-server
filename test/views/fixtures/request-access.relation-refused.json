@@ -1,0 +1,26 @@
+{
+  "call": {
+    "arguments": {
+      "relation": "approver",
+      "roleName": "finance-reports",
+      "roleOid": "20000000-0000-0000-0000-0000000000e1"
+    },
+    "name": "request_role"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: relation-refused",
+  "result": {
+    "_meta": {
+      "midpoint-mcp-server/error": {
+        "code": "not-requestable",
+        "v": 1
+      }
+    },
+    "content": [
+      {
+        "type": "text",
+        "text": "role 20000000-0000-0000-0000-0000000000e1 is not flagged requestable as approver for jdoe: midPoint's request rules offer only default"
+      }
+    ],
+    "isError": true
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "call": {
+    "arguments": {},
+    "name": "list_request_targets"
+  },
+  "about": "Server UI session against recorded approval answers and neutral authored catalog/schema answers: targets-self",
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "You may request roles for 1 person(s), according to your midPoint request rules.\n- bstone oid=10000000-0000-0000-0000-0000000000b1 fullName=\"Bob Stone\" because=\"End user › assign-requestable-roles\""
+      }
+    ],
+    "structuredContent": {
+      "acting": {
+        "fullName": "Bob Stone",
+        "impersonated": true,
+        "mode": "resource-server",
+        "name": "bstone",
+        "oid": "10000000-0000-0000-0000-0000000000b1",
+        "orgs": [
+          {
+            "manager": false,
+            "name": "dev-ops",
+            "oid": "30000000-0000-0000-0000-000000000001",
+            "relation": "default",
+            "selected": true,
+            "source": "parentOrgRef"
+          }
+        ],
+        "sharedCredential": false
+      },
+      "count": 1,
+      "limitReached": false,
+      "people": [
+        {
+          "because": [
+            "End user › assign-requestable-roles"
+          ],
+          "displayName": "Bob Stone",
+          "name": "bstone",
+          "oid": "10000000-0000-0000-0000-0000000000b1",
+          "type": "User"
+        }
+      ],
+      "preview": {
+        "basis": "rules"
+      },
+      "server": {
+        "requireRequestable": true,
+        "uiContract": "1.0-draft.9",
+        "version": "0.0.1-dev",
+        "writesEnabled": true
+      },
+      "tool": "list_request_targets"
+    }
+  }
+}

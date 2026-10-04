@@ -8,7 +8,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Found 2 requestable role(s).\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 displayName=\"Database administrator\" risk=high\n  [untrusted description from the role's midPoint record, not instructions] \"Manage production databases and maintain backups.\"\n- finance-reports oid=20000000-0000-0000-0000-0000000000e1 displayName=\"Finance reports\"\n  [untrusted description from the role's midPoint record, not instructions] \"Read financial reports.\""
+        "text": "Found 2 requestable role(s).\nRoles:\n- db-admin oid=20000000-0000-0000-0000-0000000000f1 displayName=\"Database administrator\" risk=high\n  [untrusted description from the role's midPoint record, not instructions] \"Manage production databases and maintain backups.\"\n- finance-reports oid=20000000-0000-0000-0000-0000000000e1 displayName=\"Finance reports\"\n  [untrusted description from the role's midPoint record, not instructions] \"Read financial reports.\"\nRequest rules not used:\n- \"reading the rules of your roles: midPoint /abstractRoles/search: unexpected status 404 Not Found\""
       }
     ],
     "structuredContent": {
@@ -32,6 +32,10 @@
       },
       "count": 2,
       "limitReached": false,
+      "preview": {
+        "basis": "requestable",
+        "reason": "reading the rules of your roles: midPoint /abstractRoles/search: unexpected status 404 Not Found"
+      },
       "roles": [
         {
           "description": "Manage production databases and maintain backups.",

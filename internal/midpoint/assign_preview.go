@@ -112,7 +112,7 @@ func (c *Client) RequestPreview(ctx context.Context) (*Preview, error) {
 	p := &Preview{c: c}
 	var err error
 	if p.Me, err = c.readPerson(ctx, me); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: reading your own record: %w", ErrPreviewUnavailable, err)
 	}
 	direct, delegated := map[string]bool{}, map[string]bool{}
 	var oids []string
