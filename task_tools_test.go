@@ -229,7 +229,7 @@ func TestTaskActionsGateOn(t *testing.T) {
 	if out["applied"] != true || out["result"] != "status=204" {
 		t.Errorf("run: %v", out)
 	}
-	want := "Applied: Run task \"Nightly HR recon\" (t-recon) now (status=204).\nThe task is now running (result success)."
+	want := "Applied: Run task \"Nightly HR recon\" now.\nRequest: POST /ws/rest/tasks/t-recon/run (status=204)\nThe task is now running (result success)."
 	if got != want {
 		t.Errorf("run text:\n%s\nwant:\n%s", got, want)
 	}

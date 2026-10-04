@@ -94,7 +94,7 @@ func (c *Client) PlanTestResource(r ResourceBrief) (Plan, error) {
 	return Plan{
 		Method:  http.MethodPost,
 		Path:    "/" + collResources + "/" + url.PathEscape(r.OID) + "/test",
-		Summary: fmt.Sprintf("Test resource %q (%s)", r.Name, r.OID),
+		Summary: fmt.Sprintf("Test resource %q", r.Name),
 	}, nil
 }
 

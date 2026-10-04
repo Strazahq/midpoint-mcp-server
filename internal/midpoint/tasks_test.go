@@ -244,7 +244,7 @@ func TestPlanTaskAction(t *testing.T) {
 			continue
 		}
 		if plan.Method != http.MethodPost || plan.Path != "/tasks/t-1/"+string(tc.action) || plan.Body != nil ||
-			!strings.Contains(plan.Summary, `task "Nightly recon" (t-1)`) {
+			!strings.Contains(plan.Summary, `task "Nightly recon"`) {
 			t.Errorf("%s plan = %+v", tc.action, plan)
 		}
 	}

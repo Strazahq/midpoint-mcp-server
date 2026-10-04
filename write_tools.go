@@ -41,8 +41,8 @@ func previewWrite(plan midpoint.Plan) (*mcp.CallToolResult, writeOutput) {
 		Endpoint: plan.Endpoint(),
 		Body:     plan.Body,
 	}
-	return text(fmt.Sprintf("DRY RUN — writes disabled. Would %s via %s %s.\nSet %s=true to apply.",
-		plan.Summary, plan.Method, plan.Endpoint(), midpoint.EnvAllowWrites)), out
+	return text(fmt.Sprintf("DRY RUN — writes disabled. Would %s.\n%s\nSet %s=true to apply.",
+		lowerFirst(plan.Summary), requestLine(plan), midpoint.EnvAllowWrites)), out
 }
 
 // runWrite applies the gate: preview when writes are disabled, otherwise apply.
@@ -68,7 +68,7 @@ func runWrite(ctx context.Context, allowWrites bool, client *midpoint.Client, pl
 	} else {
 		out.Result = fmt.Sprintf("status=%d", res.StatusCode)
 	}
-	return text(fmt.Sprintf("Applied: %s (%s).", plan.Summary, out.Result)), out, nil
+	return text(fmt.Sprintf("Applied: %s.\n%s (%s)", plan.Summary, requestLine(plan), out.Result)), out, nil
 }
 
 // --- create_user ---
@@ -123,6 +123,11 @@ func registerSetUserEnabled(server *mcp.Server, client *midpoint.Client, allowWr
 		if err := confirmRef("userName", "user", in.UserName, &user); err != nil {
 			return nil, writeOutput{}, err
 		}
+		verb := "Disable"
+		if enable {
+			verb = "Enable"
+		}
+		plan.Summary = fmt.Sprintf("%s user %s", verb, personLabel(user))
 		return runWrite(ctx, allowWrites, client, plan)
 	})
 }
@@ -138,12 +143,12 @@ type roleAssignmentInput struct {
 
 // confirmAssignmentNames checks a role assignment's names against the objects
 // its OIDs point to, read as the acting identity.
-func confirmAssignmentNames(ctx context.Context, client *midpoint.Client, in roleAssignmentInput) error {
-	user, role := client.AssignmentRefs(ctx, in.UserOID, in.RoleOID)
-	if err := confirmRef("userName", "user", in.UserName, &user); err != nil {
-		return err
+func confirmAssignmentNames(ctx context.Context, client *midpoint.Client, in roleAssignmentInput) (user, role midpoint.ObjectRef, err error) {
+	user, role = client.AssignmentRefs(ctx, in.UserOID, in.RoleOID)
+	if err = confirmRef("userName", "user", in.UserName, &user); err != nil {
+		return user, role, err
 	}
-	return confirmRef("roleName", "role", in.RoleName, &role)
+	return user, role, confirmRef("roleName", "role", in.RoleName, &role)
 }
 
 func registerAssignRole(server *mcp.Server, client *midpoint.Client, allowWrites bool) {
@@ -156,9 +161,11 @@ func registerAssignRole(server *mcp.Server, client *midpoint.Client, allowWrites
 		if err != nil {
 			return nil, writeOutput{}, err
 		}
-		if err := confirmAssignmentNames(ctx, client, in); err != nil {
+		user, role, err := confirmAssignmentNames(ctx, client, in)
+		if err != nil {
 			return nil, writeOutput{}, err
 		}
+		plan.Summary = fmt.Sprintf("Assign role %s to %s", thingLabel(role), personLabel(user))
 		return runWrite(ctx, allowWrites, client, plan)
 	})
 }
@@ -180,9 +187,11 @@ func registerUnassignRole(server *mcp.Server, client *midpoint.Client, allowWrit
 		if err != nil {
 			return nil, revocationOutput{}, err
 		}
-		if err := confirmAssignmentNames(ctx, client, in); err != nil {
+		user, role, err := confirmAssignmentNames(ctx, client, in)
+		if err != nil {
 			return nil, revocationOutput{}, err
 		}
+		plan.Summary = fmt.Sprintf("Remove role %s from %s", thingLabel(role), personLabel(user))
 		res, out, err := runWrite(ctx, allowWrites, client, plan)
 		if err != nil {
 			return nil, revocationOutput{}, err
@@ -216,6 +225,7 @@ func registerRecomputeUser(server *mcp.Server, client *midpoint.Client, allowWri
 		if err := confirmRef("userName", "user", in.UserName, &user); err != nil {
 			return nil, writeOutput{}, err
 		}
+		plan.Summary = "Recompute user " + personLabel(user)
 		return runWrite(ctx, allowWrites, client, plan)
 	})
 }

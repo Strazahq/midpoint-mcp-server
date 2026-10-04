@@ -424,8 +424,8 @@ func TestDecideWorkItemText(t *testing.T) {
 
 	_, msg := callToolText(t, cs, "decide_work_item",
 		map[string]any{"caseOid": "case-1", "userName": "Jane Doe", "roleName": "Superuser", "workItemId": "1", "decision": "approve"})
-	for _, want := range []string{"Approved work item 1", `"Approving Superuser for Jane" (case-1)`,
-		"Superuser for Jane Doe", "as selfuser (personal mode)", "recorded outcome approve", "now closed"} {
+	for _, want := range []string{"Approved Superuser for Jane Doe", "as selfuser (personal mode)", "recorded outcome approve", "now closed",
+		`Case: "Approving Superuser for Jane" (case-1), work item 1`} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("text %q does not mention %q", msg, want)
 		}
@@ -483,7 +483,7 @@ func TestDecideWorkItemGateOff(t *testing.T) {
 	if subj, _ := out["subject"].(map[string]any); subj["name"] != "selfuser" {
 		t.Errorf("preview subject = %v, want selfuser", out["subject"])
 	}
-	if !strings.Contains(msg, "DRY RUN") || !strings.Contains(msg, "Would reject work item 1") || !strings.Contains(msg, midpoint.EnvAllowWrites) {
+	if !strings.Contains(msg, "DRY RUN") || !strings.HasPrefix(msg, "DRY RUN — writes disabled. Would reject Superuser for Jane Doe") || !strings.Contains(msg, midpoint.EnvAllowWrites) {
 		t.Errorf("preview text = %q", msg)
 	}
 	if done := mp.completions(); len(done) != 0 {

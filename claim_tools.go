@@ -114,12 +114,14 @@ func registerGroupWorkItemTool(server *mcp.Server, client *midpoint.Client, allo
 			Target:     g.Case.Target,
 			OfferedTo:  g.OfferedTo,
 		}
-		what := groupWhat(out)
+		what := fmt.Sprintf("%s for %s", thingLabel(g.Target), personLabel(g.Object))
 		as := fmt.Sprintf("%s (%s mode)", g.Subject.Name, g.Subject.Mode)
+		where := caseLine(out.Case, out.CaseOID, out.WorkItemID)
+		plan.Summary = fmt.Sprintf("%s%s %s", strings.ToUpper(act.verb[:1]), act.verb[1:], what)
 		if !allowWrites {
 			_, out.writeOutput = previewWrite(plan)
-			return text(fmt.Sprintf("DRY RUN — writes disabled. Would %s %s as %s via %s %s.\nSet %s=true to apply.",
-				act.verb, what, as, plan.Method, plan.Endpoint(), midpoint.EnvAllowWrites)), out, nil
+			return text(fmt.Sprintf("DRY RUN — writes disabled. Would %s %s as %s.\n%s\n%s\nSet %s=true to apply.",
+				act.verb, what, as, where, requestLine(plan), midpoint.EnvAllowWrites)), out, nil
 		}
 
 		applied, err := client.Apply(ctx, plan)
@@ -137,13 +139,13 @@ func registerGroupWorkItemTool(server *mcp.Server, client *midpoint.Client, allo
 		h, err := client.ReadWorkItemHolders(ctx, out.CaseOID, out.WorkItemID)
 		switch {
 		case err != nil:
-			return text(fmt.Sprintf("Submitted %s on %s as %s, but the case could not be re-read to confirm it.", act.verb, what, as)), out, nil
+			return text(fmt.Sprintf("Submitted %s on %s as %s, but the case could not be re-read to confirm it.\n%s", act.verb, what, as, where)), out, nil
 		case act.confirmed(h):
 			out.Confirmed = true
-			return text(fmt.Sprintf("%s %s as %s: %s.", act.past, what, as, groupAfter(act, h, out.OfferedTo))), out, nil
+			return text(fmt.Sprintf("%s %s as %s: %s.\n%s", act.past, what, as, groupAfter(act, h, out.OfferedTo), where)), out, nil
 		}
-		return text(fmt.Sprintf("Submitted %s on %s as %s, but midPoint doesn't show the change yet: %s.",
-			act.verb, what, as, holdersText(h))), out, nil
+		return text(fmt.Sprintf("Submitted %s on %s as %s, but midPoint doesn't show the change yet: %s.\n%s",
+			act.verb, what, as, holdersText(h), where)), out, nil
 	}))
 }
 

@@ -358,6 +358,7 @@ func (c *Client) PlanTaskAction(task TaskSummary, action TaskAction) (Plan, erro
 		return Plan{}, err
 	}
 	label := fmt.Sprintf("task %q (%s)", task.Name, task.OID)
+	named := fmt.Sprintf("task %q", task.Name)
 	var summary string
 	switch action {
 	case TaskRun:
@@ -365,9 +366,9 @@ func (c *Client) PlanTaskAction(task TaskSummary, action TaskAction) (Plan, erro
 			return Plan{}, &CodedError{Code: CodeInvalidInput, Err: fmt.Errorf(
 				"refused: %s is suspended, and midPoint does not run a suspended task (it answers but leaves the task suspended); use resume_task", label)}
 		}
-		summary = "Run " + label + " now"
+		summary = "Run " + named + " now"
 	case TaskSuspend:
-		summary = "Suspend " + label
+		summary = "Suspend " + named
 	case TaskResume:
 		if task.SchedulingState != "" && task.SchedulingState != "suspended" &&
 			(task.SchedulingState != "closed" || !task.Recurring) {
@@ -375,7 +376,7 @@ func (c *Client) PlanTaskAction(task TaskSummary, action TaskAction) (Plan, erro
 				"refused: %s is %s, not suspended; midPoint resumes only a suspended task or a closed recurring one%s",
 				label, cmp.Or(task.ExecutionState, task.SchedulingState), resumeHint(task))}
 		}
-		summary = "Resume " + label
+		summary = "Resume " + named
 	default:
 		return Plan{}, fmt.Errorf("unknown task action %q", action)
 	}

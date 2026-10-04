@@ -21,7 +21,7 @@ func TestResourceBriefReadsWithoutFetching(t *testing.T) {
 		t.Errorf("query = %s", q)
 	}
 	plan, err := c.PlanTestResource(b)
-	if err != nil || plan.Method != http.MethodPost || plan.Path != "/resources/r-1/test" || plan.Summary != `Test resource "HR CSV" (r-1)` {
+	if err != nil || plan.Method != http.MethodPost || plan.Path != "/resources/r-1/test" || plan.Summary != `Test resource "HR CSV"` {
 		t.Errorf("plan = %+v, %v", plan, err)
 	}
 }

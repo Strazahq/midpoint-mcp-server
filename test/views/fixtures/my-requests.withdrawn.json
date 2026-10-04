@@ -12,7 +12,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Withdrew request \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) as bstone (resource-server mode): midPoint now shows it as closed."
+        "text": "Withdrew your request for Database admin as bstone (resource-server mode): midPoint now shows it as closed.\nCase: \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001)"
       }
     ],
     "structuredContent": {
@@ -53,7 +53,7 @@
         "name": "bstone",
         "oid": "10000000-0000-0000-0000-0000000000b1"
       },
-      "summary": "Withdraw request 40000000-0000-0000-0000-000000000001",
+      "summary": "Withdraw your request for Database admin",
       "tool": "cancel_request",
       "withdrawal": {
         "caseState": "closed",

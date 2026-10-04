@@ -154,7 +154,7 @@ func TestClaimWorkItem(t *testing.T) {
 	if g, _ := out["offeredTo"].(map[string]any); g["displayName"] != "Access approvers" || g["type"] != "Org" {
 		t.Errorf("offeredTo = %v", out["offeredTo"])
 	}
-	for _, s := range []string{"Claimed work item 5", "finance-reports for bstone", "as dlee", "taken from Access approvers", "decide_work_item"} {
+	for _, s := range []string{"Claimed Finance reports for Bob Stone (bstone) as dlee", "taken from Access approvers", "decide_work_item", "work item 5"} {
 		if !strings.Contains(text, s) {
 			t.Errorf("text %q lacks %q", text, s)
 		}
@@ -188,7 +188,7 @@ func TestReleaseWorkItem(t *testing.T) {
 	if out["tool"] != "release_work_item" || out["applied"] != true || out["confirmed"] != true {
 		t.Errorf("structured = %v", out)
 	}
-	if !strings.Contains(text, "Released work item 5") || !strings.Contains(text, "back with Access approvers") {
+	if !strings.HasPrefix(text, "Released Finance reports for Bob Stone (bstone) as dlee") || !strings.Contains(text, "back with Access approvers") || !strings.Contains(text, "work item 5") {
 		t.Errorf("text = %q", text)
 	}
 	// Offered again.

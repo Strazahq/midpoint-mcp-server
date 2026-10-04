@@ -68,6 +68,12 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- Write tools say what they do in names first. For example: "DRY RUN — writes
+  disabled. Would assign role End user to Carol Jensen (carol)." or "Approved
+  Database admin for Bob Stone (bstone) …". The OIDs, the case and the REST
+  request follow on their own `Case:` and `Request:` lines. The plan summary
+  in the structured result uses the same names (contract D41). The structured
+  fields are unchanged.
 - The four views are redesigned for readability (contract 1.0-draft.11, D39),
   after two independent reviews of a mockup. The changes:
   - Colour now means status only, and midPoint blue stays the primary colour.

@@ -11,7 +11,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Requested role 20000000-0000-0000-0000-0000000000f1 for 10000000-0000-0000-0000-0000000000b1 — pending approval (case 40000000-0000-0000-0000-000000000001)."
+        "text": "Requested role Database admin for Bob Stone (bstone); it is waiting for approval.\nCase: 40000000-0000-0000-0000-000000000001\nRequest: PATCH /ws/rest/users/10000000-0000-0000-0000-0000000000b1"
       }
     ],
     "structuredContent": {
@@ -85,7 +85,7 @@
         "version": "0.0.1-dev",
         "writesEnabled": true
       },
-      "summary": "Request role 20000000-0000-0000-0000-0000000000f1 for user 10000000-0000-0000-0000-0000000000b1 (subject to approval policy)",
+      "summary": "Request role Database admin for Bob Stone (bstone) (subject to approval policy)",
       "tool": "request_role"
     }
   }

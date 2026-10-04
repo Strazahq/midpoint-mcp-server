@@ -49,10 +49,15 @@ func registerCancelRequest(server *mcp.Server, client *midpoint.Client, allowWri
 			}
 			out := cancelRequestOutput{Subject: d.Subject, CaseOID: in.CaseOID, Case: d.Case.Name,
 				Withdrawal: withdrawal{Target: d.Case.TargetRef, Object: d.Case.ObjectRef, Outcome: "preview"}}
-			label := fmt.Sprintf("%q (%s)", d.Case.Name, in.CaseOID)
+			label := "for " + thingLabel(derefRef(d.Case.TargetRef))
+			if o := derefRef(d.Case.ObjectRef); o.OID != "" && o.OID != d.Subject.OID {
+				label += " for " + personLabel(o)
+			}
+			where := fmt.Sprintf("Case: %q (%s)", d.Case.Name, in.CaseOID)
+			plan.Summary = "Withdraw your request " + label
 			if !allowWrites {
 				_, out.writeOutput = previewWrite(plan)
-				return text(fmt.Sprintf("DRY RUN — writes disabled. Would withdraw request %s as %s (%s mode) via %s %s.\nSet %s=true to apply.", label, d.Subject.Name, d.Subject.Mode, plan.Method, plan.Endpoint(), midpoint.EnvAllowWrites)), out, nil
+				return text(fmt.Sprintf("DRY RUN — writes disabled. Would withdraw your request %s as %s (%s mode).\n%s\n%s\nSet %s=true to apply.", label, d.Subject.Name, d.Subject.Mode, where, requestLine(plan), midpoint.EnvAllowWrites)), out, nil
 			}
 			applied, err := client.Apply(ctx, plan)
 			if err != nil {
@@ -62,14 +67,14 @@ func registerCancelRequest(server *mcp.Server, client *midpoint.Client, allowWri
 			out.Withdrawal.Outcome = "unconfirmed"
 			after, err := client.GetCase(ctx, in.CaseOID)
 			if err != nil {
-				return text(fmt.Sprintf("Sent the withdrawal of request %s, but the case could not be re-read to confirm its state.", label)), out, nil
+				return text(fmt.Sprintf("Sent the withdrawal of your request %s, but the case could not be re-read to confirm its state.\n%s", label, where)), out, nil
 			}
 			out.Withdrawal.CaseState = after.State
 			if after.State == "closing" || after.State == "closed" {
 				out.Withdrawal.Outcome = "withdrawn"
-				return text(fmt.Sprintf("Withdrew request %s as %s (%s mode): midPoint now shows it as %s.", label, d.Subject.Name, d.Subject.Mode, after.State)), out, nil
+				return text(fmt.Sprintf("Withdrew your request %s as %s (%s mode): midPoint now shows it as %s.\n%s", label, d.Subject.Name, d.Subject.Mode, after.State, where)), out, nil
 			}
-			return text(fmt.Sprintf("Sent the withdrawal of request %s, but midPoint still shows it as %s.", label, caseStateText(after.State))), out, nil
+			return text(fmt.Sprintf("Sent the withdrawal of your request %s, but midPoint still shows it as %s.\n%s", label, caseStateText(after.State), where)), out, nil
 		}))
 }
 

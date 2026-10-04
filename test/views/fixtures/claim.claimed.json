@@ -13,7 +13,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Claimed work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004) — finance-reports for bstone as dlee (resource-server mode): it is yours now, taken from Access approvers; approve or reject it with decide_work_item, or give it back with release_work_item."
+        "text": "Claimed Finance reports for Bob Stone (bstone) as dlee (resource-server mode): it is yours now, taken from Access approvers; approve or reject it with decide_work_item, or give it back with release_work_item.\nCase: \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004), work item 5"
       }
     ],
     "structuredContent": {
@@ -53,7 +53,7 @@
         "name": "dlee",
         "oid": "10000000-0000-0000-0000-0000000000a1"
       },
-      "summary": "Claim work item 5 in case 40000000-0000-0000-0000-000000000004",
+      "summary": "Claim Finance reports for Bob Stone (bstone)",
       "target": "finance-reports",
       "tool": "claim_work_item",
       "workItemId": "5"

@@ -13,7 +13,7 @@
     "content": [
       {
         "type": "text",
-        "text": "DRY RUN — writes disabled. Would Unassign role 20000000-0000-0000-0000-0000000000f1 from user 10000000-0000-0000-0000-0000000000b1 via PATCH /ws/rest/users/10000000-0000-0000-0000-0000000000b1.\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
+        "text": "DRY RUN — writes disabled. Would remove role Database admin from Bob Stone (bstone).\nRequest: PATCH /ws/rest/users/10000000-0000-0000-0000-0000000000b1\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
       }
     ],
     "structuredContent": {
@@ -74,7 +74,7 @@
         "version": "0.0.1-dev",
         "writesEnabled": false
       },
-      "summary": "Unassign role 20000000-0000-0000-0000-0000000000f1 from user 10000000-0000-0000-0000-0000000000b1",
+      "summary": "Remove role Database admin from Bob Stone (bstone)",
       "tool": "unassign_role"
     }
   }

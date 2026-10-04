@@ -11,7 +11,7 @@
     "content": [
       {
         "type": "text",
-        "text": "DRY RUN — writes disabled. Would Request role 20000000-0000-0000-0000-0000000000f1 for user 10000000-0000-0000-0000-0000000000b1 (subject to approval policy) via PATCH /ws/rest/users/10000000-0000-0000-0000-0000000000b1.\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
+        "text": "DRY RUN — writes disabled. Would request role Database admin for Bob Stone (bstone) (subject to approval policy).\nRequest: PATCH /ws/rest/users/10000000-0000-0000-0000-0000000000b1\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
       }
     ],
     "structuredContent": {
@@ -76,7 +76,7 @@
         "version": "0.0.1-dev",
         "writesEnabled": false
       },
-      "summary": "Request role 20000000-0000-0000-0000-0000000000f1 for user 10000000-0000-0000-0000-0000000000b1 (subject to approval policy)",
+      "summary": "Request role Database admin for Bob Stone (bstone) (subject to approval policy)",
       "tool": "request_role"
     }
   }

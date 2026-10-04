@@ -15,7 +15,7 @@
     "content": [
       {
         "type": "text",
-        "text": "DRY RUN — writes disabled. Would reject work item 6 in case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) — db-admin for bstone, requested by bstone as dlee (resource-server mode) via POST /ws/rest/cases/40000000-0000-0000-0000-000000000001/workItems/6/complete.\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
+        "text": "DRY RUN — writes disabled. Would reject Database admin for Bob Stone (bstone), requested by bstone as dlee (resource-server mode).\nCase: \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001), work item 6\nRequest: POST /ws/rest/cases/40000000-0000-0000-0000-000000000001/workItems/6/complete\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
       }
     ],
     "structuredContent": {
@@ -58,7 +58,7 @@
         "name": "dlee",
         "oid": "10000000-0000-0000-0000-0000000000a1"
       },
-      "summary": "Reject work item 6 in case 40000000-0000-0000-0000-000000000001",
+      "summary": "Reject Database admin for Bob Stone (bstone), requested by bstone",
       "target": "db-admin",
       "tool": "decide_work_item",
       "workItemId": "6"

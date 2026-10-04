@@ -11,7 +11,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Role 20000000-0000-0000-0000-0000000000f1 was GRANTED to 10000000-0000-0000-0000-0000000000b1 immediately: midPoint applied the assignment and no approval policy matched, so this was not a request. (status=202)"
+        "text": "Role Database admin was GRANTED to Bob Stone (bstone) immediately: midPoint applied the assignment and no approval policy matched, so this was not a request.\nRequest: PATCH /ws/rest/users/10000000-0000-0000-0000-0000000000b1 (status=202)"
       }
     ],
     "structuredContent": {
@@ -77,7 +77,7 @@
         "version": "0.0.1-dev",
         "writesEnabled": true
       },
-      "summary": "Request role 20000000-0000-0000-0000-0000000000f1 for user 10000000-0000-0000-0000-0000000000b1 (subject to approval policy)",
+      "summary": "Request role Database admin for Bob Stone (bstone) (subject to approval policy)",
       "tool": "request_role"
     }
   }

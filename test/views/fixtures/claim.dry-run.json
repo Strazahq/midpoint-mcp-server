@@ -13,7 +13,7 @@
     "content": [
       {
         "type": "text",
-        "text": "DRY RUN — writes disabled. Would claim work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004) — finance-reports for bstone as dlee (resource-server mode) via POST /ws/rest/cases/40000000-0000-0000-0000-000000000004/workItems/5/claim.\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
+        "text": "DRY RUN — writes disabled. Would claim Finance reports for Bob Stone (bstone) as dlee (resource-server mode).\nCase: \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004), work item 5\nRequest: POST /ws/rest/cases/40000000-0000-0000-0000-000000000004/workItems/5/claim\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
       }
     ],
     "structuredContent": {
@@ -52,7 +52,7 @@
         "name": "dlee",
         "oid": "10000000-0000-0000-0000-0000000000a1"
       },
-      "summary": "Claim work item 5 in case 40000000-0000-0000-0000-000000000004",
+      "summary": "Claim Finance reports for Bob Stone (bstone)",
       "target": "finance-reports",
       "tool": "claim_work_item",
       "workItemId": "5"

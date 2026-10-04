@@ -15,7 +15,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Rejected work item 6 in case \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) — db-admin for bstone, requested by bstone as dlee (resource-server mode): midPoint recorded outcome reject; the case is now closed."
+        "text": "Rejected Database admin for Bob Stone (bstone), requested by bstone as dlee (resource-server mode): midPoint recorded outcome reject; the case is now closed.\nCase: \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001), work item 6"
       }
     ],
     "structuredContent": {
@@ -61,7 +61,7 @@
         "name": "dlee",
         "oid": "10000000-0000-0000-0000-0000000000a1"
       },
-      "summary": "Reject work item 6 in case 40000000-0000-0000-0000-000000000001",
+      "summary": "Reject Database admin for Bob Stone (bstone), requested by bstone",
       "target": "db-admin",
       "tool": "decide_work_item",
       "workItemId": "6"

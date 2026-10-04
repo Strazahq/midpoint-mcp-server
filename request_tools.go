@@ -125,6 +125,7 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 			return nil, requestRoleOutput{}, err
 		}
 	}
+	plan.Summary = fmt.Sprintf("Request role %s for %s (subject to approval policy)", thingLabel(role), personLabel(user))
 	req := requestOutcome{Role: role, User: user, Approvers: []midpoint.ObjectRef{}, Fields: fields}
 	if in.ValidFrom != "" || in.ValidTo != "" {
 		req.Validity = &midpoint.Validity{ValidFrom: in.ValidFrom, ValidTo: in.ValidTo}
@@ -155,7 +156,7 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 			out.Request.Approvers = detail.NextApprovers
 		}
 		out.Result = "pending approval; caseOid=" + caseOID
-		return text(fmt.Sprintf("Requested role %s for %s — pending approval (case %s).", in.RoleOID, target, caseOID)), out, nil
+		return text(fmt.Sprintf("Requested role %s for %s; it is waiting for approval.\nCase: %s\n%s", thingLabel(role), personLabel(user), caseOID, requestLine(plan))), out, nil
 	}
 	// No case means midPoint applied the assignment then and there. Say so
 	// plainly: the caller asked to request access and instead received it,
@@ -163,7 +164,7 @@ func requestRole(ctx context.Context, client *midpoint.Client, allowWrites bool,
 	out.Request.Outcome = "granted"
 	out.Result = fmt.Sprintf("GRANTED directly — no approval case was created (status=%d)", applied.StatusCode)
 	return text(fmt.Sprintf("Role %s was GRANTED to %s immediately: midPoint applied the assignment and no "+
-		"approval policy matched, so this was not a request. (status=%d)", in.RoleOID, target, applied.StatusCode)), out, nil
+		"approval policy matched, so this was not a request.\n%s (status=%d)", thingLabel(role), personLabel(user), requestLine(plan), applied.StatusCode)), out, nil
 }
 
 // --- list_my_requests ---
@@ -335,13 +336,15 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 		if strings.TrimSpace(in.Comment) != "" {
 			out.Comment = in.Comment // sent as given, like the plan body
 		}
-		what := decidedWhat(out)
+		what := decidedWhat(d.Target, d.Object, d.Case.Requestor)
 		as := fmt.Sprintf("%s (%s mode)", d.Subject.Name, d.Subject.Mode)
+		where := caseLine(out.Case, out.CaseOID, out.WorkItemID)
+		plan.Summary = fmt.Sprintf("%s %s", strings.ToUpper(decision[:1])+decision[1:], what)
 
 		if !allowWrites {
 			_, out.writeOutput = previewWrite(plan)
-			return text(fmt.Sprintf("DRY RUN — writes disabled. Would %s %s as %s via %s %s.\nSet %s=true to apply.",
-				decision, what, as, plan.Method, plan.Endpoint(), midpoint.EnvAllowWrites)), out, nil
+			return text(fmt.Sprintf("DRY RUN — writes disabled. Would %s %s as %s.\n%s\n%s\nSet %s=true to apply.",
+				decision, what, as, where, requestLine(plan), midpoint.EnvAllowWrites)), out, nil
 		}
 
 		applied, err := client.Apply(ctx, plan)
@@ -386,24 +389,26 @@ func registerDecideWorkItem(server *mcp.Server, client *midpoint.Client, allowWr
 					"outcome yet; the case is %s", applied.StatusCode, caseStateText(out.CaseState))
 			}
 		}
-		return text(fmt.Sprintf("%s %s as %s: %s.", verb, what, as, recorded)), out, nil
+		return text(fmt.Sprintf("%s %s as %s: %s.\n%s", verb, what, as, recorded, where)), out, nil
 	}))
 }
 
-// decidedWhat names a work item for a decision message: the item, its case,
-// and what the case would change, as far as midPoint named them.
-func decidedWhat(o decideWorkItemOutput) string {
-	s := fmt.Sprintf("work item %s in case %s", o.WorkItemID, o.CaseOID)
-	if o.Case != "" {
-		s = fmt.Sprintf("work item %s in case %q (%s)", o.WorkItemID, o.Case, o.CaseOID)
-	}
-	if o.Target != "" && o.Object != "" {
-		s += fmt.Sprintf(" — %s for %s", o.Target, o.Object)
-	}
-	if o.Requestor != "" {
-		s += ", requested by " + o.Requestor
+// decidedWhat names what a decision is about in words a person recognises:
+// the role and who it is for, and who asked.
+func decidedWhat(target, object midpoint.ObjectRef, requestor string) string {
+	s := fmt.Sprintf("%s for %s", thingLabel(target), personLabel(object))
+	if requestor != "" {
+		s += ", requested by " + requestor
 	}
 	return s
+}
+
+// caseLine is the reference line under a decision: the case and work item.
+func caseLine(name, oid, workItemID string) string {
+	if name != "" {
+		return fmt.Sprintf("Case: %q (%s), work item %s", name, oid, workItemID)
+	}
+	return fmt.Sprintf("Case: %s, work item %s", oid, workItemID)
 }
 
 // caseStateText renders a case state read back after a decision.

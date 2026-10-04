@@ -13,7 +13,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Submitted claim on work item 5 in case \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004) — finance-reports for bstone as dlee (resource-server mode), but midPoint doesn't show the change yet: the item is held by nobody."
+        "text": "Submitted claim on Finance reports for Bob Stone (bstone) as dlee (resource-server mode), but midPoint doesn't show the change yet: the item is held by nobody.\nCase: \"Assigning role \\\"Finance reports\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000004), work item 5"
       }
     ],
     "structuredContent": {
@@ -53,7 +53,7 @@
         "name": "dlee",
         "oid": "10000000-0000-0000-0000-0000000000a1"
       },
-      "summary": "Claim work item 5 in case 40000000-0000-0000-0000-000000000004",
+      "summary": "Claim Finance reports for Bob Stone (bstone)",
       "target": "finance-reports",
       "tool": "claim_work_item",
       "workItemId": "5"

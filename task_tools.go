@@ -232,7 +232,7 @@ func registerTaskAction(server *mcp.Server, client *midpoint.Client, allowWrites
 			Endpoint: plan.Endpoint(),
 			Result:   fmt.Sprintf("status=%d", status),
 		}}
-		t := newListText(fmt.Sprintf("Applied: %s (%s).", plan.Summary, out.Result))
+		t := newListText(fmt.Sprintf("Applied: %s.\n%s (%s)", plan.Summary, requestLine(plan), out.Result))
 		t.untrusted(fieldMessage, fromMidpointAnswer, message)
 		after, err := client.TaskBrief(ctx, task.OID)
 		if err != nil {

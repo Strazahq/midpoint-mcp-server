@@ -12,7 +12,7 @@
     "content": [
       {
         "type": "text",
-        "text": "DRY RUN — writes disabled. Would withdraw request \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001) as bstone (resource-server mode) via POST /ws/rest/cases/40000000-0000-0000-0000-000000000001/cancel.\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
+        "text": "DRY RUN — writes disabled. Would withdraw your request for Database admin as bstone (resource-server mode).\nCase: \"Assigning role \\\"Database admin\\\" to user \\\"Bob Stone (bstone)\\\"\" (40000000-0000-0000-0000-000000000001)\nRequest: POST /ws/rest/cases/40000000-0000-0000-0000-000000000001/cancel\nSet MIDPOINT_MCP_ALLOW_WRITES=true to apply."
       }
     ],
     "structuredContent": {
@@ -52,7 +52,7 @@
         "name": "bstone",
         "oid": "10000000-0000-0000-0000-0000000000b1"
       },
-      "summary": "Withdraw request 40000000-0000-0000-0000-000000000001",
+      "summary": "Withdraw your request for Database admin",
       "tool": "cancel_request",
       "withdrawal": {
         "object": {
