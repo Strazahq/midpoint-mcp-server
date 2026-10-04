@@ -55,6 +55,15 @@ offers them, and midPoint decides on Send (D42).
   and `inbox.item.noReason` are gone.
 - **Text** (4.8 rule 4): the untrusted field `field "<label>"` replaces
   `justification`; `get_user_assignments` adds the requester's comment.
+- **Errors** (6.8): a request the rules don't offer is refused with
+  `is not offered` (`not-requestable`), a second fallback match, because the
+  role may well be flagged requestable.
+- **My requests** (7.3): `list_my_requests` lists each request once. midPoint
+  files a request as an "operation request" case (system archetype
+  `…0341`) with an approval case under it, and both name the requester;
+  the search leaves out the operation requests, so a request is no longer
+  listed twice, once as "an item you can't see in midPoint" **[live]** 4.10.3.
+  Withdrawing the approval case closes the operation request too **[live]**.
 
 **1.0-draft.12 (2026-10-04)**, the owner's D42: midPoint is the judge of a
 request, and its reason reaches the person. The owner pointed out that the
@@ -1838,7 +1847,7 @@ Friendly sentence plus expandable details [default].
 | Code | Key | Fallback match in the error text | Source of the error |
 | --- | --- | --- | --- |
 | `shared-credential` | `error.sharedCredential` | `shared/technical account` | `principal.go` `ErrNoCallerIdentity` |
-| `not-requestable` | `error.notRequestable` | `is not flagged requestable` | `read.go` `EnsureRequestable` |
+| `not-requestable` | `error.notRequestable` | `is not flagged requestable` or `is not offered` (draft.14) | `read.go` `EnsureRequestable`; `request_catalog.go` `CheckRequestOffer` (what the request rules offer, D44) |
 | `not-your-request` | `error.notYourRequest` | `only the requester can withdraw` | `cancel_request` pre-check (S16) |
 | `request-closed` | `error.requestClosed` | `, not open,` | `cases.go` `CheckDecidable` (the decide pre-check); `cancel_request` pre-check uses the same phrase (S16) |
 | `already-decided` | `error.alreadyDecided` | `is already closed` | `cases.go` `CheckDecidable` (the work item, not the case, is closed) |
@@ -2756,7 +2765,9 @@ draft.1 open question 7; draft.5 D3).
 
 **`list_my_requests` structuredContent**: existing `subject`, `count`,
 `requests[]` (`oid`, `name`, `state`, `outcome`, `object`, `target`,
-`requestor`), with **new** per request:
+`requestor`), one per request: the approval cases the person requested,
+without the operation request case that holds them (draft.14), with **new**
+per request:
 
 | Field | Type | Req. | Source |
 | --- | --- | --- | --- |

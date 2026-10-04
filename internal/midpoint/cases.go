@@ -239,7 +239,19 @@ type InboxResult struct {
 	WorkItems []InboxWorkItem `json:"workItems"`
 }
 
+// archetypeOperationRequest is midPoint's system archetype of the case that
+// holds a whole request (SystemObjectsType.ARCHETYPE_OPERATION_REQUEST).
+const archetypeOperationRequest = "00000000-0000-0000-0000-000000000341"
+
 // ListMyRequests returns approval cases the authenticated user initiated.
+//
+// midPoint files a request as an "operation request" case, with one approval
+// case under it (parentRef) per role that needs approval. Both name the
+// person as requestor, so the search leaves out the operation requests: the
+// approval case names the role and holds the work items, and each request
+// is listed once (live on 4.10.3; without the parentheses midPoint answers
+// 500). midPoint's own My requests page lists the operation requests instead.
+// Withdrawing the approval case closes the operation request too (live).
 func (c *Client) ListMyRequests(ctx context.Context, limit int) (RequestsResult, error) {
 	subj, err := c.subject(ctx)
 	if err != nil {
@@ -247,7 +259,8 @@ func (c *Client) ListMyRequests(ctx context.Context, limit int) (RequestsResult,
 	}
 	res := RequestsResult{Subject: subj, Requests: []RequestSummary{}}
 
-	filter := fmt.Sprintf("requestorRef matches (oid = %s)", quoteQueryString(subj.OID))
+	filter := fmt.Sprintf("requestorRef matches (oid = %s) and not (archetypeRef matches (oid = %s))",
+		quoteQueryString(subj.OID), quoteQueryString(archetypeOperationRequest))
 	raws, err := c.searchRawOpts(ctx, collCases, filter, limit, true)
 	if err != nil {
 		return RequestsResult{}, err

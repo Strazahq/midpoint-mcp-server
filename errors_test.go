@@ -22,7 +22,7 @@ var contractFallback = []struct {
 	matches []string
 }{
 	{midpoint.CodeSharedCredential, []string{"shared/technical account"}},
-	{midpoint.CodeNotRequestable, []string{"is not flagged requestable"}},
+	{midpoint.CodeNotRequestable, []string{"is not flagged requestable", "is not offered"}},
 	{midpoint.CodeNotYourRequest, []string{"only the requester can withdraw"}},
 	{midpoint.CodeRequestClosed, []string{", not open,"}},
 	{midpoint.CodeAlreadyDecided, []string{"is already closed"}},

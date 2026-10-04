@@ -94,6 +94,17 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Fixed
 
+- My requests listed every request twice, once as "an item you can't see in
+  midPoint" (found live on 4.10.3; the search was the same since 0.1.0).
+  midPoint files a request as an "operation request" case with an approval
+  case under it, and both name the requester. The search now leaves out the
+  operation requests, so each request is listed once, as its approval case
+  with the role, the approvers and the history. Withdrawing it closes the
+  whole request, as before.
+- A request the request rules don't offer was refused as "not flagged
+  requestable", though the role may be flagged requestable. It now says "is
+  not offered for <person> by midPoint's request rules"; contract 6.8 gains
+  `is not offered` as a second text match for `not-requestable`.
 - `list_requestable_roles` with `query` failed with HTTP 500 on midPoint
   4.10.3: the repository can't search role descriptions ("Missing item mapping
   for 'description'"). The search now covers name and display name. This came

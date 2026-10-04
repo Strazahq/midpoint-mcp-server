@@ -129,7 +129,7 @@ func TestRequestRoleRelation(t *testing.T) {
 		t.Errorf("patch %v", *patches)
 	}
 	text, payload := callToolCode(t, cs, "request_role", map[string]any{"roleOid": "role-finance", "roleName": "finance-reports", "relation": "approver"})
-	if payload["code"] != midpoint.CodeNotRequestable || !strings.Contains(text, "is not flagged requestable as approver for amy: midPoint's request rules offer only default") {
+	if payload["code"] != midpoint.CodeNotRequestable || !strings.Contains(text, "is not offered as approver for amy by midPoint's request rules, which offer only default") {
 		t.Errorf("refusal %q %v", text, payload)
 	}
 	if len(*patches) != 1 {

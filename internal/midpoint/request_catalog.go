@@ -182,7 +182,7 @@ func (c *Client) CheckRequestOffer(ctx context.Context, target, roleOID, relatio
 	p, err := c.RequestPreview(ctx)
 	if errors.Is(err, ErrPreviewUnavailable) {
 		if relation != "default" {
-			return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not flagged requestable as %s: only member can be requested while midPoint's request rules can't be read (%s)", roleOID, relation, previewReason(err))}
+			return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not offered as %s: only member can be requested while midPoint's request rules can't be read (%s)", roleOID, relation, previewReason(err))}
 		}
 		return c.EnsureRequestable(ctx, roleOID)
 	}
@@ -210,10 +210,10 @@ func (c *Client) CheckRequestOffer(ctx context.Context, target, roleOID, relatio
 		ok = len(offered) > 0
 	}
 	if !ok {
-		return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not flagged requestable for %s: midPoint's request rules don't offer it", roleOID, who.Name)}
+		return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not offered for %s by midPoint's request rules", roleOID, who.Name)}
 	}
 	if !contains(offered, relation) {
-		return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not flagged requestable as %s for %s: midPoint's request rules offer only %s", roleOID, relation, who.Name, strings.Join(offered, ", "))}
+		return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not offered as %s for %s by midPoint's request rules, which offer only %s", roleOID, relation, who.Name, strings.Join(offered, ", "))}
 	}
 	return nil
 }

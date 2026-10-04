@@ -18,7 +18,7 @@
     "content": [
       {
         "type": "text",
-        "text": "role 20000000-0000-0000-0000-0000000000e1 is not flagged requestable as approver for jdoe: midPoint's request rules offer only default"
+        "text": "role 20000000-0000-0000-0000-0000000000e1 is not offered as approver for jdoe by midPoint's request rules, which offer only default"
       }
     ],
     "isError": true

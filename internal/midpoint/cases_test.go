@@ -148,6 +148,11 @@ func TestListMyRequests(t *testing.T) {
 	if sr.Query.Filter == nil || !strings.Contains(sr.Query.Filter.Text, `requestorRef matches (oid = "u-self")`) {
 		t.Errorf("filter = %+v, want requestorRef scoped to self", sr.Query.Filter)
 	}
+	// One row per request: the operation request case that holds the
+	// approval case is left out, in parentheses (without them, 500 on 4.10.3).
+	if want := `and not (archetypeRef matches (oid = "00000000-0000-0000-0000-000000000341"))`; sr.Query.Filter == nil || !strings.Contains(sr.Query.Filter.Text, want) {
+		t.Errorf("filter = %+v, want operation requests left out (%s)", sr.Query.Filter, want)
+	}
 }
 
 func TestListWorkItems(t *testing.T) {
