@@ -497,12 +497,19 @@ func lookupPath(obj map[string]json.RawMessage, segs []string) (string, bool) {
 
 // --- which roles ---
 
-// OfferedRole is a role the requester may request for the requestee.
+// OfferedRole is a role the requester may request for the requestee, with
+// one offer per relation it may be requested with.
 type OfferedRole struct {
 	RoleSummary
-	// Relations are the relations it may be requested with, by local name,
-	// "default" (member) first. Others only where a rule names them (D45).
-	Relations []string `json:"relations,omitempty"`
+	// Offers are its relations, "default" (member) first; others only where
+	// a rule names them (D45). midPoint checks a request against the rules
+	// for its relation only, so each relation has its own fields and dates.
+	Offers []RelationOffer `json:"offers,omitempty"`
+}
+
+// RelationOffer is what may be requested with one relation.
+type RelationOffer struct {
+	Relation string `json:"relation"`
 	// AllFields is true when every request field may be filled; otherwise
 	// Fields names those that may.
 	AllFields bool     `json:"allFields,omitempty"`
@@ -510,7 +517,26 @@ type OfferedRole struct {
 	// Validity is true when start and end dates may be set.
 	Validity bool `json:"validity,omitempty"`
 	// Because names the rules that allow it.
-	Because []string `json:"because,omitempty"`
+	Because []string `json:"because"`
+}
+
+// Relations lists the relations of the offers.
+func (o OfferedRole) Relations() []string {
+	var out []string
+	for _, r := range o.Offers {
+		out = append(out, r.Relation)
+	}
+	return out
+}
+
+// Offer returns the offer for a relation.
+func (o OfferedRole) Offer(relation string) (RelationOffer, bool) {
+	for _, r := range o.Offers {
+		if r.Relation == relation {
+			return r, true
+		}
+	}
+	return RelationOffer{}, false
 }
 
 // RoleOffer is the catalog for one requestee.
@@ -604,7 +630,7 @@ func (p *Preview) rolesFor(ctx context.Context, who person, only, query string, 
 	form := p.c.RequestForm()
 	for oid, f := range roles {
 		o := offerFor(f.role, f.rules, denied[oid], held[oid], form)
-		if len(o.Relations) > 0 {
+		if len(o.Offers) > 0 {
 			offer.Roles = append(offer.Roles, o)
 		}
 	}
@@ -624,67 +650,62 @@ func roleTitle(r RoleSummary) string {
 	return r.Name
 }
 
-// offerFor combines the rules about one role, as midPoint's server does:
-// a relation is offered when an allowing rule gives it, every item of the
-// request (the role reference at least) is covered by the allowing rules,
-// no deny takes it away, and the requestee doesn't hold it already.
+// offerFor combines the rules about one role, as midPoint's server does. The
+// relations offered are member and those a rule names (D45). For each, the
+// rules midPoint applies are those for that relation (naming it, or naming
+// none); the relation is offered when they cover the role reference, no deny
+// takes it away and the requestee doesn't hold it already, and its fields and
+// dates are what those rules cover.
 func offerFor(role RoleSummary, allows, denies []AssignRule, held map[string]bool, form *RequestForm) OfferedRole {
 	o := OfferedRole{RoleSummary: role}
-	covers := func(rules []AssignRule, path string) bool {
-		for _, r := range rules {
-			if r.Paths.includes(path) {
-				return true
-			}
-		}
-		return false
-	}
-	deniesPath := func(rel, path string) bool {
-		for _, d := range denies {
-			if relationApplies(d, rel) && d.Paths.includes(path) {
-				return true
-			}
-		}
-		return false
-	}
-	byRelation := map[string][]AssignRule{}
 	var relations []string
 	for _, r := range allows {
 		for _, rel := range offeredRelations(r) {
-			if byRelation[rel] == nil {
+			if !contains(relations, rel) {
 				relations = append(relations, rel)
 			}
-			byRelation[rel] = append(byRelation[rel], r)
 		}
 	}
 	sort.SliceStable(relations, func(i, j int) bool { return relations[i] == "default" && relations[j] != "default" })
-	var granting []AssignRule
 	for _, rel := range relations {
-		rules := byRelation[rel]
-		if held[rel] || !covers(rules, "assignment/targetRef") || deniesPath(rel, "assignment/targetRef") {
-			continue
-		}
-		o.Relations = append(o.Relations, rel)
-		granting = append(granting, rules...)
-	}
-	if len(o.Relations) == 0 {
-		return o
-	}
-	field := func(path string) bool { return covers(granting, path) && !deniesPath(o.Relations[0], path) }
-	o.Validity = field("assignment/activation/validFrom") && field("assignment/activation/validTo")
-	o.AllFields = field("assignment/extension")
-	if !o.AllFields && form != nil {
-		for _, it := range form.Items {
-			if field("assignment/extension/" + it.Name) {
-				o.Fields = append(o.Fields, it.Name)
+		var rules []AssignRule
+		for _, r := range allows {
+			if relationApplies(r, rel) {
+				rules = append(rules, r)
 			}
 		}
-	}
-	seen := map[string]bool{}
-	for _, r := range granting {
-		if l := r.Label(); !seen[l] {
-			seen[l] = true
-			o.Because = append(o.Because, l)
+		allowed := func(path string) bool {
+			for _, d := range denies {
+				if relationApplies(d, rel) && d.Paths.includes(path) {
+					return false
+				}
+			}
+			for _, r := range rules {
+				if r.Paths.includes(path) {
+					return true
+				}
+			}
+			return false
 		}
+		if held[rel] || !allowed("assignment/targetRef") {
+			continue
+		}
+		offer := RelationOffer{Relation: rel}
+		offer.Validity = allowed("assignment/activation/validFrom") && allowed("assignment/activation/validTo")
+		offer.AllFields = allowed("assignment/extension")
+		if !offer.AllFields && form != nil {
+			for _, it := range form.Items {
+				if allowed("assignment/extension/" + it.Name) {
+					offer.Fields = append(offer.Fields, it.Name)
+				}
+			}
+		}
+		for _, r := range rules {
+			if !contains(offer.Because, r.Label()) {
+				offer.Because = append(offer.Because, r.Label())
+			}
+		}
+		o.Offers = append(o.Offers, offer)
 	}
 	return o
 }
@@ -699,10 +720,35 @@ func offeredRelations(r AssignRule) []string {
 	return r.Relations
 }
 
-// relationApplies reports whether a rule speaks about a relation: one it
-// names, or any when it names none.
+// relationApplies reports whether midPoint applies a rule to a relation: one
+// it names, or any when it names none (#all and #modify name none).
 func relationApplies(r AssignRule, rel string) bool {
 	return len(r.Relations) == 0 || contains(r.Relations, rel)
+}
+
+// mayHide is the relations a role the requester can't see might be requested
+// with: those of every rule that allows something for the requestee, since
+// the preview can't tell which roles those rules name (a rule's roles are
+// searched as the requester, as midPoint's own catalog does).
+func (p *Preview) mayHide(ctx context.Context, who person) []string {
+	var out []string
+	for _, rule := range p.Rules {
+		if rule.Deny || !p.coversPerson(ctx, rule, who).yes {
+			continue
+		}
+		for _, rel := range offeredRelations(rule) {
+			if !contains(out, rel) {
+				out = append(out, rel)
+			}
+		}
+	}
+	return out
+}
+
+// canSee reports whether the requester can search for a role at all.
+func (p *Preview) canSee(ctx context.Context, roleOID string) bool {
+	raws, err := p.c.searchUpTo(ctx, collRoles, ". inOid ("+quoteQueryString(roleOID)+")", 1)
+	return err == nil && len(raws) > 0
 }
 
 // ruleTargets asks midPoint which roles a rule's "which" selectors name.

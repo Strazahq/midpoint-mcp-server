@@ -100,13 +100,13 @@ func TestRequestCatalogFromRules(t *testing.T) {
 		m := r.(map[string]any)
 		byName[m["name"].(string)] = m
 	}
-	if rel, _ := json.Marshal(byName["release-manager"]["relations"]); string(rel) != `["approver"]` {
-		t.Errorf("release relations %s", rel)
+	if offers, _ := json.Marshal(byName["release-manager"]["offers"]); string(offers) != `[{"allFields":true,"because":["App approver › approve-app-roles"],"relation":"approver","validity":true}]` {
+		t.Errorf("release offers %s", offers)
 	}
 	for _, want := range []string{
 		"Found 2 role(s) your midPoint request rules let you request.",
-		`- finance-reports oid=role-finance displayName="Finance reports" relations=default fields=all dates=true because="End user › assign-requestable-roles"`,
-		`- release-manager oid=role-release displayName="Release manager" relations=approver fields=all dates=true because="App approver › approve-app-roles"`,
+		`- finance-reports oid=role-finance displayName="Finance reports" relations=default offers="default: fields=all, dates=true, because=End user › assign-requestable-roles"`,
+		`- release-manager oid=role-release displayName="Release manager" relations=approver offers="approver: fields=all, dates=true, because=App approver › approve-app-roles"`,
 	} {
 		if !strings.Contains(text, want) {
 			t.Errorf("text has no %q:\n%s", want, text)

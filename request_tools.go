@@ -461,8 +461,7 @@ func requestCatalogText(first string, cat midpoint.CatalogResult, form *midpoint
 	for _, r := range cat.Roles {
 		fields := []textField{{"oid", r.OID}, {"displayName", r.DisplayName}, {"risk", r.RiskLevel}}
 		if rules {
-			fields = append(fields, textField{"relations", strings.Join(r.Relations, "|")}, textField{"fields", offeredFields(r)},
-				textField{"dates", strconv.FormatBool(r.Validity)}, textField{"because", strings.Join(r.Because, "; ")})
+			fields = append(fields, textField{"relations", strings.Join(r.Relations(), "|")}, textField{"offers", offersText(r)})
 		}
 		t.item(r.Name, fields...)
 		t.untrusted(fieldDescription, fromRoleRecord, r.Description)
@@ -497,15 +496,21 @@ func requestCatalogText(first string, cat midpoint.CatalogResult, form *midpoint
 	return t.String()
 }
 
-// offeredFields says which request fields a role offers: all, none, or their names.
-func offeredFields(r midpoint.OfferedRole) string {
-	switch {
-	case r.AllFields:
-		return "all"
-	case len(r.Fields) == 0:
-		return "none"
+// offersText writes a role's offers, one per relation:
+// "default: fields=all, dates=false, because=End user › assign; approver: …".
+func offersText(r midpoint.OfferedRole) string {
+	var parts []string
+	for _, o := range r.Offers {
+		fields := "none"
+		switch {
+		case o.AllFields:
+			fields = "all"
+		case len(o.Fields) > 0:
+			fields = strings.Join(o.Fields, ",")
+		}
+		parts = append(parts, fmt.Sprintf("%s: fields=%s, dates=%t, because=%s", o.Relation, fields, o.Validity, strings.Join(o.Because, " + ")))
 	}
-	return strings.Join(r.Fields, ",")
+	return strings.Join(parts, "; ")
 }
 
 // relationName is a requested relation's local name, "default" for member.

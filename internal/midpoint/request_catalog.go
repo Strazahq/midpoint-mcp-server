@@ -200,11 +200,20 @@ func (c *Client) CheckRequestOffer(ctx context.Context, target, roleOID, relatio
 	if err != nil {
 		return err
 	}
+	offered := offer.Relations()
+	if !ok && !p.canSee(ctx, roleOID) {
+		// The requester can't search for the role, so the preview can't tell
+		// which rules name it: any relation a rule allows for this person may
+		// be right, and midPoint decides (live on 4.10.3: End user searches
+		// only requestable roles, yet a rule may let it assign others).
+		offered = p.mayHide(ctx, who)
+		ok = len(offered) > 0
+	}
 	if !ok {
 		return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not flagged requestable for %s: midPoint's request rules don't offer it", roleOID, who.Name)}
 	}
-	if !contains(offer.Relations, relation) {
-		return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not flagged requestable as %s for %s: midPoint's request rules offer only %s", roleOID, relation, who.Name, strings.Join(offer.Relations, ", "))}
+	if !contains(offered, relation) {
+		return &CodedError{Code: CodeNotRequestable, Err: fmt.Errorf("role %s is not flagged requestable as %s for %s: midPoint's request rules offer only %s", roleOID, relation, who.Name, strings.Join(offered, ", "))}
 	}
 	return nil
 }

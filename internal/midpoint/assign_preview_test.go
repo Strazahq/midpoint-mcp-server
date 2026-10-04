@@ -177,11 +177,13 @@ func TestPreviewRolesForSelf(t *testing.T) {
 	if len(offer.Roles) != 3 || got["prod-admin"].Name != "" {
 		t.Fatalf("roles %+v", offer.Roles)
 	}
-	if f := got["finance-reports"]; !reflect.DeepEqual(f.Relations, []string{"default"}) || !f.Validity || !f.AllFields ||
-		!reflect.DeepEqual(f.Because, []string{"End user › assign-requestable-roles", "Team lead › assign-to-my-org"}) {
+	f := got["finance-reports"]
+	if fo, ok := f.Offer("default"); len(f.Offers) != 1 || !ok || !fo.Validity || !fo.AllFields ||
+		!reflect.DeepEqual(fo.Because, []string{"End user › assign-requestable-roles", "Team lead › assign-to-my-org"}) {
 		t.Errorf("finance %+v", f)
 	}
-	if r := got["release-manager"]; !reflect.DeepEqual(r.Relations, []string{"approver"}) || !reflect.DeepEqual(r.Because, []string{"App approver › approve-app-roles"}) {
+	r := got["release-manager"]
+	if ro, ok := r.Offer("approver"); len(r.Offers) != 1 || !ok || !reflect.DeepEqual(ro.Because, []string{"App approver › approve-app-roles"}) {
 		t.Errorf("release %+v", r)
 	}
 }
@@ -201,7 +203,8 @@ func TestPreviewRolesForReport(t *testing.T) {
 	var names []string
 	for _, r := range offer.Roles {
 		names = append(names, r.Name)
-		if r.Validity || !reflect.DeepEqual(r.Relations, []string{"default"}) || !reflect.DeepEqual(r.Because, []string{"Team lead › assign-to-my-org"}) {
+		o, ok := r.Offer("default")
+		if len(r.Offers) != 1 || !ok || o.Validity || !reflect.DeepEqual(o.Because, []string{"Team lead › assign-to-my-org"}) {
 			t.Errorf("%s: %+v", r.Name, r)
 		}
 	}
@@ -278,5 +281,30 @@ func TestPreviewUnreadableRoles(t *testing.T) {
 	}
 	if _, err := NewClient(Config{BaseURL: srv.URL}).RequestPreview(context.Background()); !errors.Is(err, ErrPreviewUnavailable) {
 		t.Errorf("personal mode: %v", err)
+	}
+}
+
+// Each relation gets the fields and dates of the rules midPoint applies to it
+// (found by the live parity test: pooling them offered dates to a member that
+// midPoint refused).
+func TestOfferPerRelation(t *testing.T) {
+	member := AssignRule{Name: "member-without-dates", Kind: ruleAssign, Relations: []string{"default"}, Paths: newItemPaths(nil, []string{"assignment/activation"})}
+	approver := AssignRule{Name: "approver-everything", Kind: ruleAssign, Relations: []string{"approver"}, Paths: newItemPaths(nil, nil)}
+	anyRelation := AssignRule{Name: "any-relation-targetRef-only", Kind: ruleAssign, Paths: newItemPaths([]string{"assignment/targetRef"}, nil)}
+	o := offerFor(RoleSummary{OID: "r", Name: "app"}, []AssignRule{member, approver}, nil, nil, nil)
+	m, _ := o.Offer("default")
+	a, _ := o.Offer("approver")
+	if !reflect.DeepEqual(o.Relations(), []string{"default", "approver"}) || m.Validity || !a.Validity ||
+		!reflect.DeepEqual(m.Because, []string{" › member-without-dates"}) || !reflect.DeepEqual(a.Because, []string{" › approver-everything"}) {
+		t.Errorf("offers %+v", o.Offers)
+	}
+	// A rule naming no relation applies to every relation midPoint checks,
+	// but offers only member (D45).
+	o = offerFor(RoleSummary{OID: "r"}, []AssignRule{approver, anyRelation}, nil, nil, nil)
+	if !reflect.DeepEqual(o.Relations(), []string{"default", "approver"}) {
+		t.Errorf("relations %v", o.Relations())
+	}
+	if a, _ := o.Offer("approver"); !reflect.DeepEqual(a.Because, []string{" › approver-everything", " › any-relation-targetRef-only"}) {
+		t.Errorf("approver because %v", a.Because)
 	}
 }

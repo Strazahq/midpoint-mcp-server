@@ -1308,8 +1308,8 @@ when `form.other` has items, `Fields only midPoint's own page can fill:` with
 `- <name> label=<displayName>`. Without a form the text has no group lines, as
 in the first example below. With midPoint's request rules (draft.14, S31),
 line 1 says "… your midPoint request rules let you request …", each role line
-ends with `relations=<a|b> fields=<all, none or names> dates=<true or false>
-because=<rule; rule>`, and a group `Rules the preview could not evaluate
+ends with `relations=<a|b> offers="<relation>: fields=<all, none or names>,
+dates=<true or false>, because=<rule + rule>; …"`, and a group `Rules the preview could not evaluate
 exactly:` lists `preview.unsure`; without them, a group `Request rules not
 used:` gives the reason.
 
@@ -2495,11 +2495,12 @@ structuredContent gains `preview`, and each role the parts below when
 | `preview.basis` | `"rules"` or `"requestable"` | yes | `rules`: the roles midPoint's request rules let the acting person request for the requestee (S31); `requestable`: the roles flagged requestable, because the rules could not be read |
 | `preview.reason` | string | no | why the rules were not used (technical; shown only in the text) |
 | `preview.unsure` | string[] | no | rules the preview could not evaluate exactly: it offers more there, and midPoint decides on submit |
-| `roles[].relations` | string[] | no | relations the role may be requested with, by local name, `default` (member) first; another relation only where a rule names it (D45) |
-| `roles[].allFields` | boolean | no | every request field may be filled |
-| `roles[].fields` | string[] | no | when not `allFields`: the names of the form items that may be filled |
-| `roles[].validity` | boolean | no | start and end dates may be set |
-| `roles[].because` | string[] | no | the rules that allow it, "<role> › <authorization name>" |
+| `roles[].offers` | `RelationOffer[]` | no | one per relation the role may be requested with, `default` (member) first; another relation only where a rule names it (D45). midPoint checks a request only against the rules for its relation (those naming it, or naming none), so each offer has its own fields and dates **[live]** |
+| `offers[].relation` | string | yes | the relation's local name |
+| `offers[].allFields` | boolean | no | every request field may be filled |
+| `offers[].fields` | string[] | no | when not `allFields`: the names of the form items that may be filled |
+| `offers[].validity` | boolean | no | start and end dates may be set |
+| `offers[].because` | string[] | yes | the rules that allow it, "<role> › <authorization name>" |
 
 `list_request_targets` structuredContent: `preview` (as above), `people`
 (`ObjectRef` plus `because[]`, the acting person first when a rule allows
@@ -2621,19 +2622,19 @@ catalog's `preview.basis` is `rules`:
    search box `requestAccess.target.search` asks `list_request_targets` with
    `query` once typing pauses (600 ms, 2+ characters). Choosing a person
    re-reads the catalog with `forUser`.
-2. **Relation**: when a role's `relations` has more than one entry, or one
+2. **Relation**: when a role's `offers` has more than one entry, or one
    that isn't `default`, the dialog shows a segmented control with the legend
    `requestAccess.relation.legend`, one option per relation, labelled
    `requestAccess.relation.default`, `.approver`, `.owner` or `.manager`, else
    `requestAccess.relation.other` with the relation's name; `default` is
    preselected when offered, else the first. The choice is sent as `relation`,
    omitted for `default`.
-3. **Fields**: only the form items the role offers (`allFields`, else the
-   names in `fields`); **dates** only when `validity` is true, otherwise the
-   validity group is not shown, no dates are sent and the summary row says
-   `validity.permanent`.
+3. **Fields**: only the form items the chosen offer allows (`allFields`,
+   else the names in `fields`); **dates** only when its `validity` is true,
+   otherwise the validity group is not shown, no dates are sent and the
+   summary row says `validity.permanent`. Changing the relation changes them.
 4. **Why**: a disclosure `requestAccess.because.title` in the dialog lists
-   `because`, one rule per line.
+   the chosen offer's `because`, one rule per line.
 5. **Unsure**: when `preview.unsure` is not empty, one muted line
    `requestAccess.preview.unsure` under the list title.
 6. **Outcome**: a request with a relation other than member adds
@@ -2735,7 +2736,7 @@ otherwise).
 - [ ] `pending-approval`, `granted` and `preview` each render their own outcome notice; `granted` is visibly different from a successful request; "Track this request" appears only with `hostCapabilities.message`.
 - [ ] Role rows show no kind label and clamp the description to 2 lines; the dialog's access row uses the requested-access phrase.
 - [ ] `limitReached` shows `requestAccess.limitReached`.
-- [ ] (draft.14) With `preview.basis` `rules`, "Request for" lists `list_request_targets`; a role offering a relation other than member shows the relation choice and sends `relation`; only the role's fields and, when allowed, dates are offered; "Why you can request this" lists `because`; `preview.unsure` shows one muted line. With `requestable`, nothing of this appears.
+- [ ] (draft.14) With `preview.basis` `rules`, "Request for" lists `list_request_targets`; a role offering a relation other than member shows the relation choice and sends `relation`; only the chosen offer's fields and, when allowed, dates are offered; "Why you can request this" lists its `because`; `preview.unsure` shows one muted line. With `requestable`, nothing of this appears.
 - [ ] Shared criteria.
 
 ### 7.3 My requests
@@ -3165,7 +3166,7 @@ All additive. Text changes only where S13 says so. Numbered for reference.
 | S28 | **Claim and release** (D40): `list_work_items` items gain `offered`, `claimed` and `offeredTo`, and `context.reason` gains `group`. New write tools `claim_work_item` and `release_work_item` (`POST /cases/{oid}/workItems/{id}/claim`, `/release`; write gate, dry run, D38 names) check the case before writing, because midPoint answers a claim or release on a closed item with 204 and changes nothing **[live]**. `decide_work_item` refuses an unclaimed offered item with `not-claimed`. `get_case` work items gain `offeredTo`. | `list_work_items`, `claim_work_item`, `release_work_item`, `decide_work_item`, `get_case` | unit, views, live |
 | S29 | **midPoint's answer on errors** (D42): every non-2xx answer keeps what midPoint said in its operation result: the technical `message` (or a failed sub-result's) and the message for people, `userFriendlyMessage`, made readable. Both are cut, one line, without addresses. The error payload gains `reason`; the error's text gains an untrusted line. HTTP 409 is coded `refused`. The untrusted message line the task and resource tools added on a refusal is this line now. | all tools | unit (recorded 409, 403, 400 answers), views, live |
 | S30 | **Request fields from midPoint's schema** (D43): at startup the server reads every assignment extension item of midPoint's schema (database `SchemaType` objects and schema files, as in S21) and offers each a request can fill (7.2), with `multiple`, `options` and the types `long`, `decimal` and `choice` (an `xsd:enumeration`, or `a:valueEnumerationRef` to a lookup table read with `include=row`); `form.other` names the rest. A schema it can't read leaves no form, with a warning, and the server starts. `requests.formItems` and `requests.justificationItem` are accepted and ignored, with a warning. `request_role` checks `fields` against the form (types, ranges, options, lists, required). Cases gain `requestDetails` and `requesterComment` (replacing `justification`); `get_user_assignments` origins gain `requestComment` (`@metadata/process/requestorComment` **[live]**). `server.requestReason` is removed. | `list_requestable_roles`, `request_role`, `list_work_items`, `get_case`, `list_my_requests`, `get_user_assignments` | unit, views, live |
-| S31 | **Request access preview** (D44, D45): `list_requestable_roles` and the new `list_request_targets` work out what the acting person's request rules allow. Per request, nothing cached: read the person's record as the person (`GET /users/{oid}?exclude=assignment`; its `roleMembershipRef` without the relations midPoint skips at login: approver, owner, consent, related; plus `delegatedRef` roles that are `delegable`), read those roles' `authorization`, `lifecycleState`, `activation` and `delegable` as the server's own account (`POST /abstractRoles/search` with `. inOid (…)`, 250 per call; 1,000 roles in about 1 s **[live]**), keep the active roles' rules for `#assign`, `#modify` on `assignment` and `#all` at the request phase, and evaluate their selectors by midPoint searches as the person (`. inOrg`, `archetypeRef matches`, the rule's own filter with `$subject/…` filled from the person's record; a REST search leaves expressions empty **[live]**). Combined as midPoint's server checks (`ClockworkRequestAuthorizer`): offered when an allowing rule covers `assignment/targetRef` and no deny applies; fields and dates from the allowing rules' item lists; minus roles the requestee holds. A clause it can't evaluate counts as matching for allows and is ignored for denies (`preview.unsure`). A role the server's account can't read turns the preview off (basis `requestable`): midPoint answers such a search with an empty list, not an error **[live]**. `request_role` takes `relation` and refuses (`not-requestable`) a role or relation the rules don't offer; without the rules, member only behind the requestable check. Every offer names its rules (`because`). | `list_requestable_roles`, `list_request_targets`, `request_role` | unit, views, live parity test (`assign_preview_live_test.go`) |
+| S31 | **Request access preview** (D44, D45): `list_requestable_roles` and the new `list_request_targets` work out what the acting person's request rules allow. Per request, nothing cached: read the person's record as the person (`GET /users/{oid}?exclude=assignment`; its `roleMembershipRef` without the relations midPoint skips at login: approver, owner, consent, related; plus `delegatedRef` roles that are `delegable`), read those roles' `authorization`, `lifecycleState`, `activation` and `delegable` as the server's own account (`POST /abstractRoles/search` with `. inOid (…)`, 250 per call; 1,000 roles in about 1 s **[live]**), keep the active roles' rules for `#assign`, `#modify` on `assignment` and `#all` at the request phase, and evaluate their selectors by midPoint searches as the person (`. inOrg`, `archetypeRef matches`, the rule's own filter with `$subject/…` filled from the person's record; a REST search leaves expressions empty **[live]**). Combined as midPoint's server checks (`ClockworkRequestAuthorizer`), per relation: offered when the allowing rules for that relation (naming it, or naming none) cover `assignment/targetRef` and no deny applies; its fields and dates from those rules' item lists; minus relations the requestee holds. The catalog lists the roles the person can search for, as midPoint's own catalog does; `request_role` lets midPoint decide on a role the person can't search for (unsure), since a rule may still allow it **[live]**. A clause it can't evaluate counts as matching for allows and is ignored for denies (`preview.unsure`). A role the server's account can't read turns the preview off (basis `requestable`): midPoint answers such a search with an empty list, not an error **[live]**. `request_role` takes `relation` and refuses (`not-requestable`) a role or relation the rules don't offer; without the rules, member only behind the requestable check. Every offer names its rules (`because`). | `list_requestable_roles`, `list_request_targets`, `request_role` | unit, views, live parity test (`assign_preview_live_test.go`: 5 scenarios, 73 real requests and 40 "who for" pairs on 4.10.3, every sure prediction matched midPoint) |
 
 **S16 `cancel_request` in detail.**
 
