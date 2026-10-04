@@ -3709,7 +3709,7 @@ Draft.8 removed the `type.*` kind words (D31, D28).
 | `requestAccess.relation.approver` | Approve requests for it |
 | `requestAccess.relation.owner` | Own it |
 | `requestAccess.relation.manager` | Manage it |
-| `requestAccess.relation.other` | As {relation} |
+| `requestAccess.relation.other` | Be {relation} |
 | `requestAccess.because.title` | Why you can request this |
 | `requestAccess.preview.unsure` | Some of your request rules can't be checked here, so this list may show roles midPoint then refuses. |
 | `requestAccess.target.search` | Find a person |

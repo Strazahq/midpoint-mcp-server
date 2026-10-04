@@ -25,7 +25,14 @@ export const mutations={
  error:(code,field)=>r=>{delete r.structuredContent;r.isError=true;r._meta={'midpoint-mcp-server/error':{v:1,code,...(field?{field}:{})}}},
  formNames:(r)=>{r.structuredContent.form.items.forEach(i=>{if(i.name==='justification')delete i.displayName})},
  lists:(r)=>{for(const i of r.structuredContent.form.items){if(i.name==='accessLevel'){i.multiple=true;i.required=true;}if(i.name==='ticket')i.multiple=true;}},
+ // draft.14: a catalog chosen by the request rules, each role with the given offers (by role index; others offer member with everything)
+ rules:(offers={})=>r=>{const sc=r.structuredContent;sc.preview={basis:'rules'};sc.roles.forEach((x,i)=>{x.offers=offers[i]??[{relation:'default',allFields:true,validity:true,because:[EU]}]})},
+ unsure:(r)=>{r.structuredContent.preview.unsure=['App approver › approve-app-roles: who it is for']},
+ targetsCut:(r)=>{r.structuredContent.limitReached=true},
+ targetsFound:(people)=>r=>{const sc=r.structuredContent;sc.people=people;sc.count=people.length;sc.limitReached=false},
 };
+// rule names as the server writes them, "<role> › <authorization name>"
+export const EU='End user › assign-requestable-roles',LEAD='Team lead › assign-to-my-org',APP='App approver › approve-app-roles';
 export const roleName=r=>r.displayName||r.name;
 export const role=(fx=fixture('catalog'))=>fx.result.structuredContent.roles[0];
 export const person=()=>fixture('catalog').result.structuredContent.acting.fullName;

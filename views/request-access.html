@@ -328,6 +328,12 @@ button,input,textarea{font:inherit;color:inherit}
 .mp-subchoice{display:grid;gap:10px;padding-top:2px}
 .mp-days{max-width:180px}
 .mp-dates{display:grid;gap:10px 12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+/* draft.14: a relation's words may be long, so they wrap; the rules behind an offer, one per line; the person search above the pills */
+.mp-seg--wrap > label{white-space:normal}
+.mp-why-toggle{justify-self:start}
+.mp-why{display:grid;gap:2px;margin:0;padding:0 0 0 20px;list-style:none;color:var(--mp-text-strong);overflow-wrap:anywhere}
+.mp-picker > .mp-search{margin-bottom:8px}
+.mp-picker > .mp-note{margin:-2px 0 8px}
 
 /* search: one box with a glyph; the label is for screen readers, the placeholder repeats it */
 .mp-search{position:relative;min-width:0}
@@ -531,6 +537,16 @@ const CAT = {
   "requestAccess.form.choose": "Choose…",
   "requestAccess.form.onePerLine": "One per line",
   "requestAccess.form.other": "midPoint's own page also asks for: {names}.",
+  "requestAccess.relation.legend": "Request to",
+  "requestAccess.relation.default": "Use it",
+  "requestAccess.relation.approver": "Approve requests for it",
+  "requestAccess.relation.owner": "Own it",
+  "requestAccess.relation.manager": "Manage it",
+  "requestAccess.relation.other": "Be {relation}",
+  "requestAccess.because.title": "Why you can request this",
+  "requestAccess.preview.unsure": "Some of your request rules can't be checked here, so this list may show roles midPoint then refuses.",
+  "requestAccess.target.search": "Find a person",
+  "requestAccess.outcome.relation": "Requested to: {relation}",
   "requestAccess.limitReached": "Showing the first {count} roles. Type to search all of them.",
   "requestAccess.search.resultsFor": "Roles in midPoint matching \"{text}\"",
   "requestAccess.search.searching": "Searching midPoint for \"{text}\"…",
@@ -701,6 +717,7 @@ const major = v => String(v || '').split('.')[0];
 
 const S={init:false,caps:{},ctx:{},entryTool:null,entryArgs:null,inputAt:0,phase:'wait',cancelReason:'',entryError:null,entrySlot:null,entryText:'',
  acting:null,server:null,items:null,form:[],formOther:[],target:'',targetRef:null,team:[],managers:[],teamAsked:false,managersAsked:false,whoamiAsked:false,
+ basis:'requestable',unsure:[],people:null,peopleCut:false,peopleAsked:false,peopleFilter:'',found:null,foundFor:'',peopleSearching:'',peopleEpoch:0,
  filter:'',query:'',baseLimit:false,limitReached:false,listSig:'',asOf:0,shown:PAGE,open:{},more:{},rows:Object.create(null),drafts:Object.create(null),notice:null,
  busy:false,busyAt:0,searching:'',readKind:'',loadedTarget:'',readEpoch:0,inflight:0,ignored:new Set(),called:new Set(),refreshNote:null,listSlot:null,dialog:null,latestArgs:null,aux:{}};
 const $root=document.getElementById('mp-root'),$polite=document.getElementById('mp-polite'),$assertive=document.getElementById('mp-assertive');
@@ -1061,20 +1078,41 @@ function modelContext(res){
 }
 
 /* Get access: own tools, snapshots and request form (7.2). */
-const TOOLS={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','roleName','userOid','userName','validFrom','validTo','fields'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
+const TOOLS={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','roleName','userOid','userName','relation','validFrom','validTo','fields'],list_request_targets:['query','limit'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
 const sig=v=>JSON.stringify(v);
 const LIST=new Intl.ListFormat('en',{style:'long',type:'conjunction'});
 const names=refs=>{const n=refs.map(dispName);return LIST.format(n.length>3?n.slice(0,3).concat(ts('common.andMore',{count:n.length-3})):n)};
 const userRef=u=>ref({...u,type:'User',displayName:str(u.fullName)||str(u.displayName)});
 const ownRef=()=>userRef(S.acting||{});
-const targetRef=()=>S.target?(S.team.find(u=>u.oid===S.target)||S.targetRef||ref({oid:S.target,type:'User'})):ownRef();
+const allPeople=()=>[...S.team,...(S.people||[]),...(S.found||[])];
+const targetRef=()=>S.target?(allPeople().find(u=>u.oid===S.target)||S.targetRef||ref({oid:S.target,type:'User'})):ownRef();
 const isManager=()=>!!S.acting&&S.acting.orgs.some(o=>o.manager===true&&o.selected===true);
+/* draft.14 (D44, D45): what midPoint's request rules offer, only with basis "rules"; with "requestable" the view is as before */
+const rulesMode=()=>S.basis==='rules';
+const REL=/^[A-Za-z_][\w.-]{0,63}$/,RELS=['default','approver','owner','manager'];
+const strs=v=>arr(v).filter(x=>typeof x==='string').map(x=>x.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g,' ').trim().slice(0,300)).filter(Boolean);
+function normPreview(p){p=isObj(p)?p:{};return {basis:p.basis==='rules'?'rules':'requestable',unsure:strs(p.unsure)};}
+/* one offer per relation, in the order sent ("default" first), each with its own fields, dates and rules; without a usable offer, member with nothing more */
+function normOffers(offers){
+ const out=[];
+ for(const o of arr(offers)){const rel=isObj(o)?str(o.relation):'';if(REL.test(rel)&&!out.some(x=>x.relation===rel))out.push({relation:rel,allFields:o.allFields===true,fields:strs(o.fields),validity:o.validity===true,because:strs(o.because)});}
+ return out.length?out:[{relation:'default',allFields:false,fields:[],validity:false,because:[]}];
+}
 function normList(sc){
  if(!isObj(sc)||sc.tool!=='list_requestable_roles'||!Array.isArray(sc.roles))return null;
- return {items:sc.roles.filter(r=>isObj(r)&&str(r.oid)).map(r=>ref({...r,type:'Role'})),acting:normActing(sc.acting),server:normServer(sc.server),
- target:str(sc.forUser),targetRef:isObj(sc.forUserRef)?ref(sc.forUserRef):null,query:str(sc.query),limitReached:sc.limitReached===true,
+ const pv=normPreview(sc.preview),rules=pv.basis==='rules';
+ return {items:sc.roles.filter(r=>isObj(r)&&str(r.oid)).map(r=>({...ref({...r,type:'Role'}),offers:rules?normOffers(r.offers):null})),acting:normActing(sc.acting),server:normServer(sc.server),
+ target:str(sc.forUser),targetRef:isObj(sc.forUserRef)?ref(sc.forUserRef):null,query:str(sc.query),limitReached:sc.limitReached===true,basis:pv.basis,unsure:rules?pv.unsure:[],
  form:isObj(sc.form)?normForm(sc.form.items):[],formOther:isObj(sc.form)?arr(sc.form.other).filter(o=>isObj(o)&&str(o.name)).map(o=>str(o.displayName)||o.name):[]};
 }
+/* whom the rules let the person request for: people with the rules behind each */
+function normTargets(sc){
+ if(!isObj(sc)||sc.tool!=='list_request_targets'||!Array.isArray(sc.people))return null;
+ return {people:sc.people.filter(p=>isObj(p)&&str(p.oid)).map(p=>({...ref({...p,type:'User'}),because:strs(p.because)})),limitReached:sc.limitReached===true,query:str(sc.query)};
+}
+const relLabel=r=>RELS.includes(r)?ts('requestAccess.relation.'+r):ts('requestAccess.relation.other',{relation:r});
+/* inside a sentence ("Requested to: approve requests for it") */
+const relWord=r=>{const s=relLabel(r);return s.charAt(0).toLocaleLowerCase('en')+s.slice(1)};
 /* D43: midPoint's assignment fields; a choice keeps only well-formed options, and a choice without any is not offered */
 const FORM_TYPES=['string','boolean','int','long','decimal','date','dateTime','choice'];
 function normForm(items){
@@ -1084,7 +1122,7 @@ function normForm(items){
 function normRequest(sc){
  const r=isObj(sc)?sc.request:null;
  if(!isObj(r)||sc.tool!=='request_role'||!['pending-approval','granted','preview'].includes(r.outcome)||!isObj(r.role)||!isObj(r.user))return null;
- return {role:ref(r.role),user:ref(r.user),outcome:r.outcome,caseOid:str(r.caseOid),approvers:arr(r.approvers).filter(isObj).map(ref),validity:normValidity(r.validity),
+ return {role:ref(r.role),user:ref(r.user),outcome:r.outcome,caseOid:str(r.caseOid),approvers:arr(r.approvers).filter(isObj).map(ref),validity:normValidity(r.validity),relation:REL.test(str(r.relation))?r.relation:'default',
  dryRun:sc.dryRun===true,summary:str(sc.summary),method:str(sc.method),endpoint:str(sc.endpoint),body:sc.body,acting:normActing(sc.acting),server:normServer(sc.server)};
 }
 function outcomeOf(d){
@@ -1097,6 +1135,8 @@ function requestNotice(row,k){
  const node=rowOutcome(k,row);
  if(row.preview)node.append(summaryRows(row.preview.role,row.preview.user,requestValidity(row.preview.validity)));
  if(row.data)node.append(line(icon('hourglass'),requestValidity(row.data.validity)));
+ const rel=(row.data||row.preview||{}).relation;
+ if(rel&&rel!=='default')node.append(line(glyph('role'),t('requestAccess.outcome.relation',{relation:relWord(rel)})));
  if(row.track&&isObj(S.caps.message))node.append(h('div',{class:'mp-actions'},h('button',{type:'button',class:'mp-btn mp-btn--ghost','data-k':'track',onclick:()=>request('ui/message',{role:'user',content:[{type:'text',text:ts('requestAccess.handoff.showMyRequests')}]})},t('requestAccess.action.showMyRequests'))));
  if(row.followup)node.append(row.followup.slot?slotPanel(row.followup.slot):errorBlock(row.followup.error,'case',false));
  return node;
@@ -1134,7 +1174,9 @@ function readAux(key,tool,args,apply,fail){
 function loadHints(){
  if(!canCall())return;
  if(!S.acting){askWhoami();return;}
- if(isManager()&&!S.teamAsked){S.teamAsked=true;readAux('team','list_my_team',{limit:100},res=>{if(res.structuredContent?.tool==='list_my_team')S.team=arr(res.structuredContent.users).filter(isObj).map(userRef)});}
+ /* who else it can be for, once a catalog says how roles are chosen: the rules' people (draft.14), else a manager's reports */
+ if(S.items&&rulesMode()){if(!S.peopleAsked){S.peopleAsked=true;readAux('people','list_request_targets',{limit:100},res=>{const l=normTargets(res.structuredContent);if(l){S.people=l.people;S.peopleCut=l.limitReached}});}}
+ else if(S.items&&isManager()&&!S.teamAsked){S.teamAsked=true;readAux('team','list_my_team',{limit:100},res=>{if(res.structuredContent?.tool==='list_my_team')S.team=arr(res.structuredContent.users).filter(isObj).map(userRef)});}
  if(!S.target&&!S.managersAsked){S.managersAsked=true;readAux('managers','list_my_managers',{limit:10},res=>{if(res.structuredContent?.tool==='list_my_managers')S.managers=arr(res.structuredContent.users).filter(isObj).map(userRef)});}
 }
 function askWhoami(){
@@ -1148,12 +1190,27 @@ function hintEl(cls){
  return h('p',{class:c},S.managers.length?t('requestAccess.hint.self',{names:names(S.managers)}):t('requestAccess.hint.selfNoManager'));
 }
 /* D39: who it is for as pills with initials ("Myself" first); the radio stays the control. Without a picker the list heading names the target. */
+/* draft.14: with the rules, the people of list_request_targets, the acting person being "Myself"; a search narrows them at once and then asks midPoint */
+const matchPeople=(list,q)=>{q=q.toLocaleLowerCase('en');return !q?list:list.filter(u=>[u.name,u.displayName].some(v=>v.toLocaleLowerCase('en').includes(q)))};
+function others(){
+ if(!rulesMode())return S.team;
+ const q=S.peopleFilter.trim(),self=S.acting?S.acting.oid:'';
+ return (q.length>=2&&S.found&&S.foundFor===q?S.found:matchPeople(S.people||[],q)).filter(u=>u.oid!==self);
+}
+function peopleSearchEl(){
+ const input=h('input',{class:'mp-input',id:'people',type:'search',maxlength:'100',placeholder:ts('requestAccess.target.search'),'data-k':'people',oninput:e=>peopleChanged(e.target.value),onkeydown:e=>{if(e.key==='Enter')e.preventDefault()}});input.value=S.peopleFilter;
+ return [h('div',{class:'mp-search'},h('label',{class:'mp-sr',for:'people'},t('requestAccess.target.search')),icon('search',16),input),
+  S.peopleSearching?h('p',{role:'status',class:'mp-note'},t('requestAccess.search.searching',{text:S.peopleSearching})):null];
+}
 function pickerEl(){
- if(!(isManager()&&canCall()))return null;
- const users=[...S.team];
+ if(!canCall())return null;
+ const rules=rulesMode(),self=S.acting?S.acting.oid:'';
+ if(rules?!(S.people&&(S.target||S.people.some(u=>u.oid!==self))):!isManager())return null;
+ const users=[...others()];
  if(S.target&&!users.some(u=>u.oid===S.target))users.push(targetRef());
  const pick=(oid,who,label)=>{const on=oid===S.target;return h('label',{class:'mp-pill'+(on?' is-on':'')},h('input',{type:'radio',name:'request-target',value:oid,checked:on||null,'data-k':'target:'+oid,onchange:()=>switchTarget(oid)}),disc(who),h('span',null,label),on?icon('check',13):null)};
- return h('fieldset',{class:'mp-picker'},h('legend',{class:'mp-legend'},t('requestAccess.target.label')),h('div',{class:'mp-picks'},pick('',ownRef(),t('requestAccess.target.self')),users.map(u=>pick(u.oid,u,dispName(u)))));
+ return h('fieldset',{class:'mp-picker'},h('legend',{class:'mp-legend'},t('requestAccess.target.label')),rules&&(S.people.length>8||S.peopleCut)?peopleSearchEl():null,
+  h('div',{class:'mp-picks','aria-busy':S.peopleSearching?'true':null},pick('',ownRef(),t('requestAccess.target.self')),users.map(u=>pick(u.oid,u,dispName(u)))));
 }
 function controlsEl(){
  const input=h('input',{class:'mp-input',id:'filter',type:'search',maxlength:'100',placeholder:ts('requestAccess.filter.label'),'data-k':'filter',oninput:e=>filterChanged(e.target.value),onkeydown:e=>{if(e.key==='Enter')e.preventDefault()}});input.value=S.filter;
@@ -1184,6 +1241,7 @@ function catalogEl(){
  const items=S.items||[],shown=matches(items,S.filter),body=[];
  if(S.query)body.push(h('h2',{class:'mp-section-title mp-section-title--plain'},t('requestAccess.search.resultsFor',{text:S.query})));
  else if(shown.length)body.push(h('h2',{class:'mp-section-title'},t('requestAccess.list.title',{target:S.target?'other':'self',user:dispName(targetRef()),count:shown.length})));
+ if(S.unsure.length)body.push(h('p',{class:'mp-note'},t('requestAccess.preview.unsure')));
  if(S.searching)body.push(h('p',{role:'status',class:'mp-note'},t('requestAccess.search.searching',{text:S.searching})));
  if(!items.length&&!S.query&&!S.filter&&!S.busy)body.push(h('div',{class:'mp-panel mp-panel--info',role:'status'},h('p',{class:'mp-panel-title'},icon('info'),S.target?t('requestAccess.empty.report',{user:dispName(targetRef())}):t('requestAccess.empty.self')),h('p',null,t('requestAccess.empty.why'))));
  else if(shown.length){body.push(h('ul',{class:'mp-ledger'+(isFull()?' mp-ltable':'')},isFull()?ledgerHead():null,shown.slice(0,S.shown).map(roleEl)));if(shown.length>S.shown)body.push(h('button',{type:'button',class:'mp-btn mp-btn--tool mp-more','data-k':'more',onclick:()=>{S.shown+=PAGE;render({focus:'more'})}},t('common.showMore')));}
@@ -1214,9 +1272,22 @@ function filterChanged(value){
   const epoch=S.readEpoch;searchTimer=setTimeout(()=>{if(epoch===S.readEpoch)readList(listArgs(q),false,'search')},600);
  }
 }
+/* "Find a person" (draft.14): after a 600 ms pause and 2+ characters, one list_request_targets call; an answer for older text is dropped */
+let peopleTimer=0;
+function peopleChanged(value){
+ clearTimeout(peopleTimer);S.peopleFilter=value;S.peopleEpoch++;S.peopleSearching='';
+ const q=value.trim();render();
+ if(q.length>=2&&q!==S.foundFor&&canCall()){const epoch=S.peopleEpoch;peopleTimer=setTimeout(()=>{if(epoch===S.peopleEpoch)findPeople(q)},600);}
+}
+function findPeople(q){
+ const epoch=S.peopleEpoch;S.peopleSearching=q;
+ readAux('find','list_request_targets',{limit:100,query:q},res=>{if(epoch!==S.peopleEpoch)return;S.peopleSearching='';const l=normTargets(res.structuredContent);if(l){S.found=l.people;S.foundFor=q}},
+  failure=>{if(epoch===S.peopleEpoch){S.peopleSearching='';S.aux.find=failure}});
+ render();
+}
 function switchTarget(oid){
  if(oid===S.target)return;
- clearTimeout(searchTimer);S.target=oid;S.targetRef=S.team.find(u=>u.oid===oid)||null;S.notice=null;S.drafts=Object.create(null);S.rows=Object.create(null);S.more={};
+ clearTimeout(searchTimer);S.target=oid;S.targetRef=allPeople().find(u=>u.oid===oid)||null;S.notice=null;S.drafts=Object.create(null);S.rows=Object.create(null);S.more={};
  readList(listArgs(S.query),true,'target');loadHints();
 }
 function doRefresh(){if(S.busy||!canCall()||S.dialog)return;clearTimeout(searchTimer);readList(S.latestArgs||listArgs(S.query),true);}
@@ -1247,7 +1318,7 @@ function onListAnswer(r,reset,args){
  applySnapshot(l,sig(res.structuredContent),reset);
 }
 function applySnapshot(l,signature,reset){
- S.phase='loaded';S.items=l.items;S.form=l.form;S.formOther=l.formOther;S.acting=l.acting||S.acting;S.server=l.server||S.server;
+ S.phase='loaded';S.items=l.items;S.form=l.form;S.formOther=l.formOther;S.acting=l.acting||S.acting;S.server=l.server||S.server;S.basis=l.basis;S.unsure=l.unsure;
  S.loadedTarget=l.target;S.target=l.target;S.targetRef=l.targetRef||S.targetRef;S.query=l.query;S.limitReached=l.limitReached;if(!l.query)S.baseLimit=l.limitReached;
  S.listSig=signature;S.asOf=Date.now();S.shown=PAGE;S.refreshNote=null;S.listSlot=null;S.more={};
  if(reset){S.rows=Object.create(null);S.notice=null;}
@@ -1302,7 +1373,21 @@ function zonedIso(ymd,hms){
  if(ymdOf(Date.parse(iso))!==ymd||z.hour+':'+z.minute+':'+z.second!==hms)return '';
  return iso;
 }
-function initialDraft(){const today=ymdOf(Date.now());return {v:{mode:'permanent',days:'30',other:'',from:today,to:addDays(today,30)},f:Object.create(null),mark:''};}
+function initialDraft(){const today=ymdOf(Date.now());return {v:{mode:'permanent',days:'30',other:'',from:today,to:addDays(today,30)},f:Object.create(null),mark:'',refused:'',rel:''};}
+/* draft.14: the chosen relation's offer decides the fields, the dates and the rules named; without the rules (offers null) everything is offered as before */
+const offerOf=d=>d.role.offers?d.role.offers.find(o=>o.relation===d.state.rel)||d.role.offers[0]:null;
+const datesOf=d=>{const o=offerOf(d);return !o||o.validity};
+const formOf=d=>{const o=offerOf(d);return !o||o.allFields?S.form:S.form.filter(i=>o.fields.includes(i.name))};
+const relChoice=r=>!!r.offers&&(r.offers.length>1||r.offers[0].relation!=='default');
+/* 6.5: a field marked after a refusal, else the first input, otherwise Cancel */
+function firstFocus(d){
+ const f=formOf(d),dates=datesOf(d);
+ if(d.state.mark&&f.some(i=>i.name===d.state.mark))return 'f:'+d.state.mark;
+ if(d.state.refused==='validity'&&dates)return 'valid:'+d.state.v.mode;
+ if(relChoice(d.role))return 'rel:'+d.state.rel;
+ if(dates)return 'valid:'+d.state.v.mode;
+ return f.length?'f:'+f[0].name:'dlg-cancel';
+}
 function validityOf(v){
  const today=ymdOf(Date.now());
  if(v.mode==='permanent')return {};
@@ -1337,7 +1422,7 @@ function formValue(it,x){
 }
 function formValues(d){
  const fields=Object.create(null),errors=Object.create(null);
- for(const it of S.form){
+ for(const it of formOf(d)){
   const raw=d.state.f[it.name],k='f:'+it.name;
   if(it.type==='boolean'){if(it.required||raw!==undefined)fields[it.name]=raw===true;continue;}
   /* a multiple field: a list of checked options, or one value per line */
@@ -1376,9 +1461,11 @@ function dialogInputs(d){
   };
   opts.push(h('div',{class:'mp-subchoice mp-dates'},date('from'),date('to')));
  }
- const out=[h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.validity.legend')),opts)];
- if(S.form.length){
-  const fields=S.form.map(it=>{
+ const out=datesOf(d)?[h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.validity.legend')),opts)]:[];
+ if(relChoice(d.role))out.unshift(relationEl(d));
+ const form=formOf(d);
+ if(form.length){
+  const fields=form.map(it=>{
    const k='f:'+it.name,id='field-'+idOf(k),eid='error-'+idOf(k),hid=id+'-help',bad=d.errors[k]||d.state.mark===it.name;
    const lines=it.multiple&&it.type!=='choice',described=[d.errors[k]?eid:'',it.help||lines?hid:''].filter(Boolean).join(' ')||null;
    const attrs={id,disabled:dis,'data-k':k,'aria-invalid':bad?'true':null,'aria-required':it.required&&it.type!=='boolean'?'true':null,'aria-describedby':described};
@@ -1406,11 +1493,25 @@ function dialogInputs(d){
  }
  return out;
 }
+/* draft.14 (D45): what the request is for, as a segmented control of the offered relations; its fields, dates and rules follow the choice */
+function relationEl(d){
+ const radio=o=>h('label',{class:d.state.rel===o.relation?'is-on':null},h('input',{type:'radio',name:'relation',value:o.relation,checked:d.state.rel===o.relation||null,disabled:d.working||null,'data-k':'rel:'+o.relation,
+  onchange:()=>{d.state.rel=o.relation;d.errors={};render({focus:'rel:'+o.relation})}}),h('span',null,relLabel(o.relation)));
+ return h('fieldset',{class:'mp-dialog-sec'},h('legend',{class:'mp-legend'},t('requestAccess.relation.legend')),h('div',{class:'mp-seg mp-seg--wrap'},d.role.offers.map(radio)));
+}
+/* "Why you can request this": the rules behind the chosen offer, one per line, as text */
+function whyEl(d){
+ const o=offerOf(d);if(!o||!o.because.length)return null;
+ const list=h('ul',{class:'mp-why',id:'why'},o.because.map(b=>h('li',null,b)));list.hidden=!d.why;
+ const btn=h('button',{type:'button',class:'mp-btn mp-btn--link mp-why-toggle','aria-expanded':String(!!d.why),'aria-controls':'why','data-k':'why',
+  onclick:()=>{d.why=!d.why;list.hidden=!d.why;btn.setAttribute('aria-expanded',String(d.why))}},icon('chevron',12),t('requestAccess.because.title'));
+ return h('div',{class:'mp-dialog-sec'},btn,list);
+}
 function dialogEl(){
- const d=S.dialog,p={role:dispName(d.role),user:dispName(d.user)},v=validityOf(d.state.v),dry=S.server&&!S.server.writesEnabled;
+ const d=S.dialog,p={role:dispName(d.role),user:dispName(d.user)},v=datesOf(d)?validityOf(d.state.v):{},dry=S.server&&!S.server.writesEnabled;
  const box=h('div',{class:'mp-dialog',role:'dialog','aria-modal':'true','aria-labelledby':'dlg-t','aria-describedby':'dlg-d',tabindex:'-1','data-k':'dlg-box',onkeydown:dialogKeys},
  h('h2',{id:'dlg-t'},t('confirm.request.title',p)),h('div',{id:'dlg-d',class:'mp-dialog-body'},h('p',null,t(S.target?'confirm.request.bodyReport':'confirm.request.bodySelf',p)),h('p',null,t('confirm.request.policy')),hintEl()),
- dialogInputs(d),summaryRows(d.role,d.user,v.error?'–':requestValidity(v)),d.working?slowNote(d.at):null,
+ dialogInputs(d),whyEl(d),summaryRows(d.role,d.user,v.error?'–':requestValidity(v)),d.working?slowNote(d.at):null,
  h('div',{class:'mp-actions'},h('button',{type:'button',class:'mp-btn mp-btn--ghost','data-k':'dlg-cancel',disabled:d.working||null,onclick:closeDialog},t('common.cancel')),
  h('button',{type:'button',class:'mp-btn mp-btn--primary','data-k':'dlg-submit',disabled:d.working||null,onclick:submitDialog},t(d.working?'confirm.working':dry?'dryrun.submit':'confirm.request.submit'))));
  return h('div',{class:'mp-overlay'},box);
@@ -1418,8 +1519,10 @@ function dialogEl(){
 function openRequest(role){
  if(S.dialog||!canCall()||S.busy||S.loadedTarget!==S.target)return;
  const state=structuredClone(S.drafts[role.oid]||initialDraft());state.f=Object.assign(Object.create(null),state.f);
- S.dialog={role,user:targetRef(),state,errors:{},working:false,at:0,opener:'req:'+role.oid};
- render({focus:state.mark&&S.form.some(i=>i.name===state.mark)?'f:'+state.mark:'valid:'+state.v.mode});
+ const rels=role.offers?role.offers.map(o=>o.relation):[];
+ if(!rels.includes(state.rel))state.rel=rels.includes('default')?'default':rels[0]||'';
+ S.dialog={role,user:targetRef(),state,errors:{},working:false,at:0,opener:'req:'+role.oid,why:false};
+ render({focus:firstFocus(S.dialog)});
 }
 function closeDialog(){const d=S.dialog;if(!d||d.working)return;S.dialog=null;render({focus:d.opener});}
 function dialogKeys(e){
@@ -1433,11 +1536,12 @@ function dialogKeys(e){
 }
 function submitDialog(){
  const d=S.dialog;if(!d||d.working)return;
- const val=validityOf(d.state.v),{fields,errors}=formValues(d);
+ const offer=offerOf(d),val=datesOf(d)?validityOf(d.state.v):{},{fields,errors}=formValues(d);
  d.errors=val.error?{[val.error]:ts(val.key,{max:MAX_DAYS}),...errors}:errors;
  const bad=Object.keys(d.errors)[0];
  if(bad){render({focus:bad==='days'?'days':bad});announce(d.errors[bad],true);return;}
  const args={roleOid:d.role.oid,roleName:d.role.name};if(S.target){args.userOid=S.target;args.userName=(d.user&&d.user.name)||'';}
+ if(offer&&offer.relation!=='default')args.relation=offer.relation;
  Object.assign(args,val);if(Object.keys(fields).length)args.fields=fields;
  d.working=true;d.at=Date.now();render({focus:'dlg-box'});
  callTool('request_role',args).then(r=>{
@@ -1446,7 +1550,7 @@ function submitDialog(){
   const row=requestResult(r),key=row.error?classify(row.error):'';
   S.dialog=null;S.rows[d.role.oid]=row;
   if(key==='error.invalidField'||key==='error.invalidValidity'){
-   const meta=row.error.meta[ERR_KEY];d.state.mark=key==='error.invalidField'&&isObj(meta)&&meta.v===1?str(meta.field):'';
+   const meta=row.error.meta[ERR_KEY];d.state.mark=key==='error.invalidField'&&isObj(meta)&&meta.v===1?str(meta.field):'';d.state.refused=key==='error.invalidValidity'?'validity':'';
    S.drafts[d.role.oid]=d.state;
   }else if(row.requested){delete S.drafts[d.role.oid];S.notice=row;fillApprovers(row);modelContext(r.result);}
   else if(row.preview)S.notice=null;

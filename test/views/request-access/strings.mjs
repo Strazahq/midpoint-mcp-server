@@ -17,4 +17,8 @@ export const S={
  empty:'There are no roles you can request.',emptyReport:u=>`There are no roles you can request for ${u}.`,emptyWhy:"You only see roles you're allowed to ask for, and not the ones this person already has.",
  held:'Waiting for approval',blocked:'Blocked',textOnly:"This answer can't be shown as a view. Here is the server's text.",mismatch:"This view doesn't match the server's version. The server's answer is shown as text below.",cancelled:'This request was cancelled.',
  hidden:"an item you can't see in midPoint",personal:n=>`midPoint sees everything here as ${n}, this server's own account.`,
+ // draft.14 (D44, D45): what the request rules offer
+ relation:'Request to',relDefault:'Use it',relApprover:'Approve requests for it',relOwner:'Own it',relManager:'Manage it',relOther:r=>`As ${r}`,
+ why:'Why you can request this',unsure:"Some of your request rules can't be checked here, so this list may show roles midPoint then refuses.",findPerson:'Find a person',
+ outcomeRelation:r=>`Requested to: ${r}`,
 };

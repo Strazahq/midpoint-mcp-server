@@ -3,7 +3,7 @@
 midpoint-mcp-server connects AI assistants to
 [Evolveum midPoint](https://evolveum.com/midpoint/) through the
 [Model Context Protocol](https://modelcontextprotocol.io) (MCP). It gives an
-assistant 38 tools to look up users, roles and resources, request roles, decide
+assistant 39 tools to look up users, roles and resources, request roles, decide
 approvals, see a manager's team, check what failed recently and, when you allow
 it, change midPoint. Every call
 goes through midPoint's REST API as a real midPoint user, so midPoint's own
@@ -532,7 +532,7 @@ views get four interactive screens, embedded in the binary.
 | View | Resource | Opened by |
 | --- | --- | --- |
 | Approval inbox: open work items assigned to you, with context, to approve or reject | `ui://midpoint/approval-inbox` | `list_work_items`, `decide_work_item` |
-| Get access: requestable roles for you or a direct report, with a request button | `ui://midpoint/request-access` | `list_requestable_roles`, `request_role` |
+| Get access: the roles your midPoint request rules let you request, for you or someone you may request for, with a request button | `ui://midpoint/request-access` | `list_requestable_roles`, `request_role`, `list_request_targets` |
 | My requests: the approval cases you started, where each stands, and withdrawing one | `ui://midpoint/my-requests` | `list_my_requests`, `get_case`, `cancel_request` |
 | My team's access: your team and each person's access, and removing a direct report's role | `ui://midpoint/access-review` | `list_my_team`, `get_user_assignments`, `unassign_role` |
 
@@ -578,8 +578,9 @@ results by default and at most 100.
 
 | Tool | What it does |
 | --- | --- |
-| `list_requestable_roles` | Lists the roles flagged `requestable` that the caller may see. `forUser` lists what a report could get but does not hold yet. `query` filters by name or display name, up to 100 characters. |
-| `request_role` | Requests a role for the caller or a report, with optional `validFrom`, `validTo` and form `fields`. By default it refuses roles not flagged `requestable`. The result says `GRANTED` when no approval policy matched and midPoint applied the role at once. Write gate. |
+| `list_requestable_roles` | Lists the roles the caller may request, for themselves or with `forUser` for someone else: from midPoint's request rules for the caller, each with its relations, fields, dates and the rules that allow it; or, without the rules, the roles flagged `requestable`. Roles the person already holds are left out. `query` filters by name or display name, up to 100 characters. |
+| `list_request_targets` | Lists whom the caller may request for, according to their midPoint request rules, each with the rules that allow it. |
+| `request_role` | Requests a role for the caller or someone else, with optional `relation`, `validFrom`, `validTo` and form `fields`. It refuses a role or relation the caller's midPoint request rules don't offer (a relation other than member only where a rule names it); without the rules, roles not flagged `requestable`. The result says `GRANTED` when no approval policy matched and midPoint applied the role at once. Write gate. |
 | `list_my_requests` | Lists the approval cases the caller started. |
 | `cancel_request` | Withdraws the caller's own open request, after checking its requester and state. midPoint must allow the caller to cancel the case. Write gate. |
 | `list_work_items` | Lists the caller's approval inbox, including requests offered to a group the caller belongs to (`offered`, `offeredTo`). |

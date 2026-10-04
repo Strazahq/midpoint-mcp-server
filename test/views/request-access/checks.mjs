@@ -1,11 +1,11 @@
 import {S} from './strings.mjs';
-import {fixture,derive,mutations as M,role,roleName,person,dateIn,endOfDayIn} from './derive.mjs';
+import {fixture,derive,mutations as M,role,roleName,person,dateIn,endOfDayIn,EU,LEAD,APP} from './derive.mjs';
 import {defaults,diagnostics,VIEW_URL,inLiveRegion,sleep} from '../harness.mjs';
 export const checks=[],runWide=[];
 const check=(id,criterion,title,run)=>checks.push({id,criterion,title,run});
 const across=(id,criterion,title,run)=>runWide.push({id,criterion,title,run});
-defaults.allowedTools={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','roleName','userOid','userName','validFrom','validTo','fields'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
-defaults.tools={whoami:[{result:fixture('identity').result}],list_my_managers:[{result:fixture('managers').result}],list_my_team:[{result:fixture('team').result}],list_requestable_roles:[{result:fixture('catalog').result}],get_case:[{result:fixture('case').result}],request_role:[{result:fixture('pending').result}]};
+defaults.allowedTools={list_requestable_roles:['limit','forUser','query'],request_role:['roleOid','roleName','userOid','userName','relation','validFrom','validTo','fields'],list_request_targets:['query','limit'],list_my_team:['limit'],list_my_managers:['limit'],get_case:['oid'],whoami:[]};
+defaults.tools={whoami:[{result:fixture('identity').result}],list_my_managers:[{result:fixture('managers').result}],list_my_team:[{result:fixture('team').result}],list_requestable_roles:[{result:fixture('catalog').result}],get_case:[{result:fixture('case').result}],request_role:[{result:fixture('pending').result}],list_request_targets:[{result:fixture('targets-self').result}]};
 const rn=roleName(role());
 async function catalog(t,name='catalog',opts={}){const v=await t.open({entry:typeof name==='string'?fixture(name):name,...opts});t.ok(await v.waitFor(v.frame.getByRole('heading',{name:S.title,exact:true})),'Get access did not load');return v;}
 async function open(t,v,label=S.requestLabel(rn)){await v.button(label).click();t.ok(await v.waitFor(v.dialog()),'no confirm dialog');return v.dialog();}
@@ -387,4 +387,93 @@ check('shared.dialog-size','shared, 6.13','dialog grows flexible content and scr
 check('shared.unknown-error-code','shared, 6.8','an unknown error code uses text fallback even when it names a JS property',async t=>{
  const error=derive('invalid-field','unknown-code',M.error('toString'));
  const v=await catalog(t,'catalog',{tools:writeTools(error)});await open(t,v);await submit(v);t.ok(await v.waitFor(S.invalidField),'unknown-code fallback failed');
+});
+
+// draft.14 (D44, D45): what midPoint's request rules offer. Names and rules come from the fixtures.
+const offered=(fx,name)=>fixture(fx).result.structuredContent.roles.find(r=>r.name===name);
+const RM=offered('rules-manager','release-manager'),DB=offered('rules-manager','db-admin');
+const BOB=fixture('rules-report').call.arguments.forUser,bob=fixture('rules-report').result.structuredContent.forUserRef.displayName,jane=fixture('rules-manager').result.structuredContent.acting.fullName;
+const picker=v=>v.frame.getByRole('group',{name:S.target,exact:true});
+const group=(d,name)=>d.getByRole('group',{name,exact:true});
+const janeTools=(more={})=>({list_request_targets:[{result:fixture('targets').result}],...more});
+const approver=S.outcomeRelation(S.relApprover.toLowerCase());
+check('d44.targets','7.2 draft.14 (1), D44','with the rules, "Request for" lists list_request_targets once instead of list_my_team, the acting person as Myself; choosing a person re-reads with forUser',async t=>{
+ const report=fixture('rules-report'),v=await catalog(t,'rules-manager',{tools:janeTools({list_requestable_roles:[{when:{forUser:BOB},result:report.result}]})}),p=picker(v);
+ t.ok(await v.waitFor(p.getByRole('radio',{name:bob,exact:true})),'person of the rules not offered');t.ok(await p.getByRole('radio',{name:S.self,exact:true}).isChecked(),'Myself not chosen');
+ t.ok(await p.getByRole('radio',{name:jane,exact:true}).count()===0,'acting person listed by name');t.ok(await v.frame.getByRole('searchbox',{name:S.findPerson}).count()===0,'person search for two people');
+ const asked=await v.calls('list_request_targets');t.ok(asked.length===1&&JSON.stringify(asked[0].args)==='{"limit":100}','targets not asked once with limit 100');t.ok((await v.calls('list_my_team')).length===0,'list_my_team called with the rules');
+ await p.getByRole('radio',{name:bob,exact:true}).check();
+ t.ok(await v.waitFor(v.frame.getByRole('heading',{name:S.listTitle(report.result.structuredContent.roles.length,bob),exact:true})),'catalog for the person not shown');
+ const calls=await v.calls('list_requestable_roles');t.ok(calls.length===1&&calls[0].args.forUser===BOB&&calls[0].args.limit===100,'not re-read with forUser');t.ok((await v.calls('list_request_targets')).length===1,'targets asked again');
+});
+check('d44.targets-self','7.2 draft.14 (1)','with the rules and nobody else to request for, there is no picker and the heading names the person',async t=>{
+ const v=await catalog(t,'rules');await sleep(200);t.ok((await v.calls('list_request_targets')).length===1,'targets not asked once');t.ok((await v.calls('list_my_team')).length===0,'team called');
+ t.ok(await picker(v).count()===0,'picker for one person');t.ok(await v.visible(v.frame.getByRole('heading',{name:S.listTitle(2),exact:true})),'self heading absent');
+});
+check('d44.target-search','7.2 draft.14 (1)','a cut-off list of people adds "Find a person": a 600 ms pause and 2+ characters ask list_request_targets with query, once',async t=>{
+ const carol={oid:'10000000-0000-0000-0000-0000000000d9',name:'cdiaz',displayName:'Carol Diaz',type:'User',because:[LEAD]};
+ const base=derive('targets','targets-cut',M.targetsCut),found=derive('targets','targets-carol',M.targetsFound([carol]));
+ const v=await catalog(t,'rules-manager',{tools:{list_request_targets:[{when:{query:'car'},result:found.result},{result:base.result}]}}),s=v.frame.getByRole('searchbox',{name:S.findPerson,exact:true});
+ t.ok(await v.waitFor(s),'no person search');await s.fill('c');await sleep(720);t.ok((await v.calls('list_request_targets')).length===1,'one character asked');
+ await s.fill('ca');await sleep(200);await s.fill('car');await sleep(200);t.ok((await v.calls('list_request_targets')).length===1,'asked before the pause');
+ t.ok(await v.waitFor(picker(v).getByRole('radio',{name:carol.displayName,exact:true})),'found person not offered');
+ const calls=await v.calls('list_request_targets');t.ok(calls.length===2&&calls[1].args.query==='car'&&calls[1].args.limit===100,'search not asked once with query');
+ t.ok(await s.inputValue()==='car'&&await v.isFocused(s),'search text or focus lost');
+});
+check('d44.relation','7.2 draft.14 (2, 6), D45','a role offered as approver only shows the relation choice and sends relation, and the outcome names it; a member-only role shows no choice and sends none',async t=>{
+ const v=await catalog(t,'rules-manager',{tools:janeTools(writeTools('pending-approver'))});let d=await open(t,v,S.requestLabel(roleName(RM)));const g=group(d,S.relation),r=g.getByRole('radio',{name:S.relApprover,exact:true});
+ t.ok(await v.visible(g),'no relation choice');t.ok(await g.getByRole('radio').count()===1,'not one option per offer');t.ok(await r.isChecked(),'the only relation not chosen');t.ok(await v.isFocused(r),'focus not on the first input');
+ await submit(v);const a=(await v.calls('request_role'))[0]?.args;t.ok(a?.relation==='approver'&&a.roleOid===RM.oid&&!('userOid' in a),'relation not sent');t.ok(await v.waitFor(approver),'outcome does not name the relation');
+ d=await open(t,v,S.requestLabel(roleName(DB)));t.ok(await group(d,S.relation).count()===0,'relation choice for a member-only role');t.ok(await v.visible(group(d,S.validity)),'dates hidden though offered');
+ await submit(v);const b=(await v.calls('request_role'))[1]?.args;t.ok(b&&b.roleOid===DB.oid&&!('relation' in b),'relation sent for member');
+});
+check('d44.offer-follows','7.2 draft.14 (2-4), D45','fields, dates and rules follow the chosen relation; a relation midPoint refuses shows error.notRequestable',async t=>{
+ const fx=derive('form','rules-two-offers',M.rules({0:[{relation:'default',allFields:true,validity:true,because:[EU]},{relation:'approver',fields:['projectCode'],because:[APP]}]}));
+ const v=await catalog(t,fx,{tools:writeTools('relation-refused')}),d=await open(t,v),g=group(d,S.relation);
+ t.ok(await g.getByRole('radio').count()===2,'not one option per offer');t.ok(await g.getByRole('radio',{name:S.relDefault,exact:true}).isChecked(),'member not preselected');
+ t.ok(await v.visible(group(d,S.validity))&&await v.visible(d.getByLabel(S.justification,{exact:true})),'member offer lost its dates or fields');
+ await d.getByRole('button',{name:S.why,exact:true}).click();t.ok(await v.hasText(EU,{within:d})&&!(await v.hasText(APP,{within:d})),'member rules not listed');
+ await g.getByRole('radio',{name:S.relApprover,exact:true}).check();
+ t.ok(await group(d,S.validity).count()===0,'dates offered for approver');t.ok(await d.getByLabel(S.justification,{exact:true}).count()===0&&await v.visible(d.getByLabel(S.project,{exact:true})),'approver fields not narrowed');
+ t.ok(await v.hasText(APP,{within:d})&&!(await v.hasText(EU,{within:d})),'rules did not follow the relation');t.ok(await v.hasText(S.permanent,{within:d}),'summary not "No end date"');
+ await form(v);await submit(v);const a=(await v.calls('request_role'))[0]?.args;
+ t.ok(a?.relation==='approver'&&!('validTo' in a)&&!('validFrom' in a)&&JSON.stringify(a.fields)==='{"projectCode":"OPS-7"}','approver request arguments');t.ok(await v.waitFor(S.notRequestable),'refused relation not shown');
+});
+check('d44.fields','7.2 draft.14 (3)','only the fields an offer names are shown and sent; an offer without fields or dates has neither, and focus starts on Cancel',async t=>{
+ const fx=derive('form','rules-fields',M.rules({0:[{relation:'default',fields:['projectCode'],validity:true,because:[EU]}],1:[{relation:'default',because:[EU]}]}));
+ const v=await catalog(t,fx);let d=await open(t,v);t.ok(await v.visible(d.getByLabel(S.project,{exact:true})),'offered field missing');
+ for(const l of [S.justification,S.ticket,S.ack,S.needed,S.handover,S.level,S.region,S.environments,S.cost])t.ok(await d.getByLabel(l,{exact:true}).count()===0,`field not offered shown: ${l}`);
+ await form(v);await submit(v);const a=(await v.calls('request_role'))[0]?.args;t.ok(JSON.stringify(a?.fields)==='{"projectCode":"OPS-7"}','fields outside the offer sent');
+ d=await open(t,v,S.requestLabel('Finance reports'));t.ok(await d.getByRole('heading',{name:S.form,exact:true}).count()===0,'form for an offer without fields');t.ok(await group(d,S.validity).count()===0,'dates for an offer without them');
+ t.ok(await v.isFocused(d.getByRole('button',{name:S.cancel,exact:true})),'focus not on Cancel');
+ await submit(v);const b=(await v.calls('request_role'))[1]?.args;t.ok(b&&Object.keys(b).join(',')==='roleOid,roleName','extra arguments sent');
+});
+check('d44.no-dates','7.2 draft.14 (3)','for a person the team-lead rule allows without dates: no validity group, the summary says No end date, and no dates are sent',async t=>{
+ const report=fixture('rules-report'),v=await catalog(t,'rules-manager',{tools:janeTools({list_requestable_roles:[{when:{forUser:BOB},result:report.result}]})}),p=picker(v);
+ await v.waitFor(p.getByRole('radio',{name:bob,exact:true}));await p.getByRole('radio',{name:bob,exact:true}).check();
+ const label=S.reportLabel(roleName(DB),bob);t.ok(await v.waitFor(v.button(label)),'catalog for the person absent');
+ const d=await open(t,v,label);t.ok(await group(d,S.validity).count()===0,'validity group shown');t.ok(await v.hasText(S.permanent,{within:d}),'summary not No end date');t.ok(await v.isFocused(d.getByRole('button',{name:S.cancel,exact:true})),'focus not on Cancel');
+ await submit(v);const a=(await v.calls('request_role'))[0]?.args;t.ok(a&&a.userOid===BOB&&!('validFrom' in a)&&!('validTo' in a),'dates sent');
+});
+check('d44.why','7.2 draft.14 (4)','"Why you can request this" starts closed and lists the offer\'s rules, one per line, as text',async t=>{
+ const v=await catalog(t,'rules-manager',{tools:janeTools()}),d=await open(t,v,S.requestLabel(roleName(DB))),b=d.getByRole('button',{name:S.why,exact:true});
+ t.ok(await b.getAttribute('aria-expanded')==='false'&&!(await v.hasText(EU,{within:d})),'disclosure not closed');await b.click();t.ok(await b.getAttribute('aria-expanded')==='true','disclosure not open');
+ t.ok(JSON.stringify(await d.getByRole('listitem').allInnerTexts())===JSON.stringify(DB.offers[0].because),'rules not one per line');
+});
+check('d44.unsure','7.2 draft.14 (5)','preview.unsure adds one muted line under the list title; without it there is none',async t=>{
+ const v=await catalog(t,derive('rules','rules-unsure',M.unsure));t.ok(await v.waitFor(S.unsure),'unsure line absent');
+ const at=await v.frame.evaluate(([title,line])=>{const h=[...document.querySelectorAll('h2')].find(e=>e.textContent===title),p=[...document.querySelectorAll('p')].filter(e=>e.textContent===line);
+  return {one:p.length===1,after:!!h&&p.length===1&&!!(h.compareDocumentPosition(p[0])&Node.DOCUMENT_POSITION_FOLLOWING),small:p.length===1&&parseFloat(getComputedStyle(p[0]).fontSize)<14};},[S.listTitle(2),S.unsure]);
+ t.ok(at.one&&at.after,'not one line under the list title');t.ok(at.small,'unsure line not muted');
+ const plain=await catalog(t,'rules');t.ok(!(await plain.hasText(S.unsure)),'unsure line without unsure rules');
+});
+check('d44.outcome-entry','7.2 draft.14 (6)','an agent request as approver names the relation in its notice',async t=>{
+ const v=await catalog(t,'pending-approver');t.ok(await v.waitFor(approver),'relation not named');t.ok(await v.waitFor(v.button(S.track)),'outcome notice absent');
+});
+check('d44.requestable','7.2 draft.14, D44','with basis requestable none of it appears: list_my_team, no list_request_targets, no relation choice, rules or unsure line, no relation sent or named',async t=>{
+ const v=await catalog(t,'manager');t.ok(await v.waitFor(picker(v).getByRole('radio',{name:person(),exact:true})),'reports not offered');await sleep(150);
+ t.ok((await v.calls('list_request_targets')).length===0,'targets asked without the rules');t.ok((await v.calls('list_my_team')).length===1,'team not asked once');
+ t.ok(!(await v.hasText(S.unsure)),'unsure line');t.ok(await v.frame.getByRole('searchbox',{name:S.findPerson}).count()===0,'person search');
+ const d=await open(t,v);t.ok(await group(d,S.relation).count()===0,'relation choice');t.ok(await d.getByRole('button',{name:S.why}).count()===0,'rules disclosure');t.ok(await v.visible(group(d,S.validity)),'validity hidden');
+ await submit(v);const a=(await v.calls('request_role'))[0]?.args;t.ok(a&&!('relation' in a),'relation sent');t.ok(await v.waitFor(v.button(S.track)),'outcome absent');t.ok(!(await v.hasText('Requested to:',{loose:true})),'relation named for member');
 });
