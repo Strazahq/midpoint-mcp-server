@@ -17,7 +17,7 @@
   const WIDTHS = [
     { id: 'phone', label: 'Phone', px: 420, icon: '<rect x="4.5" y="1.8" width="7" height="12.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7 12h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
     { id: 'chat', label: 'Chat window', px: 640, icon: '<path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
-    { id: 'expanded', label: 'Wide', px: 860, icon: '<path d="M1.8 4h12.4v8H1.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5 8h6M9.5 6.5 11 8l-1.5 1.5M6.5 6.5 5 8l1.5 1.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>' },
+    { id: 'expanded', label: 'Computer', px: 860, icon: '<rect x="1.8" y="2.5" width="12.4" height="8.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 14h4M8 11v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' },
   ];
   const FULL_PX = 860; // the width a view gets in fullscreen
   const THEMES = [
@@ -77,9 +77,10 @@
   }
 
   // --- preferences (per viewer; the page works without storage) ---
-  const prefs = { width: 'chat', theme: 'auto' };
+  // Computer width first; a phone screen caps the column at its own width anyway.
+  const prefs = { width: 'expanded', theme: 'auto' };
   try {
-    const saved = JSON.parse(localStorage.getItem('midpoint-views-demo') || '{}');
+    const saved = JSON.parse(localStorage.getItem('midpoint-views-demo-2') || '{}');
     if (WIDTHS.some((w) => w.id === saved.width)) prefs.width = saved.width;
     if (THEMES.some((t) => t.id === saved.theme)) prefs.theme = saved.theme;
   } catch (e) {
@@ -87,7 +88,7 @@
   }
   const savePrefs = () => {
     try {
-      localStorage.setItem('midpoint-views-demo', JSON.stringify(prefs));
+      localStorage.setItem('midpoint-views-demo-2', JSON.stringify(prefs));
     } catch (e) {
       // not kept
     }

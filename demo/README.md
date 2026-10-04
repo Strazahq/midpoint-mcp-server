@@ -42,7 +42,7 @@ every tool call is answered from recorded test data.
   with `ui/update-model-context`.
 - Messages the view sends to the chat (`ui/message`), links it asks to open,
   and its Expand (fullscreen) request show up as host notes.
-- View size (phone 420, chat window 640, wide 860 px) as three icons on the
+- View size (phone 420, chat window 640, computer 860 px, the default) as three icons on the
   view's edge, and one theme button that cycles automatic, light and dark; the
   theme reaches the views as `host-context-changed`.
 

@@ -14,6 +14,8 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
   following scenario. View size is three icons on the view's edge, and "Text
   the assistant reads" is a tab next to each view. The theme is one button. The
   views and the recorded data are unchanged.
+- The demo opens at computer width (860 px). On a phone the column still fits the
+  screen. A size chosen on an earlier visit no longer overrides the default.
 
 ## [0.5.0] - 2026-10-04
 
