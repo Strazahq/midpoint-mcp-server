@@ -209,14 +209,17 @@ midPoint.
 
 ## Let the service account read the users it correlates
 
-The mistake is a service account that holds exactly the role in
-`examples/role-mcp-rs-service.xml` and nothing else.
+The mistake is a service account role without a read authorization for the users
+it correlates, as in `examples/role-mcp-rs-service.xml` before 0.5.0, or with its
+archetypes or items not matching your users.
 
-Correlation runs as the service account, without `Switch-To-Principal`. That role
-grants no model rights, and with it alone a user search returns an empty list. Every
-token is then refused with `invalid token: no midPoint user matches`, and every
-person and agent is locked out. This follows from the code and from that role's own
-verification notes. It has not yet been fired live with this server.
+Correlation runs as the service account, without `Switch-To-Principal`. Without that
+read, a user search returns an empty list. Every token is then refused with
+`invalid token: no midPoint user matches`, and every person and agent is locked out.
+The opposite mistake is just as real: giving the account broad model rights of its
+own (a personal-mode role such as `examples/role-mcp-direct-service.xml`). Every
+call already runs as the person, so those rights only let the account change data
+by itself.
 
 To spot it, run the correlation check in
 [Verify a deployment](authorization.md#verify-a-deployment). An empty list means the

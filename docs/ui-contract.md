@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Status** | Draft for review. Nothing in this document is implemented yet. |
+| **Status** | Draft. Implemented on main: the four views of chapter 7 (draft.11 look) and the server changes S1 to S28, each checked by the browser suites in `test/views/` and by `go test`. Not yet tried in a real MCP Apps host against a live midPoint. |
 | **Contract version** | `1.0-draft.11` (2026-10-03) |
 | **Targets** | MCP Apps extension `io.modelcontextprotocol/ui`, stable revision **2026-01-26**; the midPoint 4.10 GUI look |
 | **Build first** | [Requests to approve](#71-requests-to-approve--build-first) (the approval inbox) |

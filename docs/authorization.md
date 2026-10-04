@@ -7,7 +7,7 @@ importable midPoint role for each.
 
 | Profile | When to use it | Role | Standing privilege of the account |
 | --- | --- | --- | --- |
-| rs-service | Shared mode, where every call runs as the correlated user | [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml) | REST entry and `#proxy`, no model rights, plus the read authorization for correlation described below |
+| rs-service | Shared mode, where every call runs as the correlated user | [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml) | REST entry and `#proxy`, and one model right: the read authorization for correlation described below |
 | direct-service | Personal mode with a shared technical account, where every call runs as that account | [`examples/role-mcp-direct-service.xml`](../examples/role-mcp-direct-service.xml) | Exactly the object types and operations the tools use |
 
 Unless a statement says otherwise, the behaviour described here was verified
@@ -59,10 +59,12 @@ every change to the person or agent who asked for it.
 
 For tool calls the service account therefore needs no model rights. It needs the
 REST actions for the endpoints the tools call, which are `#getSelf`, `#getObject`,
-`#searchObjects`, `#addObject`, `#modifyObject` and `#completeWorkItem`. It also
-needs `#proxy`, scoped to the archetypes it may act for. The example role holds
-exactly these two authorizations. Verified on 4.10.3 with an account that held
-exactly that role:
+`#searchObjects`, `#addObject`, `#modifyObject`, `#completeWorkItem`, `#claimWorkItem`,
+`#releaseWorkItem` and `#cancelCase`. It also needs `#proxy`, scoped to the archetypes
+it may act for. The person needs no REST action at all: on 4.10.3 a user holding only
+midPoint's End user role works through the server. Verified on 4.10.3 with an account
+that held only the REST entry and `#proxy` authorizations (before the example role
+gained its correlation read):
 
 | Check | Result |
 | --- | --- |
@@ -97,11 +99,14 @@ these user items:
 - `name`, which a client's own token is always matched on.
 - `archetypeRef`, which the archetype check for client tokens filters on.
 
-The example role carries no model rights, and the check table above shows that its
-`POST /users/search` returns an empty list. With that role alone, every correlation
-search finds nobody and every token is refused with `no midPoint user matches`. Do
-not deploy `examples/role-mcp-rs-service.xml` unchanged in shared mode. A
-deployment that works with it today is getting read rights from another role.
+Without a read right of its own, the account's `POST /users/search` returns an
+empty list, every correlation search finds nobody, and every token is refused with
+`no midPoint user matches`. Since 0.5.0 `examples/role-mcp-rs-service.xml` carries
+the read authorization below. It is the role's only model right. Verified on
+4.10.3 (2026-10-04): with the REST entry actions, `#proxy` and this read, scoped to
+one archetype and the items `name` and `archetypeRef`, correlation found the user,
+impersonated calls as a plain End user and as a manager answered 200, and the
+account acting as itself got 403 when it tried to modify a user.
 
 The service account needs read access to the users it may correlate, limited to the
 same archetypes as its `#proxy` authorization and to the items above. midPoint's
@@ -129,12 +134,12 @@ oids and the correlation attribute you configured.
 </authorization>
 ```
 
-This requirement follows from the code. The authorization above has not yet been
-fired live against midPoint 4.10 with this server. After you add it, run the
-correlation check in [Verify a deployment](#verify-a-deployment). If the search
-still returns an empty list, remove the `<item>` lines, check again, and record what
-your midPoint version needs. The cost of this grant is that the account can read
-those items of in-scope users on its own, without a token.
+This authorization, with the `<item>` lines, was fired live on midPoint 4.10.3
+(2026-10-04): the account's own search found the user by `name`. After importing,
+run the correlation check in [Verify a deployment](#verify-a-deployment) anyway; if
+your correlation attribute is not `name`, add it as an `<item>`. The cost of this
+grant is that the account can read those items of in-scope users on its own,
+without a token.
 
 ## Use the direct-service role for a shared technical account
 
@@ -175,7 +180,7 @@ In shared mode the `rest-3` actions are checked for the service account and the
 | `assign_role`, `unassign_role`, `request_role` | `PATCH /users/{oid}` | `modifyObject` | `modify` on UserType, item `assignment`, plus `assign` or `unassign` on UserType with target RoleType |
 | `recompute_user` | `PATCH /users/{oid}?options=reconcile` | `modifyObject` | `modify` on UserType, with an empty change |
 | `decide_work_item` | `POST /cases/{oid}/workItems/{id}/complete` | `completeWorkItem` | `completeWorkItem` on CaseType |
-| `cancel_request` | `POST /cases/{oid}/cancel` | `cancelCase` | Not yet verified |
+| `cancel_request` | `POST /cases/{oid}/cancel` | `cancelCase` | `cancelCase` on CaseType with `requester` `self`, which midPoint's End user role lacks, see below. Verified on 4.10.3 |
 | `claim_work_item`, `release_work_item` | `POST /cases/{oid}/workItems/{id}/claim`, `/release` | `claimWorkItem`, `releaseWorkItem` | None for the person: midPoint checks that a `candidateRef` of the item is the person or one of their `roleMembershipRef` targets. To *see* an item offered to their group, an approver needs `read` on CaseType `workItem` with `candidateAssignee` `self`, see below. Verified on 4.10.3 |
 | `list_tasks`, `get_task` | `POST /tasks/search`, `GET /tasks/{oid}` | `searchObjects`, `getObject` | `read` on TaskType. midPoint's End user reads the tasks it owns |
 | `run_task`, `suspend_task`, `resume_task` | `POST /tasks/{oid}/run`, `/suspend`, `/resume` | `runTask`, `suspendTask`, `resumeTask` | midPoint's task control authorizations. An End user is refused even on its own task. Verified on 4.10.3 |
@@ -208,11 +213,26 @@ page needs the same one. Verified on 4.10.3, with the shape of midPoint's
 </authorization>
 ```
 
-Neither example role grants `rest-3#cancelCase`, so with the roles as shipped
-`cancel_request` is refused at the REST layer. Add the action to the `rest-entry`
-authorization if requesters should withdraw their own requests. `cancel_request`
-has not yet been fired against a live midPoint, so its model authorization is not
-documented here.
+**Withdrawing a request** (`cancel_request`, Withdraw in My requests) needs two
+grants. `rest-3#cancelCase` on the service account is in
+`examples/role-mcp-rs-service.xml` since 0.5.0. The person also needs
+`model-3#cancelCase` on the cases they requested, which midPoint's End user role
+does not grant. Verified on 4.10.3 (2026-10-04): without the REST action, 403;
+with it but only End user on the person, 403; with both, 204, and the case closes.
+midPoint's own GUI needs the same model right for its cancel button.
+
+```xml
+<authorization>
+    <name>cancel-own-requests</name>
+    <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#cancelCase</action>
+    <object>
+        <type>CaseType</type>
+        <requester>
+            <special>self</special>
+        </requester>
+    </object>
+</authorization>
+```
 
 When the settings file sets `requests.formItems`, the server also reads midPoint's
 extension schemas at startup, as the service account itself, from `/ws/rest/schemas`

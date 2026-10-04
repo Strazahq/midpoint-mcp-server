@@ -118,8 +118,8 @@ The identity provider must do these things.
 midPoint must provide these things.
 
 1. A service account used by this server and nothing else. It holds the role in
-   [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml) plus a
-   read authorization for correlation, as [Authorization](authorization.md)
+   [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml), which
+   includes the read authorization for correlation, as [Authorization](authorization.md)
    explains.
 2. Every person and agent as a midPoint user that holds the correlation value in an
    attribute that is unique and that only midPoint's own mappings write.
@@ -214,9 +214,9 @@ the server matches against `name` on agent users only.
    such as ai-agent. For agent users, add a strong outbound mapping from `name` to
    the Keycloak client id, so the client id always equals the agent's midPoint name.
 3. Import [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml)
-   with your archetype oids in its `#proxy` selector. Add the read authorization
-   from [Authorization](authorization.md#let-the-service-account-find-users) with
-   the items `name` and `archetypeRef`, and assign both to the service account.
+   with your archetype oids in its `#proxy` selector and its correlation read (the
+   items `name` and `archetypeRef` are already there), and assign it to the
+   service account.
 4. Assign the End user role, or your own equivalent, to people and agents, so each
    has authorizations of its own when the server impersonates it.
 
@@ -328,10 +328,8 @@ Application ID URI.
 5. Check that no authorization lets users modify `extension/entraObjectId`, on
    themselves or on anyone else. Broad self-service modify rights count.
 6. Import [`examples/role-mcp-rs-service.xml`](../examples/role-mcp-rs-service.xml)
-   with your archetype oids. Add the read authorization from
-   [Authorization](authorization.md#let-the-service-account-find-users) with the
-   items `name`, `archetypeRef` and `extension/entraObjectId`, and assign both to
-   the service account.
+   with your archetype oids, add `<item>extension/entraObjectId</item>` to its
+   correlation read, and assign it to the service account.
 7. Assign the End user role, or your own equivalent, to the people.
 
 ### Start the server

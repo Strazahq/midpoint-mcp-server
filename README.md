@@ -154,13 +154,14 @@ another in midPoint.
 2. In midPoint, create a service account for the server. Give it a role based on
    [examples/role-mcp-rs-service.xml](examples/role-mcp-rs-service.xml), after
    replacing its placeholder archetype oids with the archetypes of the users it may
-   act for. The server also looks users up as this account, so it needs read access
-   to the user attributes it matches on, which that example role does not grant.
+   act for, in both places it lists them. The server also looks users up as this
+   account, so the role carries one read authorization, limited to those
+   archetypes and the items the server matches on. Add your correlation attribute to
+   it if that is not `name`. Apart from that read, the role holds only REST entry
+   actions and `#proxy`: every tool call runs on the person's own midPoint rights.
    [docs/authorization.md](docs/authorization.md#let-the-service-account-find-users)
-   shows that extra authorization, and the rest of that document explains each
-   grant. That read authorization
-   has not yet been tested live with this server, so run the correlation check in
-   [Verify a deployment](docs/authorization.md#verify-a-deployment) after you add it.
+   explains each grant. Run the correlation check in
+   [Verify a deployment](docs/authorization.md#verify-a-deployment) after importing.
 3. Make sure every person matches exactly one midPoint user. With the default
    settings, the token's `preferred_username` must equal the user's `name`. The
    server first tries the token's `sub` against a user item called `externalId`, but

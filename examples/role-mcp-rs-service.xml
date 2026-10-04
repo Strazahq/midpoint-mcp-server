@@ -27,9 +27,21 @@
     account is 403'd on every endpoint including /self.
 
   Adjust before importing:
-  - the archetypeRef OIDs below (they are placeholders for YOUR archetypes);
+  - the archetypeRef OIDs below, in BOTH the #proxy and the correlation-read
+    authorization (they are placeholders for YOUR archetypes);
+  - add your correlation attribute to the correlation read if it is not name
+    (for example extension/entraObjectId, see docs/identity-providers.md);
   - drop #addObject if you do not want create_user;
-  - drop #completeWorkItem if you do not want decide_work_item.
+  - drop #completeWorkItem if you do not want decide_work_item;
+  - drop #claimWorkItem and #releaseWorkItem if no approval step names a group;
+  - drop #cancelCase if requesters should not withdraw their own requests. Keep
+    it, and the person also needs model #cancelCase on cases they requested;
+    midPoint's End user role does not have that (docs/authorization.md).
+
+  Verified on midPoint 4.10.3 (2026-10-04) with exactly this shape (REST
+  entry, #proxy, correlation read, no other model rights): impersonated calls
+  as a plain End user and as a manager answer 200, correlation finds the user,
+  and the account acting as itself is refused (403) when it modifies a user.
 
   Not included on purpose: rest-3#executeScript. search_audit needs bulk-action
   Groovy, which 4.10 unlocks only for full superusers or via a deployment-wide
@@ -58,6 +70,7 @@
         completeWorkItem POST /ws/rest/cases/{oid}/workItems/{id}/complete
         claimWorkItem   POST /ws/rest/cases/{oid}/workItems/{id}/claim   (claim_work_item)
         releaseWorkItem POST /ws/rest/cases/{oid}/workItems/{id}/release (release_work_item)
+        cancelCase      POST /ws/rest/cases/{oid}/cancel                (cancel_request, Withdraw)
       Not included: runTask, suspendTask, resumeTask and testResource (the operator
       tools). Add them only where operators should act from the assistant.
     -->
@@ -72,6 +85,7 @@
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#completeWorkItem</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#claimWorkItem</action>
         <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#releaseWorkItem</action>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-rest-3#cancelCase</action>
     </authorization>
 
     <!--
@@ -97,5 +111,26 @@
             <!-- ... and, if machine identities are in scope, e.g. an "ai-agent" archetype -->
             <archetypeRef oid="11111111-2222-3333-4444-5555555500a2"/>
         </object>
+    </authorization>
+
+    <!--
+      Correlation: the server finds the user a token belongs to by searching as
+      this account itself, before it knows whom to impersonate. This is the only
+      model right the account holds: read, limited to the same archetypes as
+      #proxy and to the items the searches filter on.
+    -->
+    <authorization>
+        <name>read-users-for-correlation</name>
+        <description>Lets midpoint-mcp-server find the user a token belongs to.</description>
+        <action>http://midpoint.evolveum.com/xml/ns/public/security/authorization-model-3#read</action>
+        <object>
+            <type>UserType</type>
+            <!-- REPLACE with the same archetype OIDs as in rest-proxy -->
+            <archetypeRef oid="11111111-2222-3333-4444-5555555500a1"/>
+            <archetypeRef oid="11111111-2222-3333-4444-5555555500a2"/>
+        </object>
+        <item>name</item>
+        <item>archetypeRef</item>
+        <!-- Add the correlation attribute if it is not name, for example extension/entraObjectId. -->
     </authorization>
 </role>

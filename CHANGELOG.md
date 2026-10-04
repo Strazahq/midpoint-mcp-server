@@ -68,6 +68,21 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- `examples/role-mcp-rs-service.xml` is complete for shared mode. It now
+  carries its one model right, the read authorization that correlation needs
+  (limited to the `#proxy` archetypes and the items `name` and `archetypeRef`),
+  and the REST actions `#claimWorkItem`, `#releaseWorkItem` and `#cancelCase`.
+  Verified on midPoint 4.10.3:
+  - with exactly that shape, impersonated calls answer as a plain End user and
+    as a manager;
+  - correlation finds the user;
+  - the account acting as itself gets 403 when it changes a user.
+
+  People need no REST rights. Withdrawing a request also needs `model-3#cancelCase`
+  on the person's own cases, which midPoint's End user role lacks;
+  `docs/authorization.md` has the XML. The direct-service example now says never
+  to give it to a shared-mode account. README, `docs/authorization.md`,
+  `docs/identity-providers.md` and `docs/misconfigurations.md` follow.
 - Write tools say what they do in names first. For example: "DRY RUN — writes
   disabled. Would assign role End user to Carol Jensen (carol)." or "Approved
   Database admin for Bob Stone (bstone) …". The OIDs, the case and the REST
