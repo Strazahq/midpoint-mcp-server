@@ -3,12 +3,19 @@
 midpoint-mcp-server connects AI assistants to
 [Evolveum midPoint](https://evolveum.com/midpoint/) through the
 [Model Context Protocol](https://modelcontextprotocol.io) (MCP). It gives an
-assistant 27 tools to look up users, roles and resources, request roles, decide
-approvals, see a manager's team and, when you allow it, change midPoint. Every call
+assistant 38 tools to look up users, roles and resources, request roles, decide
+approvals, see a manager's team, check what failed recently and, when you allow
+it, change midPoint. Every call
 goes through midPoint's REST API as a real midPoint user, so midPoint's own
 authorizations, approval policies and audit trail apply to it. It is written for
 midPoint administrators who want to offer an assistant to their users or use one
-themselves. It ships as one static Go binary and is tested against midPoint 4.10.
+themselves. It ships as one static Go binary and supports midPoint 4.10 (see
+[midPoint versions](#midpoint-versions)).
+
+**Try the demo:** [strazahq.github.io/midpoint-mcp-server](https://strazahq.github.io/midpoint-mcp-server/)
+shows the four interactive views (approval inbox, Get access, My requests, My
+team's access) in a simulated chat with sample data, including the "allow this
+tool?" step. It is built from this repository by `node demo/build.mjs`.
 
 ## Choose how to run it
 
@@ -560,6 +567,27 @@ doesn't match its OID before writing.
   [Check a release](#check-a-release). The release is refused unless
   `CHANGELOG.md` has a non-empty section headed `## [1.2.3]`, and that section
   becomes the release notes.
+
+## midPoint versions
+
+The server supports **midPoint 4.10**. Every live check in this repository, and every
+`[live]` note in the docs, was made against midPoint 4.10.3. Other versions are not
+tested and may not work, even partly:
+
+- **4.8 and 4.9**: older layouts of what the server reads. Value metadata
+  (`@metadata`) on assignments, role memberships and cases holds where an assignment
+  came from and which role grants another. The server falls back to the older
+  `metadata` container for creation times and assignment origin, but "comes with …"
+  needs the 4.10 layout. Approval cases (stages, approvers, work items offered to a
+  group), the query language the searches use, the REST actions it relies on
+  (`Switch-To-Principal` with archetype-scoped `#proxy`, claim, release, cancel, task
+  and resource actions) and the audit script route may also differ.
+- **4.11 and later**: not released or not yet tried. The same areas are the ones to
+  check first.
+
+Before you run another version, run `go test ./...`, then the live checks in
+[docs/authorization.md](docs/authorization.md#verify-a-deployment) against a test
+midPoint of that version. Report what differs in an issue.
 
 ## Versions
 

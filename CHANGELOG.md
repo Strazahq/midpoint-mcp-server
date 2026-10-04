@@ -8,6 +8,18 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Added
 
+- An interactive demo, `demo/index.html`, built by `node demo/build.mjs` from the
+  four view documents and the recorded test fixtures (fictional people). It is a
+  simulated chat host with six scenarios: approve or reject, a manager's inbox,
+  claiming a request offered to a group, asking for a role, withdrawing a
+  request, and reviewing a team member's access. Before each write it shows the
+  "allow this tool?" step with the midPoint names next to the IDs, and it can
+  show the text the model reads. The new `demo` workflow publishes it to GitHub
+  Pages on every release tag, so the public demo matches the released views.
+  Build-time dependencies, pinned by commit and not shipped in the binary:
+  `actions/configure-pages`, `actions/upload-pages-artifact` and
+  `actions/deploy-pages`, which GitHub requires to publish a Pages site from a
+  workflow.
 - Approvals offered to a group (contract D40, settles Q4):
   - `list_work_items` also lists open work items offered to a group the
     caller belongs to (`offered`, `offeredTo`), and marks those the caller
@@ -68,6 +80,10 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ### Changed
 
+- The README states which midPoint versions are supported: midPoint 4.10, with
+  every live check made on 4.10.3. midPoint 4.8, 4.9 and 4.11 are untested and
+  may not work. A new "midPoint versions" section lists the parts most likely to
+  differ. PLAN no longer claims 4.8 and later.
 - `examples/role-mcp-rs-service.xml` is complete for shared mode. It now
   carries its one model right, the read authorization that correlation needs
   (limited to the `#proxy` archetypes and the items `name` and `archetypeRef`),

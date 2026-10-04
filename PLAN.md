@@ -6,7 +6,8 @@ product-neutral (midPoint + MCP only; no downstream deployment stories).
 ## Stack
 
 - Go, `github.com/modelcontextprotocol/go-sdk` (official SDK)
-- midPoint REST API (`/ws/rest/...`), midPoint 4.8+ / tested against 4.10
+- midPoint REST API (`/ws/rest/...`), midPoint 4.10 (every live check on 4.10.3; 4.8,
+  4.9 and 4.11 are untested and may not work, see README "midPoint versions")
 - Auth: HTTP Basic (midPoint's native REST auth) via env
   `MIDPOINT_URL`, `MIDPOINT_USERNAME`, `MIDPOINT_PASSWORD`
 - Transports: stdio (default), streamable HTTP via `--http :3001` (endpoint `/mcp`)
