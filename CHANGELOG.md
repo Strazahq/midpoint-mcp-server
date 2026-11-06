@@ -6,6 +6,8 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-06
+
 ### Fixed
 
 - The output schema of the 15 gated write tools typed `body` as the boolean

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
@@ -77,6 +78,9 @@ func connectHealth(t *testing.T, srv *httptest.Server) *mcp.ClientSession {
 }
 
 func TestListRecentErrorsText(t *testing.T) {
+	// The fixtures are dated 2026-10-03, so the window ends that evening.
+	recentErrorsNow = func() time.Time { return time.Date(2026, 10, 3, 19, 0, 0, 0, time.UTC) }
+	t.Cleanup(func() { recentErrorsNow = time.Now })
 	cs := connectHealth(t, healthMidpoint(t))
 	out, got := callToolText(t, cs, "list_recent_errors", map[string]any{"hours": 24})
 

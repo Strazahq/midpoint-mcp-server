@@ -5,10 +5,15 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/strazahq/midpoint-mcp-server/internal/midpoint"
 )
+
+// recentErrorsNow is the end of the list_recent_errors window. Tests set it,
+// so fixtures with fixed timestamps stay inside the window.
+var recentErrorsNow = time.Now
 
 // registerHealthTools installs list_recent_errors, a read-only tool outside
 // the write gate. It runs on the caller's own midPoint rights.
@@ -26,7 +31,7 @@ func registerHealthTools(server *mcp.Server, client *midpoint.Client) {
 			"rights, so each person sees only what midPoint lets them see. At most 20 systems are searched. " +
 			untrustedTextNote,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in recentErrorsInput) (*mcp.CallToolResult, recentErrorsOutput, error) {
-		res := client.RecentErrors(ctx, midpoint.RecentErrorsQuery{Hours: in.Hours, Limit: in.Limit})
+		res := client.RecentErrors(ctx, midpoint.RecentErrorsQuery{Hours: in.Hours, Limit: in.Limit, Now: recentErrorsNow()})
 		summary := recentErrorsSummary(res)
 		return text(recentErrorsText(summary, res)), recentErrorsOutput{Summary: summary, RecentErrors: res}, nil
 	})
