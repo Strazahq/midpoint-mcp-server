@@ -6,6 +6,14 @@ follows [Keep a Changelog](https://keepachangelog.com/); milestones map to
 
 ## [Unreleased]
 
+### Fixed
+
+- The output schema of the 15 gated write tools typed `body` as the boolean
+  schema `true`. The MCP schema types each property as an object, and clients
+  on the TypeScript SDK, Glama's inspector among them, refused the whole tool
+  list. `body` now has a schema object with a description, and a test checks
+  every property schema of every tool.
+
 ## [0.6.0] - 2026-10-04
 
 ### Added

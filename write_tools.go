@@ -27,7 +27,7 @@ type writeOutput struct {
 	Summary  string `json:"summary"`
 	Method   string `json:"method"`
 	Endpoint string `json:"endpoint"`
-	Body     any    `json:"body,omitempty"`
+	Body     any    `json:"body,omitempty" jsonschema:"the JSON body of the midPoint REST request, when it has one"`
 	Result   string `json:"result,omitempty"`
 }
 
